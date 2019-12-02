@@ -110,6 +110,9 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, trainId, seed = NULL, i
                'kendall.estimate','kendall.pvalue', 'spearman.estimate','spearman.pvalue',
                'fisher.pval', 't.test.a.pval', 't.test.b.pval')
 
+        file_prefix = paste0(output_directory, project, "_", tx)
+
+        print(file_prefix)
         
         pvalues <- split_half_testing(X.covariates, Y, 
                                       treatment, 
@@ -117,7 +120,7 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, trainId, seed = NULL, i
                                       is_save = is_save, 
                                       save_split = save_split, 
                                       is_tuned = is.tuned,
-                                      file_prefix = paste0(output_directory, project, "_", tx),
+                                      file_prefix = file_prefix,
                                       col_names = col_names, 
                                       seed = seed) 
 
