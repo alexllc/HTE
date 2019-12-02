@@ -93,13 +93,13 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, trainId, seed = NULL, i
         # since treatment variable is 0 or 1, if the feature considered is binary, then no transformation is neeeded;
         # otherwise, we set values of the feature greater than specific quantile, say 0.75, to 1
 
-        treatment <- covar_mat[, tx]  # it has been confirmed that grf can deal with continuous treatment variable
+        treatment <- covar_mat[, tx]editor.fastScrollSensitivity   # it has been confirmed that grf can deal with continuous treatment variable
         X.covariates <- as.matrix(dplyr::select(covar_mat, -tx))
         
         print(paste0(c('#', rep('-', 40), ' begin a new treatment ', rep('-', 40)), collapse = ''))
         
         if(is.binary){
-            treatment <- as.numeric(treatment != 0)
+            treatment <- as.numeric(treatment != 0) # only for mutation
         }else{
             treatment <- as.numeric(treatment)
         }
@@ -117,7 +117,7 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, trainId, seed = NULL, i
                                       is_save = is_save, 
                                       save_split = save_split, 
                                       is_tuned = is.tuned,
-                                      file_prefix = paste0(output_directory, "_", tx),
+                                      file_prefix = paste0(output_directory, project, "_", tx),
                                       col_names = col_names, 
                                       seed = seed) 
 

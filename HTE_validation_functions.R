@@ -173,10 +173,10 @@ split_half_testing <- function(covariates, Y,
         if(save_split){
             observation_result.a[trainId,] <- tau.a.train.stats
             observation_result.a[-trainId,] <- tau.a.stats
-            write.csv(observation_result.a, file = paste0(file_prefix, project,  '_observation_', i, '_result_a.csv'))
+            write.csv(observation_result.a, file = paste0(file_prefix,   '_observation_', i, '_result_a.csv'))
             observation_result.b[-trainId,] <- tau.b.train.stats 
             observation_result.b[trainId,] <- tau.b.stats
-            write.csv(observation_result.b, file = paste0(file_prefix, project, '_observation_', i,'_result_b.csv'))
+            write.csv(observation_result.b, file = paste0(file_prefix,  '_observation_', i,'_result_b.csv'))
         }
 
         simes_pval.a <- simes.test(tau.a.stats[, 3])
@@ -202,7 +202,7 @@ split_half_testing <- function(covariates, Y,
 
     if(is_save){
         colnames(correlation_matrix) <- col_names 
-        write.csv(correlation_matrix, file = paste0(file_prefix, project, '_split_half.csv'), row.names = F, quote = F)
+        write.csv(correlation_matrix, file = paste0(file_prefix, '_split_half.csv'), row.names = F, quote = F)
     }   
     
     # change to partial_simes_pval 20190929
@@ -254,7 +254,7 @@ paralleled.perm.cf <- function(covariates,
         if(is_save){
             rslt <- cbind(Y, Y.hat, treatment, W.hat, perm.tau.forest[["Y.hat"]], perm.tau.forest[["W.hat"]])
             ord <- sort(samp, index.return = T)
-            write.csv(rslt[ord$ix, ], file = paste0(file_prefix, project, '_repeat_', i,'.csv'), row.names = F, col.names = col_names, quote = F)
+            write.csv(rslt[ord$ix, ], file = paste0(file_prefix, '_repeat_', i,'.csv'), row.names = F, col.names = col_names, quote = F)
         }
         perm.var <- var(perm.tau.forest$predictions)
         perm.risk <- assess.explained.tau.fixed.YW.risk(perm.tau.forest, Y, Y.hat, treatment, W.hat)
@@ -296,8 +296,8 @@ permutate.covariates.testing <- function(covariates, Y,
                                         cluster_id = NULL)
     if(is_save){    
         observed_risk <- c(tau.var, fixed.YW.tau.risk)
-        write.csv(perm.risk.mat, file = paste0(file_prefix, project,  '_fixed_YW_permutation_risk_result.csv'), quote = F, row_names = F)
-        write_csv(observed_risk, file = paste0(file_prefix, project, '_fixed_YW_observed_risk_result.csv'), quote = F, row.names = F)
+        write.csv(perm.risk.mat, file = paste0(file_prefix,  '_fixed_YW_permutation_risk_result.csv'), quote = F, row_names = F)
+        write_csv(observed_risk, file = paste0(file_prefix, '_fixed_YW_observed_risk_result.csv'), quote = F, row.names = F)
     }
     
     permute.var.pval = mean(perm.risk.mat[,1] >  tau.var)
@@ -360,7 +360,7 @@ adaptive.permutate.covariates.testing <- function(X, Y, Y.hat,
     
     if(is_save){
         # observed_risk <- c(tau.var, tau.risk, fixed.YW.tau.risk)
-        write.csv(old.perm.risk.mat, file = paste0(file_prefix, project, '_permutation_risk_fixed_YW_result.csv'), quote = F, row.names = F)
+        write.csv(old.perm.risk.mat, file = paste0(file_prefix, '_permutation_risk_fixed_YW_result.csv'), quote = F, row.names = F)
         # print('b')
         # write.csv(observed_risk, file = paste0(file_prefix, '.observed.risk.result.csv'), quote = F, row.names = F)
     }

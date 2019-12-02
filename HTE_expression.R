@@ -56,7 +56,7 @@ cancer_list = c(
                 'UCEC',
                 'ESCA')
 
-project = cancer_list[1]
+project = cancer_list[3]
 output_file = paste0("./result/", project, "/")
 
 # Fetch survival data from GDC
@@ -158,7 +158,7 @@ exp_matrix$donorId <- rownames(exp_matrix)
 exp_matrix = dplyr::select(exp_matrix, -bcr)
 
 # Select for DEEG only
-cancer_DEG = read.csv(paste0("../", project, "_DEG.csv")
+cancer_DEG = read.csv(paste0("../DEA/", project, "_DEG.csv"))
 cancer_DEG = cancer_DEG$x
 ensembl = useMart("ensembl",dataset="hsapiens_gene_ensembl")
 DEG_ensmbl = getBM(attributes = "ensembl_gene_id", filters = "hgnc_symbol", values = cancer_DEG, mart = ensembl)
