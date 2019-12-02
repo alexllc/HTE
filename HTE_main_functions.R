@@ -110,6 +110,7 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, trainId, seed = NULL, i
                'kendall.estimate','kendall.pvalue', 'spearman.estimate','spearman.pvalue',
                'fisher.pval', 't.test.a.pval', 't.test.b.pval')
 
+        #test
         file_prefix = paste0(output_directory, project, "_", tx)
 
         print(file_prefix)
