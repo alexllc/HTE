@@ -5,7 +5,7 @@ library(grf)
 # library(randomForest)
 
 
-cf <- function(covarites, Y, W, Y.hat = NULL, W.hat = NULL, num_trees = 2000, node.size = 5, cluster_id = NULL, frac.selected = 0.01, seed = NULL){
+cf <- function(covarites, Y, W, Y.hat = NULL, W.hat = NULL, num_trees = 2000, node.size = 5, cluster_id = NULL, frac_selected = 0.01, seed = NULL){
     # for permutation test, Y.hat and W.hat should be provided in order to fix Y and W.
     # set and run casual forest
     if((is.null(W.hat) + is.null(W.hat)) == 1) stop("Y.hat and W.hat should be provided at the same time!")
