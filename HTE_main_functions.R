@@ -153,7 +153,7 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, trainId, seed = NULL, i
             # save the result
             pred.ret <- cbind(whole_dataset$donorId, tau_stats) 
             colnames(pred.ret) <- c('donorId', 'tau.val', 'tau.zval', 'tau.pval', 'tau.p.adjust')
-            write.csv(pred.ret, paste0(output_directory, '_tau_', tx, '.csv'), quote = F, row.names = F)
+            write.csv(pred.ret, paste0(output_directory, project, '_tau_', tx, '.csv'), quote = F, row.names = F)
 
             # permutate estimated tau values to validate HET esimation
             Y.hat <- tau.forest[["Y.hat"]]
@@ -207,7 +207,7 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, trainId, seed = NULL, i
             # extract feature importance and save
             varImp <- variable_importance(tau.forest,  max.depth = 4)
             varImp.ret <- data.frame(variable = colnames(X.covariates),  varImp)
-            write.csv(varImp.ret, paste0(output_directory, '_varimp_', tx, '.csv'), quote = F, row.names = F) 
+            write.csv(varImp.ret, paste0(output_directory, project, '_varimp_', tx, '.csv'), quote = F, row.names = F) 
         }
     }
     return(list(correlation.test.ret, calibration.ret, double.dataset.test.ret, permutate.testing.ret, observed.tau.risk.var.ret))
