@@ -34,7 +34,7 @@ setMethod("append", signature(x = "data.frame", values = "vector"),
     }
 )
 
-run.hte <- function(covar_mat, tx_vector, whole_dataset, trainId, seed = NULL, is.binary = TRUE, is_save = T, save_split = T, is.tuned = F, thres = 0.75, n_core = 8, output_directory = NULL){
+run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = NULL, trainId, seed = NULL, is.binary = TRUE, is_save = T, save_split = T, is.tuned = F, thres = 0.75, n_core = 8, output_directory = NULL){
     # @covar_mat: covariates matrix (with treatment assignments as well if each of the covariates are taking turns to be analyzed as treatments). Treatment assignments can be binary or continuous.
     # @tx_vector: a vector of variables that will each be used as treatments
     # @whole_dataset: dataframe with outcome, covariates and treatment assignments
@@ -99,7 +99,30 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, trainId, seed = NULL, i
         print(paste0(c('#', rep('-', 40), ' begin a new treatment ', rep('-', 40)), collapse = ''))
         
         if(is.binary){
-            treatment <- as.numeric(treatment != 0) # only for mutation
+            if (covar_type == "mutation") {
+                treatment <- as.numeric(treatment != 0) # only for mutation
+            }
+            else if (covar_type == "expression") {
+               
+               # Read corresponding FC in tumor
+                    DEGs = read.csv(paste0("./tables/", project, "_DEGtable.csv"))
+               # determine if over expressed or under expressed in tumor
+                    DEmeters = dplyr::filter(DEGs, X==tx)
+               # set threshold based on gene behavior in tumors
+                    if (DEmeters$logFC > 0){
+                        # we take UQ
+                        tmp = as.numeric(treatment > quantile(treatment, 0.75))
+                    }
+                    else {
+                        # we take LQ
+                        tmp = as.numeric(treatment < quantile(treatment, 0.25))
+
+                    }
+            }
+                else{
+                    treatment <- as.numeric(treatment)
+                }
+            }
         }else{
             treatment <- as.numeric(treatment)
         }
