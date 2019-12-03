@@ -112,18 +112,16 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
                     if (DEmeters$logFC > 0){
                         # we take UQ
                         tmp = as.numeric(treatment > quantile(treatment, 0.75))
-                    }
-                    else {
+                    } else {
                         # we take LQ
                         tmp = as.numeric(treatment < quantile(treatment, 0.25))
 
                     }
-            }
-                else{
+            } else {
                     treatment <- as.numeric(treatment)
                 }
             }
-        }else{
+        } else {
             treatment <- as.numeric(treatment)
         }
 
