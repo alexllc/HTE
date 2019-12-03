@@ -121,6 +121,7 @@ g_query <- GDCquery(project = paste0("TCGA-", project),
 #                     save = TRUE,
 #                     save.filename = paste0(project, "_exp.rda"))
 # prep <- GDCprepare(g_query) 
+load(paste0(project, "_exp.rda"))
 prep = data
 exp_matrix <- SummarizedExperiment::assay(prep, "HTSeq - FPKM-UQ")
 
