@@ -66,10 +66,10 @@ query <- GDCquery(project = paste0("TCGA-", project),
                 file.type = "xml") # Obtain list from TCGAbiolinks:::getProjectSummary(<enter_project>)
 
 #GDCdownload(query)
+load(paste0("./clinical/", project, "_clinical.rda"))
+# patient = GDCprepare_clinic(query, clinical.info = "patient")
 
-patient = GDCprepare_clinic(query, clinical.info = "patient")
-
-save(patient, file = paste0("./clinical/", project, "_clinical.rda"))
+#save(patient, file = paste0("./clinical/", project, "_clinical.rda"))
 s.patient <-  c("bcr_patient_barcode", "gender","vital_status","days_to_birth", "days_to_death", "days_to_last_followup","race_list", "stage_event_pathologic_stage")
 
 s.df <- NA
