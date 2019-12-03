@@ -67,14 +67,14 @@ query <- GDCquery(project = paste0("TCGA-", project),
 
 #GDCdownload(query)
 
-patient_clinical = GDCprepare_clinic(query, clinical.info = "patient")
+patient = GDCprepare_clinic(query, clinical.info = "patient")
 
-save(patient_clinical, file = paste0("./clinical/", project, "_clinical.rda"))
+save(patient, file = paste0("./clinical/", project, "_clinical.rda"))
 s.patient <-  c("bcr_patient_barcode", "gender","vital_status","days_to_birth", "days_to_death", "days_to_last_followup","race_list", "stage_event_pathologic_stage")
 
 s.df <- NA
 for (i in s.patient) {
-    s.df <- cbind(s.df, patient_clinical[grep(i, colnames(patient_clinical))])
+    s.df <- cbind(s.df, patient[grep(i, colnames(patient))])
 }
 s.df <- s.df[,-1]
 df_patient <- s.df[!duplicated(s.df),]
