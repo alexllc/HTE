@@ -120,7 +120,6 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
             } else {
                     treatment <- as.numeric(treatment)
                 }
-            }
         } else {
             treatment <- as.numeric(treatment)
         }
