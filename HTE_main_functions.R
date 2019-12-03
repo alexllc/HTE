@@ -111,19 +111,16 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
                # set threshold based on gene behavior in tumors
                     if (DEmeters$logFC > 0){
                         # we take UQ
-                        tmp = as.numeric(treatment > quantile(treatment, 0.75))
+                        treatment = as.numeric(treatment > quantile(treatment, 0.75))
                     } else {
                         # we take LQ
-                        tmp = as.numeric(treatment < quantile(treatment, 0.25))
-
+                        treatment = as.numeric(treatment < quantile(treatment, 0.25))
                     }
+                
             } else {
                     treatment <- as.numeric(treatment)
                 }
-        } else {
-            treatment <- as.numeric(treatment)
         }
-
         # split whole dataset into two parts, and the idea of validation is similar to prediction strength.
         
         col_names <- c('simes.pval', 'partial.simes.pval', 'pearson.estimate','pearson.pvalue',
