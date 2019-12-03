@@ -116,11 +116,12 @@ g_query <- GDCquery(project = paste0("TCGA-", project),
                 workflow.type = "HTSeq - FPKM-UQ",
                 sample.type = "Primary solid Tumor")
 
-GDCdownload(g_query)
-expdat <- GDCprepare(query = g_query,
-                    save = TRUE,
-                    save.filename = paste0(project, "_exp.rda"))
-prep <- GDCprepare(g_query) 
+# GDCdownload(g_query)
+# expdat <- GDCprepare(query = g_query,
+#                     save = TRUE,
+#                     save.filename = paste0(project, "_exp.rda"))
+# prep <- GDCprepare(g_query) 
+prep = data
 exp_matrix <- SummarizedExperiment::assay(prep, "HTSeq - FPKM-UQ")
 
 # Only select primary tumor samples
