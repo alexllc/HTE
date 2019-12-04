@@ -191,12 +191,14 @@ exp_matrix$bcr <- rownames(exp_matrix)
 exp_matrix <- as.data.frame(exp_matrix %>% group_by(patient) %>% dplyr::slice(1))
 rownames(exp_matrix) <- exp_matrix$bcr
 
-for (c in c(1:4)) {
 
-which.one <- which( levels(exp_matrix[,c]) == "")
-levels(exp_matrix[,c])[which.one] <- NA
-print(paste0(colnames(exp_matrix)[c], " is altered"))
-exp_matrix[,c] = sapply(sapply(exp_matrix[,c], as.factor), as.numeric) 
+batches = c("TSS", "patient", "portion", "plate", "center")
+for (name in batches) {
+    c = grep(name, colnames(exp_matrix))
+    which.one <- which( levels(exp_matrix[,c]) == "")
+    levels(exp_matrix[,c])[which.one] <- NA
+    print(paste0(colnames(exp_matrix)[c], " is altered"))
+    exp_matrix[,c] = sapply(sapply(exp_matrix[,c], as.factor), as.numeric) 
 }
 
 
@@ -230,3 +232,4 @@ write.csv(result[[1]], paste0(output_file, '_expression_correlation_test_result.
 write.csv(result[[2]], paste0(output_file, '_expression_calibration_result.csv'), quote = F, row.names = F)
 write.csv(result[[3]], paste0(output_file, '_expression_median_t_test_result.csv'), quote = F, row.names = F)
 write.csv(result[[4]], paste0(output_file, '_expression_permutate_testing_result.csv'), quote = F, row.names = F)
+
