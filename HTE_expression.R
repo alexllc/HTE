@@ -190,7 +190,6 @@ exp_matrix$bcr <- rownames(exp_matrix)
 # Select only one aliquot
 exp_matrix <- as.data.frame(exp_matrix %>% group_by(patient) %>% dplyr::slice(1))
 rownames(exp_matrix) <- exp_matrix$bcr
-exp_matrix <- dplyr::select(exp_matrix, -c(bcr, patient))
 
 for (c in c(1:4)) {
 
@@ -207,7 +206,7 @@ tmp = unlist(lapply(tmp, function(x) paste(x[[1]], x[[2]], x[[3]], sep = "-")))
 rownames(exp_matrix) <- unlist(tmp)
 
 exp_matrix$donorId <- rownames(exp_matrix)
-exp_matrix = dplyr::select(exp_matrix, -bcr)
+exp_matrix <- dplyr::select(exp_matrix, -c(bcr, patient))
 
 # Select for DEEG only
 DEGs = read.csv(paste0("./tables/", project, "_DEGtable.csv"))

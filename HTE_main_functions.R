@@ -132,6 +132,7 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
 
         print(file_prefix)
         
+        print("Performing split half.")
         pvalues <- split_half_testing(X.covariates, Y, 
                                       treatment, 
                                       binary = is.binary, 
@@ -159,6 +160,7 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
         # fit causal forest on the whole dataset
         # validate fitting with permutating covariates
         # *****************************************************************************************
+        print("Fitting CF on the whole dataset.")        
         tau.forest <- cf.estimator(X.covariates, Y, treatment)   # run causal forests by default
         tau.prediction <- predict(tau.forest, newdata = NULL, estimate.variance = TRUE, num.threads = n_core)
         tau.var <- var(tau.prediction$predictions)
@@ -169,6 +171,7 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
         partial.simes.pval <- simes.partial(floor(no.obs * 0.05), tau_stats[, 3])
 
         if(simes.pval <= 0.2) { 
+            print("Performing permutation.")
             cor.overall <- cor.test(covar_mat[, tx], Y, method = 'pearson', alternative = 'greater', use="na.or.complete")
             
             # save the result
@@ -230,6 +233,8 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
             varImp.ret <- data.frame(variable = colnames(X.covariates),  varImp)
             write.csv(varImp.ret, paste0(output_directory, project, '_varimp_', tx, '.csv'), quote = F, row.names = F) 
         }
+        
+        print("Skipping permutation.")
     }
     return(list(correlation.test.ret, calibration.ret, double.dataset.test.ret, permutate.testing.ret, observed.tau.risk.var.ret))
 }
