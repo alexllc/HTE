@@ -116,6 +116,7 @@ if (!file.exists(basename("TCGA_CDR_clean.csv"))) {
     clinical_dat[clinical_dat == "#N/A"] <- NA
     clinical_dat <- subset(clinical_dat, !is.na(OS.time) & !is.na(OS) & !is.na(age_at_initial_pathologic_diagnosis))
     colnames(clinical_dat)[colnames(clinical_dat)=="bcr_patient_barcode"] = "donorId"
+# This renaming step is critical as the HTE main function will rely on the column named outcome to indicate Y
     #patient$gender = as.numeric(patient$gender == 'FEMALE')
 
     write.csv(clinical_dat, "TCGA_CDR_clean.csv", row.names = F)
@@ -149,7 +150,6 @@ for (c in colnames(ss_patient)) {
 ss_patient = dplyr::select(ss_patient, -c(type, OS, OS.time))
 print("Processed patient dataframe: ")
 head(ss_patient)
-
 
 if (!file.exists(paste0("./HTSeqData/", project, "_exp.rda")) ) {
 
@@ -216,10 +216,8 @@ exp_matrix = dplyr::select(exp_matrix, c("donorId", "TSS", "portion", "plate", "
 
 
 # 4. Prepare covariate matrix, whole dataset matrix and a vectoor of treatment types
-colnames(df_patient)[1] = "donorId"
-#whole_dataset = dplyr::select(whole_dataset, -vital_status)
 
-# This renaming step is critical as the HTE main function will rely on the column named outcome to indicate Y
+
 covar_mat= dplyr::select(whole_dataset, -c("donorId", "outcome"))
 tx_vector = intersect_DEG
 
