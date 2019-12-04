@@ -216,7 +216,7 @@ exp_matrix = dplyr::select(exp_matrix, c("donorId", "TSS", "portion", "plate", "
 
 
 # 4. Prepare covariate matrix, whole dataset matrix and a vectoor of treatment types
-
+whole_dataset = inner_join(ss_patient, exp_matrix , by = "donorId")
 
 covar_mat= dplyr::select(whole_dataset, -c("donorId", "outcome"))
 tx_vector = intersect_DEG
