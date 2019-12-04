@@ -60,69 +60,117 @@ cancer_list = c(
 project = cancer_list[3]
 output_file = paste0("./result/", project, "/")
 
-# Fetch survival data from GDC
-query <- GDCquery(project = paste0("TCGA-", project),
-                data.category = "Clinical",
-                file.type = "xml") # Obtain list from TCGAbiolinks:::getProjectSummary(<enter_project>)
+# SURVIVAL DATA MUST USE TCGA-CDR CENTRAL DATASET https://www.sciencedirect.com/science/article/pii/S0092867418302290?via%3Dihub
 
-#GDCdownload(query)
-load(paste0("./clinical/", project, "_clinical.rda"))
-# patient = GDCprepare_clinic(query, clinical.info = "patient")
 
-#save(patient, file = paste0("./clinical/", project, "_clinical.rda"))
-s.patient <-  c("bcr_patient_barcode", "gender","vital_status","days_to_birth", "days_to_death", "days_to_last_followup","race_list", "stage_event_pathologic_stage")
+# # Fetch survival data from GDC
+# query <- GDCquery(project = paste0("TCGA-", project),
+#                 data.category = "Clinical",
+#                 file.type = "xml") # Obtain list from TCGAbiolinks:::getProjectSummary(<enter_project>)
 
-s.df <- NA
-for (i in s.patient) {
-    s.df <- cbind(s.df, patient[grep(i, colnames(patient))])
+# #GDCdownload(query)
+# load(paste0("./clinical/", project, "_clinical.rda"))
+# # patient = GDCprepare_clinic(query, clinical.info = "patient")
+
+# #save(patient, file = paste0("./clinical/", project, "_clinical.rda"))
+# s.patient <-  c("bcr_patient_barcode", "gender","vital_status","days_to_birth", "days_to_death", "days_to_last_followup","race_list", "stage_event_pathologic_stage")
+
+# s.df <- NA
+# for (i in s.patient) {
+#     s.df <- cbind(s.df, patient[grep(i, colnames(patient))])
+# }
+# s.df <- s.df[,-1]
+# df_patient <- s.df[!duplicated(s.df),]
+
+# # Process patient info
+# df_patient$vital_status <- sapply(as.numeric(df_patient$vital_status), function(x) x - 1)
+# df_patient <- df_patient %>% mutate(survival_time = coalesce(days_to_death, days_to_last_followup)) # there are some negative days
+# max.censored <- max(df_patient$survival_time[df_patient$vital_status == 0])
+# df_patient <- df_patient[df_patient$survival_time >= 0,]
+# df_patient$vital_status[df_patient$survival_time == max.censored] <- 1
+# df_patient$imputed.log.times <- impute.survival(df_patient$survival_time, df_patient$vital_status)
+# df_patient$age <- floor(df_patient$days_to_birth/365)/-1# Convert age
+
+# extra <- c("days_to_birth", "survival_time", "days_to_last_followup", "days_to_death")
+# df_patient <- dplyr::select(df_patient, -extra)
+# df_patient <- df_patient[df_patient$imputed.log.times >= 0,]
+
+# df_patient[df_patient==""] <- NA
+
+# for (c in colnames(df_patient)) {
+
+#     if (!is.numeric(df_patient[,c]) && c != "bcr_patient_barcode") {
+#         which.one <- which( levels(df_patient[,c]) == "")
+#         levels(df_patient[,c])[which.one] <- NA
+#         df_patient[,c] = sapply(sapply(df_patient[,c], as.factor), as.numeric) 
+#         print(paste0(c, " is altered")) 
+#     }
+# }
+
+# df_patient = na.omit(df_patient)
+if (!file.exists(basename("TCGA_CDR_clean.csv"))) {
+    cdr = read_excel("TCGA-CDR-SupplementalTableS1.xlsx")
+    clinical_dat = dplyr::select(cdr, c(bcr_patient_barcode, type, age_at_initial_pathologic_diagnosis,  gender, ajcc_pathologic_tumor_stage, OS, OS.time))
+
+    #patient <- patient[patient$OS.time!=0,]
+    clinical_dat[clinical_dat == "#N/A"] <- NA
+    clinical_dat <- subset(clinical_dat, !is.na(OS.time) & !is.na(OS) & !is.na(age_at_initial_pathologic_diagnosis))
+    colnames(clinical_dat)[colnames(clinical_dat)=="bcr_patient_barcode"] = "donorId"
+    #patient$gender = as.numeric(patient$gender == 'FEMALE')
+
+    write.csv(clinical_dat, "TCGA_CDR_clean.csv", row.names = F)
+} else {
+    clinical_dat = read.csv("TCGA_CDR_clean.csv")
 }
-s.df <- s.df[,-1]
-df_patient <- s.df[!duplicated(s.df),]
 
-# Process patient info
-df_patient$vital_status <- sapply(as.numeric(df_patient$vital_status), function(x) x - 1)
-df_patient <- df_patient %>% mutate(survival_time = coalesce(days_to_death, days_to_last_followup)) # there are some negative days
-max.censored <- max(df_patient$survival_time[df_patient$vital_status == 0])
-df_patient <- df_patient[df_patient$survival_time >= 0,]
-df_patient$vital_status[df_patient$survival_time == max.censored] <- 1
-df_patient$imputed.log.times <- impute.survival(df_patient$survival_time, df_patient$vital_status)
-df_patient$age <- floor(df_patient$days_to_birth/365)/-1# Convert age
+# specify cancer type here
+ss_patient <- subset(clinical_dat, type %in% project)
 
-extra <- c("days_to_birth", "survival_time", "days_to_last_followup", "days_to_death")
-df_patient <- dplyr::select(df_patient, -extra)
-df_patient <- df_patient[df_patient$imputed.log.times >= 0,]
+surv.times <- as.numeric(as.character(ss_patient$OS.time))
+cens <- as.numeric(ss_patient$OS)
 
-df_patient[df_patient==""] <- NA
+# get imputed log survival times
+max.censored <- max(surv.times[cens == 0])
+cens[surv.times == max.censored] <- 1
+outcome = impute.survival(surv.times, cens)
 
-for (c in colnames(df_patient)) {
+# attach imputed.log.times to original dataset
+ss_patient <- cbind(ss_patient, outcome)
 
-    if (!is.numeric(df_patient[,c]) && c != "bcr_patient_barcode") {
-        which.one <- which( levels(df_patient[,c]) == "")
-        levels(df_patient[,c])[which.one] <- NA
-        df_patient[,c] = sapply(sapply(df_patient[,c], as.factor), as.numeric) 
+for (c in colnames(ss_patient)) {
+
+    if (!is.numeric(ss_patient[,c]) && c != "donorId") {
+        which.one <- which( levels(ss_patient[,c]) == "")
+        levels(ss_patient[,c])[which.one] <- NA
+        ss_patient[,c] = sapply(sapply(ss_patient[,c], as.factor), as.numeric) 
         print(paste0(c, " is altered")) 
     }
 }
-
-df_patient = na.omit(df_patient)
+ss_patient = dplyr::select(ss_patient, -c(type, OS, OS.time))
 print("Processed patient dataframe: ")
-head(df_patient)
+head(ss_patient)
 
-# Fetch expression data from GDC
-g_query <- GDCquery(project = paste0("TCGA-", project),
-                data.category = "Transcriptome Profiling",
-                legacy = F,
-                data.type = "Gene Expression Quantification",
-                workflow.type = "HTSeq - FPKM-UQ",
-                sample.type = "Primary solid Tumor")
 
-# GDCdownload(g_query)
-# expdat <- GDCprepare(query = g_query,
-#                     save = TRUE,
-#                     save.filename = paste0(project, "_exp.rda"))
-# prep <- GDCprepare(g_query) 
-load(paste0(project, "_exp.rda"))
-prep = data
+if (!file.exists(paste0("./HTSeqData/", project, "_exp.rda")) ) {
+
+    # Fetch expression data from GDC
+    g_query <- GDCquery(project = paste0("TCGA-", project),
+                    data.category = "Transcriptome Profiling",
+                    legacy = F,
+                    data.type = "Gene Expression Quantification",
+                    workflow.type = "HTSeq - FPKM-UQ",
+                    sample.type = "Primary solid Tumor")
+
+    GDCdownload(g_query)
+    expdat <- GDCprepare(query = g_query,
+                        save = TRUE,
+                        save.filename = paste0(project, "_exp.rda"))
+    prep <- GDCprepare(g_query) 
+} else {
+    load(paste0("./HTSeqData/", project, "_exp.rda"))
+    prep = data
+}
+
 exp_matrix <- SummarizedExperiment::assay(prep, "HTSeq - FPKM-UQ")
 
 # Only select primary tumor samples
@@ -149,7 +197,7 @@ for (c in c(1:4)) {
 
 which.one <- which( levels(exp_matrix[,c]) == "")
 levels(exp_matrix[,c])[which.one] <- NA
-print(paste0(c, "is altered"))
+print(paste0(colnames(exp_matrix)[c], " is altered"))
 exp_matrix[,c] = sapply(sapply(exp_matrix[,c], as.factor), as.numeric) 
 }
 
@@ -163,22 +211,17 @@ exp_matrix$donorId <- rownames(exp_matrix)
 exp_matrix = dplyr::select(exp_matrix, -bcr)
 
 # Select for DEEG only
-cancer_DEG = read.csv(paste0("../DEA/", project, "_DEG.csv"))
-cancer_DEG = cancer_DEG$x
-ensembl = useMart("ensembl",dataset="hsapiens_gene_ensembl")
-DEG_ensmbl = getBM(attributes = "ensembl_gene_id", filters = "hgnc_symbol", values = cancer_DEG, mart = ensembl)
-DEG_ensmbl = DEG_ensmbl$ensembl_gene_id
+DEGs = read.csv(paste0("./tables/", project, "_DEGtable.csv"))
+cancer_DEG = DEGs$X
 intersect_DEG = DEG_ensmbl[DEG_ensmbl %in% colnames(exp_matrix)]
 exp_matrix = dplyr::select(exp_matrix, c("donorId", "TSS", "portion", "plate", "center", intersect_DEG))
 
 
 # 4. Prepare covariate matrix, whole dataset matrix and a vectoor of treatment types
 colnames(df_patient)[1] = "donorId"
-whole_dataset = inner_join(df_patient, as.data.frame(exp_matrix), by = "donorId")
-whole_dataset = dplyr::select(whole_dataset, -vital_status)
+#whole_dataset = dplyr::select(whole_dataset, -vital_status)
 
 # This renaming step is critical as the HTE main function will rely on the column named outcome to indicate Y
-colnames(whole_dataset)[colnames(whole_dataset) == "imputed.log.times"] = "outcome"
 covar_mat= dplyr::select(whole_dataset, -c("donorId", "outcome"))
 tx_vector = intersect_DEG
 
