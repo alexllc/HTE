@@ -189,7 +189,6 @@ exp_matrix$bcr <- rownames(exp_matrix)
 
 # Select only one aliquot
 exp_matrix <- as.data.frame(exp_matrix %>% group_by(patient) %>% dplyr::slice(1))
-exp_matrix$patient = NULL
 rownames(exp_matrix) <- exp_matrix$bcr
 exp_matrix <- dplyr::select(exp_matrix, -c(bcr, patient))
 
