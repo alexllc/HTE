@@ -211,7 +211,7 @@ exp_matrix <- dplyr::select(exp_matrix, -c(bcr, patient))
 # Select for DEEG only
 DEGs = read.csv(paste0("./tables/", project, "_DEGtable.csv"))
 cancer_DEG = DEGs$X
-intersect_DEG = DEG_ensmbl[DEG_ensmbl %in% colnames(exp_matrix)]
+intersect_DEG = cancer_DEG[cancer_DEG %in% colnames(exp_matrix)]
 exp_matrix = dplyr::select(exp_matrix, c("donorId", "TSS", "portion", "plate", "center", intersect_DEG))
 
 
