@@ -94,9 +94,7 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
         # otherwise, we set values of the feature greater than specific quantile, say 0.75, to 1
 
         treatment <- covar_mat[, tx] # it has been confirmed that grf can deal with continuous treatment variable
-        if quantile(treatment, 0.25 == 0){
-            next
-        }
+
 
         X.covariates <- as.matrix(dplyr::select(covar_mat, -tx))
         
