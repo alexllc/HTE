@@ -108,6 +108,10 @@ output_file = paste0("./result/", project, "/")
 # }
 
 # df_patient = na.omit(df_patient)
+if (!file.exists(basename("TCGA_CDR_clean.csv")))
+
+    download.file("https://ars.els-cdn.com/content/image/1-s2.0-S0092867418302290-mmc1.xlsx", "TCGA-CDR-SupplementalTableS1.xlsx")
+
 if (!file.exists(basename("TCGA_CDR_clean.csv"))) {
     cdr = read_excel("TCGA-CDR-SupplementalTableS1.xlsx")
     clinical_dat = dplyr::select(cdr, c(bcr_patient_barcode, type, age_at_initial_pathologic_diagnosis,  gender, ajcc_pathologic_tumor_stage, OS, OS.time))
@@ -222,6 +226,10 @@ whole_dataset = inner_join(ss_patient, exp_matrix , by = "donorId")
 
 covar_mat= dplyr::select(whole_dataset, -c("donorId", "outcome"))
 tx_vector = intersect_DEG
+
+# We need to remove genes with uniformly 0 eexpression as treatments!!!
+zeros = colnames(exp_matrix)[apply(exp_matrix,2, function(x) all(x == 0))]
+tx_vector = tx_vector[!tx_vector %in% zeros]
 
 obsNumber <- dim(covar_mat)[1]
 trainId <- sample(1: obsNumber, floor(obsNumber/2), replace = FALSE)
