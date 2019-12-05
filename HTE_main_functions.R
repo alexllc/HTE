@@ -97,7 +97,7 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
         if quantile(treatment, 0.25 == 0){
             next
         }
-        
+
         X.covariates <- as.matrix(dplyr::select(covar_mat, -tx))
         
         print(paste0(c('#', rep('-', 40), ' begin a new treatment ', rep('-', 40)), collapse = ''))
@@ -115,10 +115,10 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
                # set threshold based on gene behavior in tumors
                     if (DEmeters$logFC > 0){
                         # we take UQ
-                        treatment = as.numeric(treatment > quantile(treatment, 0.75))
+                        treatment = as.numeric(treatment >= quantile(treatment, 0.75))
                     } else {
                         # we take LQ
-                        treatment = as.numeric(treatment < quantile(treatment, 0.25))
+                        treatment = as.numeric(treatment <= quantile(treatment, 0.25))
                     }
                 
             } else {
