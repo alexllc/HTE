@@ -92,8 +92,8 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
     i = 1
     for(tx in tx_vector){
         
-        print("Processing ", i, " of ", length(tx_vector), " genes.")
-        
+        print(paste0("Processing ", i, " of ", length(tx_vector), " genes."))
+
         # since treatment variable is 0 or 1, if the feature considered is binary, then no transformation is neeeded;
         # otherwise, we set values of the feature greater than specific quantile, say 0.75, to 1
 
