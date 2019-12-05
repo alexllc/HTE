@@ -88,8 +88,12 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
     Y <- whole_dataset$outcome
 
     cf.estimator <- ifelse(is.tuned, cf.tuned, cf)
-
+    
+    i = 1
     for(tx in tx_vector){
+        
+        print("Processing ", i, " of ", length(tx_vector), " genes.")
+        
         # since treatment variable is 0 or 1, if the feature considered is binary, then no transformation is neeeded;
         # otherwise, we set values of the feature greater than specific quantile, say 0.75, to 1
 
@@ -234,9 +238,11 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
             varImp <- variable_importance(tau.forest,  max.depth = 4)
             varImp.ret <- data.frame(variable = colnames(X.covariates),  varImp)
             write.csv(varImp.ret, paste0(output_directory, project, '_varimp_', tx, '.csv'), quote = F, row.names = F) 
+        } else {
+            print("Skipping permutation.")
         }
         
-        print("Skipping permutation.")
+        
     }
     return(list(correlation.test.ret, calibration.ret, double.dataset.test.ret, permutate.testing.ret, observed.tau.risk.var.ret))
 }
