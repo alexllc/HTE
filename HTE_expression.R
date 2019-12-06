@@ -216,7 +216,7 @@ exp_matrix <- dplyr::select(exp_matrix, -c(bcr, patient))
 
 # Select for DEEG only
 DEGs = read.csv(paste0("./tables/", project, "_DEGtable.csv"))
-cancer_DEG = DEGs$X
+cancer_DEG = as.character(DEGs$X)
 intersect_DEG = cancer_DEG[cancer_DEG %in% colnames(exp_matrix)]
 exp_matrix = dplyr::select(exp_matrix, c("donorId", "TSS", "portion", "plate", "center", intersect_DEG))
 
@@ -235,7 +235,7 @@ tx_vector = tx_vector[!tx_vector %in% zeros]
 #######################################################
 ## RESUMING GENES FROM ERROR
 ## DEC 6: ERROR IN 214TH GENE
-tx_vector = tx_vector[215:length(tx_vector)]
+# tx_vector = as.character(tx_vector[215:length(tx_vector)])
 
 obsNumber <- dim(covar_mat)[1]
 trainId <- sample(1: obsNumber, floor(obsNumber/2), replace = FALSE)
