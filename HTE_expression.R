@@ -231,6 +231,12 @@ tx_vector = intersect_DEG
 zeros = colnames(exp_matrix)[apply(exp_matrix,2, function(x) all(x == 0))]
 tx_vector = tx_vector[!tx_vector %in% zeros]
 
+
+#######################################################
+## RESUMING GENES FROM ERROR
+## DEC 6: ERROR IN 214TH GENE
+tx_vector = tx_vector[215:length(tx_vector)]
+
 obsNumber <- dim(covar_mat)[1]
 trainId <- sample(1: obsNumber, floor(obsNumber/2), replace = FALSE)
 registerDoParallel(10)

@@ -92,10 +92,6 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
     i = 1
     for(tx in tx_vector){
         
-        print(paste0("Processing ", i, " of ", length(tx_vector), " genes."))
-
-        i = i+1
-
         # since treatment variable is 0 or 1, if the feature considered is binary, then no transformation is neeeded;
         # otherwise, we set values of the feature greater than specific quantile, say 0.75, to 1
 
@@ -106,11 +102,13 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
         
         print(paste0(c('#', rep('-', 40), ' begin a new treatment ', rep('-', 40)), collapse = ''))
         
+        print(paste0("Processing ", i, " of ", length(tx_vector), " genes."))
+        i = i+1
+        
         if(is.binary){
             if (covar_type == "mutation") {
                 treatment <- as.numeric(treatment != 0) # only for mutation
-            }
-            else if (covar_type == "expression") {
+            } else if (covar_type == "expression") {
                
                # Read corresponding FC in tumor
                     DEGs = read.csv(paste0("./tables/", project, "_DEGtable.csv"))
