@@ -109,6 +109,7 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
             if (covar_type == "mutation") {
                 treatment <- as.numeric(treatment != 0) # only for mutation
             } else if (covar_type == "expression") {
+
                
                # Read corresponding FC in tumor
                     DEGs = read.csv(paste0("./tables/", project, "_DEGtable.csv"))
@@ -117,11 +118,21 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
                # set threshold based on gene behavior in tumors
                     if (DEmeters$logFC > 0){
                         # we take UQ
-                        treatment = as.numeric(treatment >= quantile(treatment, 0.75))
+                        treatment = as.numeric(treatment > quantile(treatment, 0.75))
+                        if (all(treatment) == 1 | all(treatment) == 0) {
+                            print("Gene expression distribution too skewed, skipping.")
+                            next
+                        }
                     } else {
                         # we take LQ
                         treatment = as.numeric(treatment <= quantile(treatment, 0.25))
+                        if (all(treatment) == 1 | all(treatment) == 0) {
+                            print("Gene expression distribution too skewed, skipping.")
+                            next
+                        }
                     }
+
+                    if (trea)
                 
             } else {
                     treatment <- as.numeric(treatment)

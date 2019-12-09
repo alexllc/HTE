@@ -1,3 +1,5 @@
+library("colorout")
+
 # 1. Please make sure you have installed all the packages below before running
 # For main function
 library(doParallel)
@@ -168,7 +170,7 @@ if (!file.exists(paste0("./HTSeqData/", project, "_exp.rda")) ) {
     GDCdownload(g_query)
     expdat <- GDCprepare(query = g_query,
                         save = TRUE,
-                        save.filename = paste0(project, "_exp.rda"))
+                        save.filename = paste0("./HTSeqData/",project, "_exp.rda"))
     prep <- GDCprepare(g_query) 
 } else {
     load(paste0("./HTSeqData/", project, "_exp.rda"))
@@ -218,6 +220,8 @@ exp_matrix <- dplyr::select(exp_matrix, -c(bcr, patient))
 DEGs = read.csv(paste0("./tables/", project, "_DEGtable.csv"))
 cancer_DEG = as.character(DEGs$X)
 intersect_DEG = cancer_DEG[cancer_DEG %in% colnames(exp_matrix)]
+zeros = colnames(exp_matrix)[apply(exp_matrix,2, function(x) all(x == 0))]
+intersect_DEG = intersect_DEG[!intersect_DEG %in% zeros]
 exp_matrix = dplyr::select(exp_matrix, c("donorId", "TSS", "portion", "plate", "center", intersect_DEG))
 
 
@@ -228,8 +232,6 @@ covar_mat= dplyr::select(whole_dataset, -c("donorId", "outcome"))
 tx_vector = intersect_DEG
 
 # We need to remove genes with uniformly 0 eexpression as treatments!!!
-zeros = colnames(exp_matrix)[apply(exp_matrix,2, function(x) all(x == 0))]
-tx_vector = tx_vector[!tx_vector %in% zeros]
 
 
 #######################################################
