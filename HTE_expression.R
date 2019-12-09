@@ -229,7 +229,7 @@ exp_matrix = dplyr::select(exp_matrix, c("donorId", "TSS", "portion", "plate", "
 whole_dataset = inner_join(ss_patient, exp_matrix , by = "donorId")
 
 covar_mat= dplyr::select(whole_dataset, -c("donorId", "outcome"))
-tx_vector = intersect_DEG
+tx_vector = intersect_DEG[233:length(intersect_DEG)]
 
 # We need to remove genes with uniformly 0 eexpression as treatments!!!
 
