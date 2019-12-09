@@ -109,7 +109,6 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
             if (covar_type == "mutation") {
                 treatment <- as.numeric(treatment != 0) # only for mutation
             } else if (covar_type == "expression") {
-
                
                # Read corresponding FC in tumor
                     DEGs = read.csv(paste0("./tables/", project, "_DEGtable.csv"))
@@ -131,12 +130,9 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
                             next
                         }
                     }
-
-                    if (trea)
-                
-            } else {
+                } else {
                     treatment <- as.numeric(treatment)
-                }
+                    }
         }
         # split whole dataset into two parts, and the idea of validation is similar to prediction strength.
         
