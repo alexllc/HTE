@@ -118,18 +118,17 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
                     if (DEmeters$logFC > 0){
                         # we take UQ
                         treatment = as.numeric(treatment > quantile(treatment, 0.75))
-                        if (all(treatment) == 1 | all(treatment) == 0) {
-                            print("Gene expression distribution too skewed, skipping.")
-                            next
-                        }
                     } else {
                         # we take LQ
-                        treatment = as.numeric(treatment <= quantile(treatment, 0.25))
-                        if (all(treatment) == 1 | all(treatment) == 0) {
-                            print("Gene expression distribution too skewed, skipping.")
-                            next
+                        treatment = as.numeric(treatment < quantile(treatment, 0.25))
                         }
+                    
+                    # Safeguarding against uniform treatment assignment
+                    if (length(unique(treatment)) == 1) {
+                        print("Gene expression distribution too sparse, skipping.")
+                        next
                     }
+                    
                 } else {
                     treatment <- as.numeric(treatment)
                     }
