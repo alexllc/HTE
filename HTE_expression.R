@@ -131,9 +131,9 @@ if (!file.exists(basename("TCGA_CDR_clean.csv"))) {
 }
 
 # specify cancer type here
-ss_patient <- subset(clinical_dat, type %in% project)
+ss_patient <- subset(clinical_dat, type %in% project & OS.time > 0)
 
-surv.times <- as.numeric(as.character(ss_patient$OS.time))
+surv.times <- as.numeric(ss_patient$OS.time)
 cens <- as.numeric(ss_patient$OS)
 
 # get imputed log survival times
