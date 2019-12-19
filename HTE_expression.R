@@ -59,7 +59,7 @@ cancer_list = c(
                 'UCEC',
                 'ESCA')
 
-project = cancer_list[1]
+project = cancer_list[2]
 output_file = paste0("./result/", project, "/")
 
 # SURVIVAL DATA MUST USE TCGA-CDR CENTRAL DATASET https://www.sciencedirect.com/science/article/pii/S0092867418302290?via%3Dihub
