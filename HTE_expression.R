@@ -42,12 +42,12 @@ usrwd = "/exeh_4/alex_lau"
 setwd(paste0(usrwd, "/HTE/wd/expression_HTE"))
 # 3. Set your project and make sure you have created a file called result under the working directory
 cancer_list = c(
-                'BLCA',
-                'COAD',
-                'BRCA',
-                #'LGG',
-                'GBM',
-                'STAD',
+                # 'BLCA',
+                # 'COAD',
+                # 'BRCA',
+                # #'LGG',
+                # 'GBM',
+                # 'STAD',
                 'HNSC',
                 'KIRC',
                 'LUAD',
@@ -59,7 +59,8 @@ cancer_list = c(
                 'UCEC',
                 'ESCA')
 
-project = cancer_list[6]
+for (project in cancer_list) {
+    print(paste0("running ", project))
 output_file = paste0("./result/", project, "/")
 
 # SURVIVAL DATA MUST USE TCGA-CDR CENTRAL DATASET https://www.sciencedirect.com/science/article/pii/S0092867418302290?via%3Dihub
@@ -249,3 +250,4 @@ write.csv(result[[2]], paste0(output_file, project, '_expression_calibration_res
 write.csv(result[[3]], paste0(output_file, project, '_expression_median_t_test_result.csv'), quote = F, row.names = F)
 write.csv(result[[4]], paste0(output_file, project, '_expression_permutate_testing_result.csv'), quote = F, row.names = F)
 
+}
