@@ -115,7 +115,7 @@ if (!file.exists(basename("TCGA_CDR_clean.csv")))
 
     download.file("https://ars.els-cdn.com/content/image/1-s2.0-S0092867418302290-mmc1.xlsx", "TCGA-CDR-SupplementalTableS1.xlsx")
 
-if (!file.exists(basename("TCGA_CDR_clean.csv"))) {
+if (file.exists(basename("TCGA_CDR_clean.csv"))) {
     cdr = read_excel("TCGA-CDR-SupplementalTableS1.xlsx")
     clinical_dat = dplyr::select(cdr, c(bcr_patient_barcode, type, age_at_initial_pathologic_diagnosis,  gender, ajcc_pathologic_tumor_stage, OS, OS.time))
 
@@ -230,7 +230,7 @@ exp_matrix = dplyr::select(exp_matrix, c("donorId", "TSS", "portion", "plate", "
 whole_dataset = inner_join(ss_patient, exp_matrix , by = "donorId")
 
 covar_mat= dplyr::select(whole_dataset, -c("donorId", "outcome"))
-tx_vector = intersect_DEG[233:length(intersect_DEG)]
+tx_vector = intersect_DEG
 
 # We need to remove genes with uniformly 0 eexpression as treatments!!!
 
