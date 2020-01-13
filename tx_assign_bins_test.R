@@ -59,7 +59,7 @@ for(gene in perm_genes) {
     for (i in bins){
         print(paste0("quantile: ", i))
         binary_tx = as.numeric(gene_ex > quantile(gene_ex, i) & gene_ex < quantile(gene_ex, i+0.25))
-
+    print(unique(binary_tx))
         if (length(unique(binary_tx)) == 1) {
                         print("Gene expression distribution too sparse, skipping.")
                         next
