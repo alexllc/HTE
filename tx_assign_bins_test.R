@@ -58,6 +58,11 @@ for(gene in perm_genes) {
     for (i in bins){
         print(paste0("quantile: ", i))
         binary_tx = as.numeric(gene_ex > quantile(gene_ex, i) & gene_ex < quantile(gene_ex, i+0.25))
+
+        if (length(unique(binary_tx)) == 1) {
+                        print("Gene expression distribution too sparse, skipping.")
+                        next
+                    }
         mod_ds = cbind(whole_dataset, binary_tx)
         mod_ds = dplyr::select(mod_ds, -gene)
         names(mod_ds)[names(mod_ds)=="binary_tx"] = gene
