@@ -38,6 +38,7 @@ source("./grf_parameters.R")
 source("./HTE_main_functions.R")
 source("./HTE_validation_functions.R")
 source("./survival_imputation.R")
+source("./HTE_expression.R")
 
 usrwd = "/exeh_4/alex_lau"
 setwd(paste0(usrwd, "/HTE/wd/expression_HTE"))

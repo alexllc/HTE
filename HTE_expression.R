@@ -19,6 +19,7 @@ library(randomForestSRC)
 library(randomForest)
 
 # For survival imputation
+library(readxl)
 library(survival)
 
 # For expression retreival
@@ -49,19 +50,19 @@ cancer_list = c(
                 # 'GBM',
                 # 'STAD',
                 'HNSC',
-                'KIRC',
-                'LUAD',
-                'LUSC',
-                #'OV', # no NT
-                'PRAD',
-                #'SKCM', # no NT
-                'THCA',
-                'UCEC',
-                'ESCA')
+                # 'KIRC',
+                # 'LUAD',
+                # 'LUSC',
+                # #'OV', # no NT
+                # 'PRAD',
+                # #'SKCM', # no NT
+                # 'THCA',
+                # 'UCEC',
+                # 'ESCA')
 
 for (project in cancer_list) {
     print(paste0("running ", project))
-output_file = paste0("./result/", project, "/")
+output_file = paste0("./result/", project, "/alt_dirt/original/")
 
 # SURVIVAL DATA MUST USE TCGA-CDR CENTRAL DATASET https://www.sciencedirect.com/science/article/pii/S0092867418302290?via%3Dihub
 
@@ -240,14 +241,14 @@ tx_vector = intersect_DEG
 ## DEC 6: ERROR IN 214TH GENE
 # tx_vector = as.character(tx_vector[215:length(tx_vector)])
 
-obsNumber <- dim(covar_mat)[1]
-trainId <- sample(1: obsNumber, floor(obsNumber/2), replace = FALSE)
-registerDoParallel(10)
+# obsNumber <- dim(covar_mat)[1]
+# trainId <- sample(1: obsNumber, floor(obsNumber/2), replace = FALSE)
+# registerDoParallel(10)
 
-result <- run.hte(covar_mat, tx_vector, whole_dataset, project, covar_type = "expression", trainId, seed = 111, is.binary = T, is_save = T, save_split = T, is.tuned = F, thres = 0.75, n_core = 8, output_directory = output_file)
-write.csv(result[[1]], paste0(output_file, project, '_expression_correlation_test_result.csv'), quote = F, row.names = F)
-write.csv(result[[2]], paste0(output_file, project, '_expression_calibration_result.csv'), quote = F, row.names = F)
-write.csv(result[[3]], paste0(output_file, project, '_expression_median_t_test_result.csv'), quote = F, row.names = F)
-write.csv(result[[4]], paste0(output_file, project, '_expression_permutate_testing_result.csv'), quote = F, row.names = F)
+# result <- run.hte(covar_mat, tx_vector, whole_dataset, project, covar_type = "expression", trainId, seed = 111, is.binary = T, is_save = T, save_split = T, is.tuned = F, thres = 0.75, n_core = 8, output_directory = output_file)
+# write.csv(result[[1]], paste0(output_file, project, '_expression_correlation_test_result.csv'), quote = F, row.names = F)
+# write.csv(result[[2]], paste0(output_file, project, '_expression_calibration_result.csv'), quote = F, row.names = F)
+# write.csv(result[[3]], paste0(output_file, project, '_expression_median_t_test_result.csv'), quote = F, row.names = F)
+# write.csv(result[[4]], paste0(output_file, project, '_expression_permutate_testing_result.csv'), quote = F, row.names = F)
 
-}
+# }
