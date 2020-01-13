@@ -1,3 +1,48 @@
+library("colorout")
+
+# 1. Please make sure you have installed all the packages below before running
+# For main function
+library(doParallel)
+library(grf)
+library(MASS)
+library(doMC)
+library(data.table)
+library(survminer)
+library(doParallel)
+library(methods)
+
+# For causal forest
+library(grf)
+library(BART)
+library(ranger)
+library(randomForestSRC)
+library(randomForest)
+
+# For survival imputation
+library(readxl)
+library(survival)
+
+# For expression retreival
+library(TCGAbiolinks)
+library(DT)
+library(SummarizedExperiment)
+library(plyr)
+library(dplyr)
+library(tidyr)
+library(biomaRt)
+library(RTCGAToolbox)
+
+# 2. Make sure all four accompanying scripts are in the same directory as the header script
+#setwd("./HTE")
+source("./grf_parameters.R")
+source("./HTE_main_functions.R")
+source("./HTE_validation_functions.R")
+source("./survival_imputation.R")
+
+usrwd = "/exeh_4/alex_lau"
+setwd(paste0(usrwd, "/HTE/wd/expression_HTE"))
+
+
 perm_genes = c(
 "ENSG00000245149","ENSG00000151012","ENSG00000153233","ENSG00000251692","ENSG00000169218","ENSG00000182557","ENSG00000138379","ENSG00000186204","ENSG00000105278","ENSG00000117148","ENSG00000188176","ENSG00000112214","ENSG00000116544","ENSG00000120049","ENSG00000267365","ENSG00000129749")
 
