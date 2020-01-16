@@ -1,5 +1,3 @@
-library("colorout")
-
 # 1. Please make sure you have installed all the packages below before running
 # For main function
 library(doParallel)
