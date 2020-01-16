@@ -64,7 +64,7 @@ cancer_list = c(
 
 project = cancer_list[6]
     print(paste0("running ", project))
-#output_file = paste0("./result/", project, "/alt_dirt/original/")
+output_file = paste0("./result/reverse/", project, "/")
 
 # SURVIVAL DATA MUST USE TCGA-CDR CENTRAL DATASET https://www.sciencedirect.com/science/article/pii/S0092867418302290?via%3Dihub
 
@@ -136,7 +136,6 @@ if (file.exists(basename("TCGA_CDR_clean.csv"))) {
 
 # specify cancer type here
 ss_patient <- subset(clinical_dat, type %in% project & OS.time > 0)
-
 surv.times <- as.numeric(ss_patient$OS.time)
 cens <- as.numeric(ss_patient$OS)
 
@@ -220,37 +219,45 @@ rownames(exp_matrix) <- unlist(tmp)
 exp_matrix$donorId <- rownames(exp_matrix)
 exp_matrix <- dplyr::select(exp_matrix, -c(bcr, patient))
 
+#### Gene selection criteria:
+# 1. Differentially expressed
+# 2. Overlaps with our dataset
+# 3. Not all 0s
+# 4. Can assign at least 10% as treatment group
+
 # Select for DEEG only
 DEGs = read.csv(paste0("./tables/", project, "_DEGtable.csv"))
 cancer_DEG = as.character(DEGs$X)
 intersect_DEG = cancer_DEG[cancer_DEG %in% colnames(exp_matrix)]
 zeros = colnames(exp_matrix)[apply(exp_matrix,2, function(x) all(x == 0))]
 intersect_DEG = intersect_DEG[!intersect_DEG %in% zeros]
-exp_matrix = dplyr::select(exp_matrix, c("donorId", "TSS", "portion", "plate", "center", intersect_DEG))
+
+####### WE ARE RUNNING HTE FOR THE REVERSE
+exp_matrix = dplyr::select(exp_matrix, c("donorId", "TSS", "portion", "plate", "center", -intersect_DEG))
 
 
 # 4. Prepare covariate matrix, whole dataset matrix and a vectoor of treatment types
 whole_dataset = inner_join(ss_patient, exp_matrix , by = "donorId")
 
 covar_mat= dplyr::select(whole_dataset, -c("donorId", "outcome"))
-tx_vector = intersect_DEG
+tx_vector = colnames(exp_matrix)[colnames(exp_matrix) %in% c("donorId", "TSS", "portion", "plate", "center") == F]
 
 # We need to remove genes with uniformly 0 eexpression as treatments!!!
 
 
-#######################################################
-## RESUMING GENES FROM ERROR
-## DEC 6: ERROR IN 214TH GENE
-# tx_vector = as.character(tx_vector[215:length(tx_vector)])
+######################################################
+# RESUMING GENES FROM ERROR
+# DEC 6: ERROR IN 214TH GENE
+#tx_vector = as.character(tx_vector[215:length(tx_vector)])
 
-# obsNumber <- dim(covar_mat)[1]
-# trainId <- sample(1: obsNumber, floor(obsNumber/2), replace = FALSE)
-# registerDoParallel(10)
+obsNumber <- dim(covar_mat)[1]
+trainId <- sample(1: obsNumber, floor(obsNumber/2), replace = FALSE)
+registerDoParallel(10)
 
-# result <- run.hte(covar_mat, tx_vector, whole_dataset, project, covar_type = "expression", trainId, seed = 111, is.binary = T, is_save = T, save_split = T, is.tuned = F, thres = 0.75, n_core = 8, output_directory = output_file)
-# write.csv(result[[1]], paste0(output_file, project, '_expression_correlation_test_result.csv'), quote = F, row.names = F)
-# write.csv(result[[2]], paste0(output_file, project, '_expression_calibration_result.csv'), quote = F, row.names = F)
-# write.csv(result[[3]], paste0(output_file, project, '_expression_median_t_test_result.csv'), quote = F, row.names = F)
-# write.csv(result[[4]], paste0(output_file, project, '_expression_permutate_testing_result.csv'), quote = F, row.names = F)
+result <- run.hte(covar_mat, tx_vector, whole_dataset, project, covar_type = "expression", trainId, seed = 111, is.binary = T, is_save = T, save_split = T, is.tuned = F, thres = 0.75, n_core = 8, output_directory = output_file)
+write.csv(result[[1]], paste0(output_file, project, '_expression_correlation_test_result.csv'), quote = F, row.names = F)
+write.csv(result[[2]], paste0(output_file, project, '_expression_calibration_result.csv'), quote = F, row.names = F)
+write.csv(result[[3]], paste0(output_file, project, '_expression_median_t_test_result.csv'), quote = F, row.names = F)
+write.csv(result[[4]], paste0(output_file, project, '_expression_permutate_testing_result.csv'), quote = F, row.names = F)
 
-#}
+}

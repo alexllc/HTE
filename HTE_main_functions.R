@@ -124,7 +124,7 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
                         }
                     
                     # Safeguarding against uniform treatment assignment
-                    if (length(unique(treatment)) == 1) {
+                    if (length(unique(treatment)) == 1 | sum(treatment) < length(treatment)*0.1)) {
                         print("Gene expression distribution too sparse, skipping.")
                         next
                     }
