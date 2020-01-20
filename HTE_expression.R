@@ -114,11 +114,10 @@ output_file = paste0("./result/reverse/", project, "/")
 # }
 
 # df_patient = na.omit(df_patient)
-if (!file.exists(basename("TCGA_CDR_clean.csv")))
+if (!file.exists(basename("TCGA_CDR_clean.csv"))) {
 
     download.file("https://ars.els-cdn.com/content/image/1-s2.0-S0092867418302290-mmc1.xlsx", "TCGA-CDR-SupplementalTableS1.xlsx")
 
-if (file.exists(basename("TCGA_CDR_clean.csv"))) {
     cdr = read_excel("TCGA-CDR-SupplementalTableS1.xlsx")
     clinical_dat = dplyr::select(cdr, c(bcr_patient_barcode, type, age_at_initial_pathologic_diagnosis,  gender, ajcc_pathologic_tumor_stage, OS, OS.time))
 
