@@ -11,7 +11,9 @@ library(methods)
 
 # For causal forest
 library(grf)
-library(BART)
+if(require(BART)){
+    install.packages("BART")
+}
 library(ranger)
 library(randomForestSRC)
 library(randomForest)
