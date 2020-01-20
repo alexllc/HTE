@@ -2,6 +2,7 @@
 # For main function
 library(doParallel)
 library(grf)
+
 library(MASS)
 library(doMC)
 library(data.table)
@@ -11,9 +12,7 @@ library(methods)
 
 # For causal forest
 library(grf)
-if(require(BART)){
-    install.packages("BART")
-}
+library(BART)
 library(ranger)
 library(randomForestSRC)
 library(randomForest)
