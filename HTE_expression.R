@@ -232,7 +232,7 @@ zeros = colnames(exp_matrix)[apply(exp_matrix,2, function(x) all(x == 0))]
 intersect_DEG = intersect_DEG[!intersect_DEG %in% zeros]
 
 ####### WE ARE RUNNING HTE FOR THE REVERSE
-exp_matrix = dplyr::select(exp_matrix, c("donorId", "TSS", "portion", "plate", "center", -intersect_DEG))
+exp_matrix = dplyr::select(exp_matrix, -intersect_DEG)
 
 
 # 4. Prepare covariate matrix, whole dataset matrix and a vectoor of treatment types
