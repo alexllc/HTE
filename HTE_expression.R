@@ -234,10 +234,16 @@ intersect_DEG = intersect_DEG[!intersect_DEG %in% zeros]
 ####### WE ARE RUNNING HTE FOR THE REVERSE
 exp_matrix = dplyr::select(exp_matrix, -intersect_DEG)
 
-
 # 4. Prepare covariate matrix, whole dataset matrix and a vectoor of treatment types
 tx_vector = colnames(exp_matrix)[colnames(exp_matrix) %in% c("donorId", "TSS", "portion", "plate", "center") == F]
 tx_vector = sample(tx_vector, 4233)
+
+ensembl = useMart("ensembl","hsapiens_gene_ensembl", host = "useast.ensembl.org")
+res = getBM(attributes=c("ensembl_gene_id", "transcript_biotype"), filters = "ensembl_gene_id", values=tx_vector, mart=ensembl)
+# Only keep protein coding transcripts
+res = res[which(res$transcript_biotype=="protein_coding"),] 
+tx_vector = res$ensembl_gene_id
+
 whole_dataset = inner_join(ss_patient, exp_matrix , by = "donorId")
 whole_dataset = dplyr::select(whole_dataset, c("donorId","outcome", "TSS", "portion", "plate", "center", tx_vector))
 covar_mat= dplyr::select(whole_dataset, -c("donorId", "outcome"))
