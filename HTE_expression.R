@@ -239,7 +239,7 @@ exp_matrix = dplyr::select(exp_matrix, -intersect_DEG)
 tx_vector = colnames(exp_matrix)[colnames(exp_matrix) %in% c("donorId", "TSS", "portion", "plate", "center") == F]
 tx_vector = sample(tx_vector, 4233)
 whole_dataset = inner_join(ss_patient, exp_matrix , by = "donorId")
-whole_dataset = dplyr::select(whole_dataset, c("donorId", "TSS", "portion", "plate", "center", tx_vector))
+whole_dataset = dplyr::select(whole_dataset, c("donorId","outcome", "TSS", "portion", "plate", "center", tx_vector))
 covar_mat= dplyr::select(whole_dataset, -c("donorId", "outcome"))
 
 # We need to remove genes with uniformly 0 eexpression as treatments!!!
