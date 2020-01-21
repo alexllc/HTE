@@ -122,6 +122,7 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
                         # we take LQ
                         treatment = as.numeric(treatment < quantile(treatment, 0.25))
                         }
+            
                     
                     # Safeguarding against uniform treatment assignment
                     if (length(unique(treatment)) == 1 | sum(treatment) < length(treatment)*0.1) {
@@ -129,7 +130,16 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
                         next
                     }
                     
-                } else {
+            } else if {
+                    treatment = as.numeric(treatment > qunatile(treatment, 0.75))
+                    if (length(unique(treatment)) == 1 | sum(treatment) < length(treatment)*0.1) {
+                        print("Gene expression distribution too sparse, skipping.")
+                        next
+                }
+            }
+                
+                
+                 else {
                     treatment <- as.numeric(treatment)
                     }
         }
