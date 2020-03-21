@@ -158,7 +158,7 @@ exp_matrix <- dplyr::select(exp_matrix, -c(bcr, patient))
 #######################################
 ### IMMUNE CELL PROPORTION DATA
 #######################################
-proportion = read.csv(paste0("./proportion/", project, "_immune_cells.csv")
+proportion = read.csv(paste0("./proportion/", project, "_immune_cells.csv"))
 tx_vector = colnames(proportion)
 proportion$donorId = rownames(donorId)
 
