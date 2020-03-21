@@ -160,7 +160,7 @@ exp_matrix <- dplyr::select(exp_matrix, -c(bcr, patient))
 #######################################
 proportion = read.csv(paste0("./proportion/", project, "_immune_cells.csv"))
 tx_vector = colnames(proportion)
-proportion$donorId = rownames(donorId)
+proportion$donorId = rownames(proportion)
 
 # 4. Prepare covariate matrix, whole dataset matrix and a vectoor of treatment types
 
