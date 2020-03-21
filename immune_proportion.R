@@ -30,4 +30,5 @@ tmp = strsplit(rownames(cells), '-')
 tmp = sapply(tmp, function(x) paste(x[[1]],x[[2]],x[[3]], sep='-'))
 rownames(cells) = tmp
 cells = as.data.frame(cells)
-write.csv(cells, "LUSC_immune_cells.csv", row.names=T)
+cells$donorId = rownames(cells)
+write.csv(cells, "LUSC_immune_cells.csv", row.names=F)

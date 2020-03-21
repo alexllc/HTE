@@ -130,7 +130,7 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
                         next
                     }
                     
-            } else if (covar_type=="reverse"){
+            } else if (covar_type=="UQ"){
                     treatment = as.numeric(treatment > quantile(treatment, 0.75))
                     if (length(unique(treatment)) == 1 | sum(treatment) < length(treatment)*0.1) {
                         print("Gene expression distribution too sparse, skipping.")

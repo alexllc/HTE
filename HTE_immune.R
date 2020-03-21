@@ -159,14 +159,24 @@ exp_matrix <- dplyr::select(exp_matrix, -c(bcr, patient))
 ### IMMUNE CELL PROPORTION DATA
 #######################################
 proportion = read.csv(paste0("./proportion/", project, "_immune_cells.csv"))
-tx_vector = colnames(proportion)
-proportion$donorId = rownames(proportion)
+tx_vector = head(colnames(proportion), -2)
 
 # 4. Prepare covariate matrix, whole dataset matrix and a vectoor of treatment types
 
 whole_dataset = inner_join(ss_patient, exp_matrix , by = "donorId")
 whole_dataset = inner_join(whole_dataset, proportion, by = "donorId")
-whole_dataset = dplyr::select(whole_dataset, c("donorId","outcome", "TSS", "portion", "plate", "center", tx_vector))
+#whole_dataset = dplyr::select(whole_dataset, c("donorId","outcome", "TSS", "portion", "plate", "center", tx_vector))
 print("About to analysize the wholedataset:")
 head(whole_dataset[,1:20])
 covar_mat= dplyr::select(whole_dataset, -c("donorId", "outcome"))
+
+# 5. Run HTE with the whole dataset and covar matrix
+obsNumber <- dim(covar_mat)[1]
+trainId <- sample(1: obsNumber, floor(obsNumber/2), replace = FALSE)
+registerDoParallel(20)
+
+result <- run.hte(covar_mat, tx_vector, whole_dataset, project, covar_type = "UQ", trainId, seed = 111, is.binary = T, is_save = T, save_split = T, is.tuned = F, thres = 0.75, n_core = 8, output_directory = output_file)
+write.csv(result[[1]], paste0(output_file, project, '_expression_correlation_test_result.csv'), quote = F, row.names = F)
+write.csv(result[[2]], paste0(output_file, project, '_expression_calibration_result.csv'), quote = F, row.names = F)
+write.csv(result[[3]], paste0(output_file, project, '_expression_median_t_test_result.csv'), quote = F, row.names = F)
+write.csv(result[[4]], paste0(output_file, project, '_expression_permutate_testing_result.csv'), quote = F, row.names = F)
