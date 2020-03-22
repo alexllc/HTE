@@ -6,7 +6,8 @@ library(data.table)
 
 cancer_types = c(
     # 'ACC','BLCA','BRCA','CESC','CHOL','COAD','COADREAD','DLBC','ESCA',
-    'GBM','GBMLGG','HNSC','KICH','KIPAN','KIRC','KIRP','LAML','LGG','LIHC','LUAD','LUSC','MESO','OV','PAAD','PCPG','PRAD','READ','SARC','SKCM','STAD','STES','TGCT','THCA','THYM','UCEC','UCS','UVM')
+    'GBM','GBMLGG','HNSC','KICH','KIPAN','KIRC','KIRP',#'LAML',
+    'LGG','LIHC','LUAD','LUSC','MESO','OV','PAAD','PCPG','PRAD','READ','SARC','SKCM','STAD','STES','TGCT','THCA','THYM','UCEC','UCS','UVM')
 
 for (type in cancer_types) {
 
