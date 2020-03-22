@@ -42,7 +42,7 @@ source("./survival_imputation.R")
 usrwd = "/home/alex/project"
 setwd(paste0(usrwd, "/HTE/wd/immune_HTE"))
 
-project = "LUSC"
+project = "ACC"
 print(paste0("running ", project))
 output_file = paste0("./result/", project, "/")
 
