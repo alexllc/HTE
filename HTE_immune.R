@@ -43,7 +43,8 @@ usrwd = "/home/alex/project"
 setwd(paste0(usrwd, "/HTE/wd/immune_HTE"))
 
 cancer_types = c(
-    'ACC','BLCA','BRCA','CESC','CHOL','COAD','COADREAD','DLBC','ESCA','GBM','GBMLGG','HNSC','KICH','KIPAN','KIRC','KIRP','LGG','LIHC','LUAD','LUSC','MESO','OV','PAAD','PCPG','PRAD','READ','SARC','SKCM','STAD','STES','TGCT','THCA','THYM','UCEC','UCS','UVM')
+    #'ACC','BLCA','BRCA','CESC','CHOL',
+    'COAD','COADREAD','DLBC','ESCA','GBM','GBMLGG','HNSC','KICH','KIPAN','KIRC','KIRP','LGG','LIHC','LUAD','LUSC','MESO','OV','PAAD','PCPG','PRAD','READ','SARC','SKCM','STAD','STES','TGCT','THCA','THYM','UCEC','UCS','UVM')
 
     #######################################
     ### CLINICAL DATA
