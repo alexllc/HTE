@@ -46,7 +46,9 @@ cancer_types = c(
     #'ACC','BLCA','BRCA','CESC','CHOL',
     'COAD',
     #'COADREAD',
-    'DLBC','ESCA','GBM','GBMLGG','HNSC','KICH','KIPAN','KIRC','KIRP','LGG','LIHC','LUAD','LUSC','MESO','OV','PAAD','PCPG','PRAD','READ','SARC','SKCM','STAD','STES','TGCT','THCA','THYM','UCEC','UCS','UVM')
+    'DLBC','ESCA','GBM',
+    #'GBMLGG',
+    'HNSC','KICH','KIPAN','KIRC','KIRP','LGG','LIHC','LUAD','LUSC','MESO','OV','PAAD','PCPG','PRAD','READ','SARC','SKCM','STAD','STES','TGCT','THCA','THYM','UCEC','UCS','UVM')
 
     #######################################
     ### CLINICAL DATA
@@ -71,7 +73,7 @@ cancer_types = c(
     }
 
 for (project in cancer_types) {
-    print(paste0("running ", project))
+    print(paste0("##########################","running ", project, "##########################"))
     output_file = paste0("./result/", project, "/")
 
     # specify cancer type here
