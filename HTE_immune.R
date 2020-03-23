@@ -41,10 +41,11 @@ source("./survival_imputation.R")
 #usrwd = "/exeh_4/alex_lau"
 usrwd = "/home/alex/project"
 setwd(paste0(usrwd, "/HTE/wd/immune_HTE"))
-#'COADREAD',#'GBMLGG',#'KIPAN',
+#'COADREAD',#'GBMLGG',#'KIPAN','SARC',
 cancer_types = c(
     #'ACC','BLCA','BRCA','CESC','CHOL','COAD','DLBC','ESCA','GBM','HNSC','KICH',
-    'KIRC','KIRP','LGG','LIHC','LUAD','LUSC','MESO','OV','PAAD','PCPG','PRAD','READ','SARC','SKCM','STAD','STES','TGCT','THCA','THYM','UCEC','UCS','UVM')
+    #'KIRC','KIRP','LGG','LIHC','LUAD','LUSC','MESO','OV','PAAD','PCPG','PRAD','READ',
+    'SKCM','STAD','STES','TGCT','THCA','THYM','UCEC','UCS','UVM')
 
     #######################################
     ### CLINICAL DATA
