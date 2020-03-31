@@ -42,7 +42,7 @@ source("./survival_imputation.R")
 usrwd = "/home/alex/project"
 setwd(paste0(usrwd, "/HTE/wd/immune_HTE"))
 
-project = HNSC
+project = "HNSC"
 output_file = paste0("./result/", project, "_immune_out/")
 
 ## Prepare expression data
