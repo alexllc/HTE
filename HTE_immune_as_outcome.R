@@ -45,7 +45,35 @@ setwd(paste0(usrwd, "/HTE/wd/immune_HTE"))
 project = "HNSC"
 output_file = paste0("./result/", project, "_immune_out/")
 
-## Prepare expression data
+
+clinical_dat = read.csv("TCGA_CDR_clean.csv")
+    # specify cancer type here
+    ss_patient <- subset(clinical_dat, type %in% project & OS.time > 0)
+    # surv.times <- as.numeric(ss_patient$OS.time)
+    # cens <- as.numeric(ss_patient$OS)
+
+    # get imputed log survival times
+    # max.censored <- max(surv.times[cens == 0])
+    # cens[surv.times == max.censored] <- 1
+    # outcome = impute.survival(surv.times, cens)
+
+    # attach imputed.log.times to original dataset
+    # ss_patient <- cbind(ss_patient, outcome)
+
+    for (c in colnames(ss_patient)) {
+
+        if (!is.numeric(ss_patient[,c]) && c != "donorId") {
+            which.one <- which( levels(ss_patient[,c]) == "")
+            levels(ss_patient[,c])[which.one] <- NA
+            ss_patient[,c] = sapply(sapply(ss_patient[,c], as.factor), as.numeric) 
+            print(paste0(c, " is altered")) 
+        }
+    }
+    ss_patient = dplyr::select(ss_patient, -c(type, OS, OS.time))
+    print("Processed patient dataframe: ")
+    head(ss_patient)
+
+
 #######################################
 ### EXPRESSION DATA
 #######################################
@@ -113,16 +141,20 @@ exp_matrix <- dplyr::select(exp_matrix, -c(bcr, patient))
 #######################################
 proportion = read.csv(paste0("./proportion/", project, "_immune_cells.csv"))
 
-tx_vector = colnames(exp_matrix[5:ncol(exp_matrix)])
+
+varimp = read.csv("./result/HNSC/HNSC_varimp_CD8_Tcells.csv")
+tx_vector = as.character(varimp$variable[varimp$varImp > 0])
+tx_vector = tx_vector[3:length(tx_vector)]
 
 # 4. Prepare covariate matrix, whole dataset matrix and a vectoor of treatment types
-whole_dataset = inner_join(exp_matrix, proportion, by = "donorId")
+whole_dataset = inner_join(ss_patient, exp_matrix , by = "donorId")
+whole_dataset = inner_join(whole_dataset, proportion, by = "donorId")
 whole_dataset$outcome = log(whole_dataset$CD8_Tcells)
 whole_dataset$CD8_Tcells = NULL
 #whole_dataset = dplyr::select(whole_dataset, c("donorId","outcome", "TSS", "portion", "plate", "center", tx_vector))
 print("About to analysize the wholedataset:")
 head(whole_dataset[,1:20])
-covar_mat= dplyr::select(whole_dataset, -c("donorId", "CD8_Tcells"))
+covar_mat= dplyr::select(whole_dataset, -c("donorId", "outcome"))
 
 # 5. Run HTE with the whole dataset and covar matrix
 obsNumber <- dim(covar_mat)[1]
