@@ -117,7 +117,8 @@ tx_vector = colnames(exp_matrix[5:ncol(exp_matrix)])
 
 # 4. Prepare covariate matrix, whole dataset matrix and a vectoor of treatment types
 whole_dataset = inner_join(exp_matrix, proportion, by = "donorId")
-outcome = log(whole_dataset$CD8_Tcells)
+whole_dataset$outcome = log(whole_dataset$CD8_Tcells)
+whole_dataset$CD8_Tcells = NULL
 #whole_dataset = dplyr::select(whole_dataset, c("donorId","outcome", "TSS", "portion", "plate", "center", tx_vector))
 print("About to analysize the wholedataset:")
 head(whole_dataset[,1:20])
