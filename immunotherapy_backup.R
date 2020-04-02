@@ -1,28 +1,28 @@
 library(TCGAbiolinks)
-library(dplyr)
 
 cancer_types = c(
     #'ACC','BLCA','BRCA',
-    'CESC','CHOL','COAD','DLBC','ESCA','GBM','HNSC','KICH', 'KIRC','KIRP','LGG','LIHC','LUAD','LUSC','MESO','OV','PAAD','PCPG','PRAD','READ', 'SKCM','STAD', 'TGCT','THCA','THYM','UCEC','UCS','UVM')
+    #'CESC','CHOL','COAD','DLBC','ESCA','GBM','HNSC','KICH', 'KIRC','KIRP','LGG','LIHC','LUAD','LUSC','MESO','OV','PAAD','PCPG','PRAD','READ', 'SKCM','STAD', 'TGCT','THCA',
+    'THYM','UCEC','UCS','UVM')
 
 ## Fixing drug names
-# Doesn't work: download.file("https://gdisc.bme.gatech.edu/Data/DrugCorrection.csv", "DrugCorrection.csv")
-drug_tbl = read.csv("DrugCorrection.csv")
+# download.file("https://gdisc.bme.gatech.edu/Data/DrugCorrection.csv", "DrugCorrection.csv")
+# drug_tbl = read.csv("DrugCorrection.csv")
 
-correct_drug_names <- function(df) {
-  colnames(drug_tbl)[1] <- "drug_name"
-  df <- left_join(df, drug_tbl, by = "drug_name")
-  df$drug_name <- NULL
-  colnames(df)[colnames(df)=="Correction"] <- "drug_names"
-  return(df)
-}
+# correct_drug_names <- function(df) {
+#   colnames(drug_tbl)[1] <- "drug_name"
+#   df <- inner_join(df, drug_tbl, by = "drug_name")
+#   df$drug_name <- NULL
+#   colnames(df)[colnames(df)=="Correction"] <- "drug_names"
+#   return(df)
+# }
 
-correct_drug_cat <- function(cat) {
-  targeted_rx <- read.csv(paste0(usrwd, "/cancerl/data/targeted_rx.csv"))
-  targeted_rx[,1] <- sapply(sapply(as.character(targeted_rx[,1]), function(x) strsplit(x, ' ')), function(x) x[[1]])
-  colnames(targeted_rx)[1] <- "drug_name"
+# correct_drug_cat <- function(cat) {
+#   targeted_rx <- read.csv(paste0(usrwd, "/cancerl/data/targeted_rx.csv"))
+#   targeted_rx[,1] <- sapply(sapply(as.character(targeted_rx[,1]), function(x) strsplit(x, ' ')), function(x) x[[1]])
+#   colnames(targeted_rx)[1] <- "drug_name"
 
-}
+# }
 usrwd = "/exeh_4/alex_lau/"
 setwd(paste0(usrwd, "/HTE/wd/expression_HTE"))
 
@@ -38,18 +38,14 @@ for (project in cancer_types) {
                 file.type = "xml") # Obtain list from TCGAbiolinks:::getProjectSummary(<enter_project>)
 
     GDCdownload(query)
-    clinical_set <- c("drug", "patient")
+    # clinical_set <- c("drug", "patient")
 
-    for (c in clinical_set) {
-    assign(c, GDCprepare_clinic(query, clinical.info = c))
-    }
+    # for (c in clinical_set) {
+    # assign(c, GDCprepare_clinic(query, clinical.info = c))
+    # }
 
-    ### Select required information
-    s.drug = dplyr::select(drug, bcr_patient_barcode, days_to_drug_therapy_start,days_to_drug_therapy_end, drug_name, project)
     ### Fix drug names
-    s.drug = correct_drug_names(s.drug)
-    s.drug = s.drug %>% mutate_if(is.factor, as.character) %>% mutate(duration = days_to_drug_therapy_end - days_to_drug_therapy_start) %>% select(-c(days_to_drug_therapy_end, days_to_drug_therapy_start))
-    
+
 
     #############################################################
     ### 2. Prepare 
@@ -71,4 +67,4 @@ for (project in cancer_types) {
                         save.filename = paste0("./HTSeqData/",project, "_exp.rda"))
     }
 
-} # next cancer
+}
