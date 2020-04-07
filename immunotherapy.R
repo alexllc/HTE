@@ -108,18 +108,19 @@ for (project in cancer_types) {
     #############################################################
     ### 3. Prepare mutation data
     #############################################################
-    maf <- GDCquery_Maf(project, pipelines = "muse")
+    # Seems like the simple one don't always work for all cancer types
+    #maf <- GDCquery_Maf(project, pipelines = "muse")
 
     # Below is the equivalence code
-    # m_query <- GDCquery(project = "TCGA-HNSC",
-    #               data.category = "Simple Nucleotide Variation",
-    #               legacy = FALSE,
-    #               workflow.type = "MuSE Variant Aggregation and Masking",
-    #               data.type = "Masked Somatic Mutation"
-    #             )
+    m_query <- GDCquery(project = "TCGA-HNSC",
+                  data.category = "Simple Nucleotide Variation",
+                  legacy = FALSE,
+                  workflow.type = "MuSE Variant Aggregation and Masking",
+                  data.type = "Masked Somatic Mutation"
+                )
 
-    # GDCdownload(m_query)
-    # m_maf = GDCprepare(m_query)
+    GDCdownload(m_query)
+    m_maf = GDCprepare(m_query)
 
     pmaf = dplyr::filter(maf, BIOTYPE == "protein_coding")
     # pmaf$Hugo_Symbol[grep("ENSG00000085231", pmaf$Gene)] = "AK6"
