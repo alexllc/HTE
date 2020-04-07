@@ -30,7 +30,6 @@ cancer_types = c(
 # setwd(paste0(usrwd, "/HTE/wd/immune_HTE"))
 usrwd = "/exeh_4/alex_lau/HTE/wd/expression_HTE"
 
-gene_ln = as.data.frame(getGeneLengthAndGCContent(unique(pmaf$Gene), "hsa"))
 for (project in cancer_types) {
     print(paste0(paste0(rep('#', 20), collapse=""), "Downloading: ", project, paste0(rep('#', 20), collapse="")))
     #############################################################
@@ -95,6 +94,7 @@ for (project in cancer_types) {
     pmaf = dplyr::filter(maf, BIOTYPE == "protein_coding")
     pmaf$Hugo_Symbol[grep("ENSG00000085231", pmaf$Gene)] = "AK6"
     pmaf$kaks = ifelse(grepl("synonymous", pmaf$Consequence), "KS", "KA")
+    gene_ln = as.data.frame(getGeneLengthAndGCContent(unique(pmaf$Gene), "hsa"))
     gene_ln$Gene = rownames(gene_ln)
     pmaf = left_join(pmaf, gene_ln, by = "Gene")
     pmaf = pmaf[!is.na(pmaf$length),] # some of the mut status has unknown gene
