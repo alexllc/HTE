@@ -120,7 +120,7 @@ for (project in cancer_types) {
                 )
 
     GDCdownload(m_query)
-    m_maf = GDCprepare(m_query)
+    maf = GDCprepare(m_query)
 
     pmaf = dplyr::filter(maf, BIOTYPE == "protein_coding")
     # pmaf$Hugo_Symbol[grep("ENSG00000085231", pmaf$Gene)] = "AK6"
