@@ -112,7 +112,7 @@ for (project in cancer_types) {
     #maf <- GDCquery_Maf(project, pipelines = "muse")
 
     # Below is the equivalence code
-    m_query <- GDCquery(project = "TCGA-HNSC",
+    m_query <- GDCquery(project = paste0("TCGA-", project),
                   data.category = "Simple Nucleotide Variation",
                   legacy = FALSE,
                   workflow.type = "MuSE Variant Aggregation and Masking",
