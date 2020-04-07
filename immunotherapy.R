@@ -1,3 +1,4 @@
+library(biomaRt)
 library(TCGAbiolinks)
 library(DT) # for TCGAbiolinks
 library(dplyr)
@@ -29,6 +30,35 @@ cancer_types = c(
 # usrwd = "/exeh_4/alex_lau/"
 # setwd(paste0(usrwd, "/HTE/wd/immune_HTE"))
 usrwd = "/exeh_4/alex_lau/HTE/wd/expression_HTE"
+
+# Faster way of getting gene length?
+
+# if(!file.exists) {
+#   ensembl = useMart("ensembl",dataset="hsapiens_gene_ensembl")
+#   proteinESG = getBM(attributes = c("ensembl_gene_id", "hgnc_symbol"), filter = c("transcript_biotype"), values = c("protein_coding"), mart = ensembl)
+#   prot_sub = proteinESG[-grep("MT-*", proteinESG$hgnc_symbol),]
+#   full_protls = unique(prot_sub$ensembl_gene_id)
+#   geneLN1 = as.data.frame(getGeneLengthAndGCContent(unique(full_protls[1:500]), "hsa"))
+#   geneLN2 = as.data.frame(getGeneLengthAndGCContent(unique(full_protls[1:2500]), "hsa"))
+#   write.csv(geneLN, "geneLN.csv", row.names = F)
+# }
+
+# That didn't work for some reasons
+library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+# library(org.Hs.eg.db)
+library(Homo.sapiens)
+keytypes(org.Hs.eg.db)
+txdb = TxDb.Hsapiens.UCSC.hg19.knownGene
+txlen = transcriptLengths(txdb, with.utr5_len=F, with.utr3_len=F)
+txnames = AnnotationDbi::select(Homo.sapiens, txlen$tx_name, c("ENSEMBL", "SYMBOL"), "TXNAME")
+txlen = left_join(txlen, txnames, by = c("tx_name" = "TXNAME"))
+# txnames = AnnotationDbi::select(org.Hs.eg.db, unique(na.omit(txlen$gene_id)), c("ENSEMBL", "SYMBOL"), "ENTREZID")
+txlen = dplyr::select(txlen, c(ENSEMBL, SYMBOL, tx_len))
+txlen = txlen[complete.cases(txlen),]
+txlen = txlen %>% group_by(SYMBOL) %>% mutate(avglen = mean(tx_len)) %>% ungroup() %>% group_by(ENSEMBL) %>% dplyr::slice((1))
+txlen$tx_len = NULL
+txlen = txlen[!duplicated(txlen),]
+
 
 for (project in cancer_types) {
     print(paste0(paste0(rep('#', 20), collapse=""), "Downloading: ", project, paste0(rep('#', 20), collapse="")))
@@ -92,15 +122,13 @@ for (project in cancer_types) {
     # m_maf = GDCprepare(m_query)
 
     pmaf = dplyr::filter(maf, BIOTYPE == "protein_coding")
-    pmaf$Hugo_Symbol[grep("ENSG00000085231", pmaf$Gene)] = "AK6"
+    # pmaf$Hugo_Symbol[grep("ENSG00000085231", pmaf$Gene)] = "AK6"
     pmaf$kaks = ifelse(grepl("synonymous", pmaf$Consequence), "KS", "KA")
-    gene_ln = as.data.frame(getGeneLengthAndGCContent(unique(pmaf$Gene), "hsa"))
-    gene_ln$Gene = rownames(gene_ln)
-    pmaf = left_join(pmaf, gene_ln, by = "Gene")
-    pmaf = pmaf[!is.na(pmaf$length),] # some of the mut status has unknown gene
+    pmaf = left_join(pmaf, txlen, by = c("Gene" = "ENSEMBL"))
+    pmaf = pmaf[!is.na(pmaf$avglen),] # some of the mut status has unknown gene
 
     # Create conversion table for later use
-    hugo2ens = data.frame(Hugo_Symbol = as.character(pmaf$Hugo_Symbol), Gene = as.character(pmaf$Gene))
+    hugo2ens = data.frame(Hugo_Symbol = as.character(pmaf$SYMBOL.y), Gene = as.character(pmaf$Gene))
     ## ATTENTION: THE ORIGINAL MAF HAS A MISTAKE ON GENE NAME CONVERTION
     hugo2ens = hugo2ens[!duplicated(hugo2ens),]
 
@@ -110,7 +138,7 @@ for (project in cancer_types) {
     # Back ground mutation rate for EACH gene
     psn_by_gene = c()
     for (gene in unique(pmaf$Gene)) {
-      n = gene_ln$length[gene_ln$Gene == gene]
+      n = floor(txlen$avglen[txlen$ENSEMBL == gene])
       x = sum(pmaf$Gene == gene & pmaf$SNNS == "SN")
       psn = binom.test(x,n)
       psn = as.numeric(psn$estimate)
@@ -140,9 +168,12 @@ for (project in cancer_types) {
     tmp = as.matrix(wide[,2:ncol(wide)])
     class(tmp) = "numeric"
     Pns_mat = t(t(tmp) * Pns)
-    Pns_mat[is.na(Psn_mat)] = 0
+    Pns_mat[is.na(Pns_mat)] = 0
     Pns_mat = cbind(wide$Tumor_Sample_Barcode, as.data.frame(Pns_mat))
-    colnames(Psn_mat)[1] = "donorId"
+    colnames(Pns_mat)[1] = "donorId"
+    tmp = strsplit(as.character(Pns_mat$donorId), "-")
+    tmp = unlist(lapply(tmp, function(x) paste(x[[1]], x[[2]], x[[3]], sep = "-")))
+    Pns_mat$donorId <- unlist(tmp)
 
     write.csv(Pns_mat, paste0(project, "_Pns.csv"), row.names=F)
 
