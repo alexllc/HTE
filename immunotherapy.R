@@ -6,7 +6,8 @@ library(EDASeq)
 library(tidyverse)
 
 cancer_types = c(
-    'ACC','BLCA','BRCA',
+    # 'ACC','BLCA',
+    'BRCA',
     'CESC','CHOL','COAD','DLBC','ESCA','GBM','HNSC','KICH', 'KIRC','KIRP','LGG','LIHC','LUAD','LUSC','MESO','OV','PAAD','PCPG','PRAD','READ', 'SKCM','STAD', 'TGCT','THCA','THYM','UCEC','UCS','UVM')
 
 ## Fixing drug names
@@ -29,7 +30,7 @@ cancer_types = c(
 # }
 # usrwd = "/exeh_4/alex_lau/"
 # setwd(paste0(usrwd, "/HTE/wd/immune_HTE"))
-usrwd = "/exeh_4/alex_lau/HTE/wd/expression_HTE"
+setwd("/exeh_4/alex_lau/HTE/wd/expression_HTE")
 
 # Faster way of getting gene length?
 
@@ -176,7 +177,7 @@ for (project in cancer_types) {
     tmp = unlist(lapply(tmp, function(x) paste(x[[1]], x[[2]], x[[3]], sep = "-")))
     Pns_mat$donorId <- unlist(tmp)
 
-    write.csv(Pns_mat, paste0(project, "_Pns.csv"), row.names=F)
+    write.csv(Pns_mat, paste0("./Pns", project, "_Pns.csv"), row.names=F)
 
 
     #############################################################
