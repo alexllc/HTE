@@ -55,7 +55,7 @@ correct_drug_names <- function(df) {
   return(df)
 }
 
-targeted_rx <- read.csv("targeted_rx.csv")
+targeted_rx <- read.csv("./immunotx/targeted_rx.csv")
 correct_drug_cat <- function(cat) {
   targeted_rx[,1] <- sapply(sapply(as.character(targeted_rx[,1]), function(x) strsplit(x, ' ')), function(x) x[[1]])
   colnames(targeted_rx)[1] <- "drug_name"
