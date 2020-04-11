@@ -187,7 +187,7 @@ for (project in cancer_types) {
     # Seems like the simple one don't always work for all cancer types
     #maf <- GDCquery_Maf(project, pipelines = "muse")
 
-    if (!file.exists(paste0("./Pns/TCGA-", project, "_Pns.csv"))){
+    if (!file.exists(paste0("./Pns/TCGA-", project, "_Pns.csv"))) {
     # Below is the equivalence code
     m_query <- GDCquery(project = paste0("TCGA-", project),
                   data.category = "Simple Nucleotide Variation",
@@ -253,7 +253,7 @@ for (project in cancer_types) {
     tmp = unlist(lapply(tmp, function(x) paste(x[[1]], x[[2]], x[[3]], sep = "-")))
     Pns_mat$donorId <- unlist(tmp)
     } else{
-      Pns_mat = paste0("./Pns/TCGA-", project, "_Pns.csv"))
+      Pns_mat = paste0("./Pns/TCGA-", project, "_Pns.csv")
     }
     
 
