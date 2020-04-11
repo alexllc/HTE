@@ -253,7 +253,7 @@ for (project in cancer_types) {
     tmp = unlist(lapply(tmp, function(x) paste(x[[1]], x[[2]], x[[3]], sep = "-")))
     Pns_mat$donorId <- unlist(tmp)
     } else{
-      Pns_mat = paste0("./Pns/TCGA-", project, "_Pns.csv")
+      Pns_mat = read.csv(paste0("./Pns/TCGA-", project, "_Pns.csv"))
     }
     
 
