@@ -108,10 +108,6 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
         if(is.binary){
             if (covar_type == "mutation") {
                 treatment <- as.numeric(treatment != 0) # only for mutation
-                if (length(unique(treatment)) == 1 | sum(treatment) < length(treatment)*0.1) {
-                    print("Gene expression distribution too sparse, skipping.")
-                    next
-                }
                     
             } else if (covar_type == "expression") {
                
@@ -130,7 +126,7 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
             
                     
                     # Safeguarding against uniform treatment assignment
-                    if (length(unique(treatment)) == 1 | sum(treatment) < length(treatment)*0.1) {
+                    if (length(unique(treatment)) == 1 | sum(treatment != 0) < length(treatment)*0.1) {
                         print("Gene expression distribution too sparse, skipping.")
                         next
                     }
