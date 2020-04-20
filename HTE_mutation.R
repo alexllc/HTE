@@ -38,8 +38,8 @@ source("./HTE_main_functions.R")
 source("./HTE_validation_functions.R")
 source("./survival_imputation.R")
 
-#usrwd = "/exeh_4/alex_lau"
-usrwd = "/home/alex/project"
+usrwd = "/exeh_4/alex_lau"
+# usrwd = "/home/alex/project"
 setwd(paste0(usrwd, "/HTE/wd/mut_HTE"))
 
 project = "BRCA"
@@ -64,7 +64,7 @@ if (!file.exists("../TCGA_CDR_clean.csv")) {
 
     write.csv(clinical_dat, "TCGA_CDR_clean.csv", row.names = F)
 } else {
-    clinical_dat = read.csv("TCGA_CDR_clean.csv")
+    clinical_dat = read.csv("../TCGA_CDR_clean.csv")
 }
 
 # specify cancer type here
