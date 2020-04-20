@@ -18,14 +18,15 @@ library(tidyr)
 ####################################################################
 varimp = read.csv("./result/HNSC/HNSC_varimp_CD8_Tcells.csv")
 varimp$variable = as.character(varimp$variable)
-tau = read.csv("./result/HNSC/HNSC_tau_CD8_Tcells.csv")
+tau = read.csv("./expression_HTE/result/BRCA/BRCA_tau_ENSG00000205364.csv")
+genevar = varimp[varimp$variable %in% colnames(exp_matrix),]
 
 res = NULL
-for (covariate in varimp$variable) {
-     covar_value = X.covariates[,colnames(X.covariates)==covariate]
-     res =cbind(res, cor.test(tau$tau.val, covar_value))
+for (covariate in genevar$variable) {
+     covar_value = exp_matrix[,colnames(exp_matrix)==covariate]
+     res =cbind(res, cor.test(tau$tau.val, as.numeric(covar_value)[1:1089]))
  }
-colnames(res) = varimp$variable
+colnames(res) = genevar$variable
 res = t(res)
 res = as.data.frame(res)
 res$lower.conf = unlist(lapply(res$conf.int, function(x) x[[1]]))
@@ -33,8 +34,8 @@ res$upper.conf = unlist(lapply(res$conf.int, function(x) x[[2]]))
 res$conf.int = NULL
 res = apply(res, 2, function(x) do.call("rbind", x))
 res = as.data.frame(apply(res, 2, as.numeric))
-res$variable = varimp$variable
+res$variable = genevar$variable
 
 
 varimp_cor = left_join(varimp, res, by = "variable")
-write.csv(varimp_cor, "HNSC_CD8_varimp_cor.csv")
+write.csv(varimp_cor, "BRCA_MT1M_varimp_cor.csv")
