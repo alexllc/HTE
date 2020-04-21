@@ -172,7 +172,7 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
                                         col_names = col_names, 
                                         seed = seed)
             }
-            , warming = {}
+            , warning = {}
             , error = {
                 print(message("* Caught an error in split half ", tx))
                 next
