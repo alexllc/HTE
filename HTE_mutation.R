@@ -126,12 +126,12 @@ smsk = smsk[!duplicated(smsk),]
 wmsk = smsk %>% spread(Hugo_Symbol, n)
 wmsk[is.na(wmsk)] = 0
 
-cmon_gene = colnames(wmsk)[colnames(wmsk) %in% colnames(wtcga)]
+cmon_gene = colnames(wtcga)[colnames(wtcga) %in% colnames(wtcga)]
 
 
 # Pns_mat = read.csv(paste0("./Pns/TCGA-", project, "_Pns.csv"))
 
-whole_dataset = left_join(ss_patient, wmsk, by = "donorId")
+whole_dataset = left_join(ss_patient, wtcga, by = "donorId")
 whole_dataset = whole_dataset[complete.cases(whole_dataset),]
 covar_mat= dplyr::select(whole_dataset, -c("donorId", "outcome"))
 
