@@ -118,10 +118,13 @@ spmaf = spmaf %>% group_by(Tumor_Sample_Barcode) %>% add_count(Hugo_Symbol)
 spmaf = spmaf[!duplicated(spmaf),]
 wtcga = spmaf %>% spread(Hugo_Symbol, n)
 wtcga[is.na(wtcga)] = 0
-tmp = strsplit(as.character(wtcga$Tumor_Sample_Barcode), "-")
+wtcga$Tumor_Sample_Barcode = as.character(wtcga$Tumor_Sample_Barcode)
+tmp = strsplit(wtcga$Tumor_Sample_Barcode, "-")
 tmp = unlist(lapply(tmp, function(x) paste(x[[1]], x[[2]], x[[3]], sep = "-")))
 wtcga$Tumor_Sample_Barcode <- unlist(tmp)
+wtcga = as.data.frame(wtcga)
 colnames(wtcga)[1] = "donorId"
+
 
 mskcc = read.table("./MSKCC-PRAD/data_mutations_extended.txt", sep  ='\t', header=T)
 smsk = dplyr::select(mskcc, Hugo_Symbol, Tumor_Sample_Barcode)
