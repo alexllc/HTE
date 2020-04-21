@@ -132,6 +132,7 @@ wmsk[is.na(wmsk)] = 0
 
 cmon_gene = colnames(wmsk)[colnames(wmsk) %in% colnames(wtcga)]
 
+wtcga = dplyr::select(wtcga, c("donorId", cmon_gene))
 
 # Pns_mat = read.csv(paste0("./Pns/TCGA-", project, "_Pns.csv"))
 
