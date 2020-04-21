@@ -160,6 +160,8 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
         print(file_prefix)
         
         print("Performing split half.")
+        
+        tryCatch(
         pvalues <- split_half_testing(X.covariates, Y, 
                                       treatment, 
                                       binary = is.binary, 
@@ -168,8 +170,13 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
                                       is_tuned = is.tuned,
                                       file_prefix = file_prefix,
                                       col_names = col_names, 
-                                      seed = seed) 
-
+                                      seed = seed)
+        , error = function(e){
+            message("* Caught an error in split half ", tx)
+            print(e)
+            next
+            } 
+        )
 
         cat('Treatment name:', tx, fill = T)
         cat('Fisher extact test pval in trainset:', pvalues[9], fill = T)
