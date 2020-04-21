@@ -131,7 +131,7 @@ cmon_gene = colnames(wmsk)[colnames(wmsk) %in% colnames(wtcga)]
 
 # Pns_mat = read.csv(paste0("./Pns/TCGA-", project, "_Pns.csv"))
 
-whole_dataset = left_join(ss_patient, wide, by = "donorId")
+whole_dataset = left_join(ss_patient, wmsk, by = "donorId")
 whole_dataset = whole_dataset[complete.cases(whole_dataset),]
 covar_mat= dplyr::select(whole_dataset, -c("donorId", "outcome"))
 
