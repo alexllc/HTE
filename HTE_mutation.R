@@ -95,7 +95,16 @@ head(ss_patient)
 
 ## mutation data
 
-maf <- GDCquery_Maf(project, pipelines = "muse")
+# maf <- GDCquery_Maf(project, pipelines = "muse")
+m_query <- GDCquery(project = paste0("TCGA-", project),
+                data.category = "Simple Nucleotide Variation",
+                legacy = FALSE,
+                workflow.type = "MuSE Variant Aggregation and Masking",
+                data.type = "Masked Somatic Mutation"
+            )
+
+GDCdownload(m_query)
+maf = GDCprepare(m_query)
 
 pmaf = dplyr::filter(maf, BIOTYPE == "protein_coding")
 pmaf$SNNS = ifelse(pmaf$One_Consequence == "synonymous_variant" | is.na(pmaf$Amino_acids),"SN", "NS")
