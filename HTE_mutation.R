@@ -38,11 +38,11 @@ source("./HTE_main_functions.R")
 source("./HTE_validation_functions.R")
 source("./survival_imputation.R")
 
-usrwd = "/exeh_4/alex_lau"
-# usrwd = "/home/alex/project"
+# usrwd = "/exeh_4/alex_lau"
+usrwd = "/home/alex/project"
 setwd(paste0(usrwd, "/HTE/wd/mut_HTE"))
 
-project = "BRCA"
+project = "LUSC"
 
 output_file = paste0("./result/", project, "/")
 
