@@ -119,7 +119,7 @@ tmp = unlist(lapply(tmp, function(x) paste(x[[1]], x[[2]], x[[3]], sep = "-")))
 wtcga$Tumor_Sample_Barcode <- unlist(tmp)
 colnames(wtcga)[1] = "donorId"
 
-mskcc = read.table("./MSKCC-PRAD/data_mutations_extended.txt", sep  ='\t', colnames=T)
+mskcc = read.table("./MSKCC-PRAD/data_mutations_extended.txt", sep  ='\t', header=T)
 smsk = dplyr::select(mskcc, Hugo_Symbol, Tumor_Sample_Barcode)
 smsk = smsk %>% group_by(Tumor_Sample_Barcode) %>% add_count(Hugo_Symbol)
 smsk = smsk[!duplicated(smsk),]
