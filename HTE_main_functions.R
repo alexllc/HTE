@@ -162,21 +162,21 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
         print("Performing split half.")
         
         tryCatch(
-        expr = {pvalues <- split_half_testing(X.covariates, Y, 
-                                      treatment, 
-                                      binary = is.binary, 
-                                      is_save = is_save, 
-                                      save_split = save_split, 
-                                      is_tuned = is.tuned,
-                                      file_prefix = file_prefix,
-                                      col_names = col_names, 
-                                      seed = seed)
-        }
-        , error = function(e){
-            message("* Caught an error in split half ", tx)
-            print(e)
-            next
-            } 
+            {pvalues <- split_half_testing(X.covariates, Y, 
+                                        treatment, 
+                                        binary = is.binary, 
+                                        is_save = is_save, 
+                                        save_split = save_split, 
+                                        is_tuned = is.tuned,
+                                        file_prefix = file_prefix,
+                                        col_names = col_names, 
+                                        seed = seed)
+            }
+            , error = function(e){
+                message("* Caught an error in split half ", tx)
+                print(e)
+                next
+                } 
         )
 
         cat('Treatment name:', tx, fill = T)
