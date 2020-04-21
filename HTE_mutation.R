@@ -130,7 +130,7 @@ smsk = smsk[!duplicated(smsk),]
 wmsk = smsk %>% spread(Hugo_Symbol, n)
 wmsk[is.na(wmsk)] = 0
 
-cmon_gene = colnames(wtcga)[colnames(wtcga) %in% colnames(wtcga)]
+cmon_gene = colnames(wmsk)[colnames(wmsk) %in% colnames(wtcga)]
 
 
 # Pns_mat = read.csv(paste0("./Pns/TCGA-", project, "_Pns.csv"))
