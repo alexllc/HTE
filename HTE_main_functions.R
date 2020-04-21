@@ -162,7 +162,7 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
         print("Performing split half.")
         
         tryCatch(
-        pvalues <- split_half_testing(X.covariates, Y, 
+        expr = {pvalues <- split_half_testing(X.covariates, Y, 
                                       treatment, 
                                       binary = is.binary, 
                                       is_save = is_save, 
@@ -171,6 +171,7 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
                                       file_prefix = file_prefix,
                                       col_names = col_names, 
                                       seed = seed)
+        }
         , error = function(e){
             message("* Caught an error in split half ", tx)
             print(e)
