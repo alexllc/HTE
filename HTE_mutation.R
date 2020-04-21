@@ -42,7 +42,7 @@ source("./survival_imputation.R")
 usrwd = "/home/alex/project"
 setwd(paste0(usrwd, "/HTE/wd/mut_HTE"))
 
-project = "LUSC"
+project = "PRAD"
 
 output_file = paste0("./result/", project, "/")
 
@@ -95,21 +95,46 @@ head(ss_patient)
 
 ## mutation data
 
-Pns_mat = read.csv(paste0("./Pns/TCGA-", project, "_Pns.csv"))
+maf <- GDCquery_Maf(project, pipelines = "muse")
 
-whole_dataset = left_join(ss_patient, Pns_mat, by = "donorId")
+pmaf = dplyr::filter(maf, BIOTYPE == "protein_coding")
+pmaf$SNNS = ifelse(pmaf$One_Consequence == "synonymous_variant" | is.na(pmaf$Amino_acids),"SN", "NS")
+NSpmaf = filter(pmaf, SNNS == "NS")
+spmaf = dplyr::select(NSpmaf, c(Hugo_Symbol, Tumor_Sample_Barcode))
+spmaf = spmaf %>% group_by(Tumor_Sample_Barcode) %>% add_count(Hugo_Symbol)
+spmaf = spmaf[!duplicated(spmaf),]
+wtcga = spmaf %>% spread(Hugo_Symbol, n)
+wtcga[is.na(wtcga)] = 0
+tmp = strsplit(as.character(wtcga$Tumor_Sample_Barcode), "-")
+tmp = unlist(lapply(tmp, function(x) paste(x[[1]], x[[2]], x[[3]], sep = "-")))
+wtcga$Tumor_Sample_Barcode <- unlist(tmp)
+colnames(wtcga)[1] = "donorId"
+
+mskcc = read.table("./MSKCC-PRAD/data_mutations_extended.txt", sep  ='\t', colnames=T)
+smsk = dplyr::select(mskcc, Hugo_Symbol, Tumor_Sample_Barcode)
+smsk = smsk %>% group_by(Tumor_Sample_Barcode) %>% add_count(Hugo_Symbol)
+smsk = smsk[!duplicated(smsk),]
+wmsk = smsk %>% spread(Hugo_Symbol, n)
+wmsk[is.na(wmsk)] = 0
+
+cmon_gene = colnames(wmsk)[colnames(wmsk) %in% colnames(wtcga)]
+
+
+# Pns_mat = read.csv(paste0("./Pns/TCGA-", project, "_Pns.csv"))
+
+whole_dataset = left_join(ss_patient, wide, by = "donorId")
 whole_dataset = whole_dataset[complete.cases(whole_dataset),]
 covar_mat= dplyr::select(whole_dataset, -c("donorId", "outcome"))
 
-tx_vector = colnames(covar_mat[,4:ncol(covar_mat)])
-check = unlist(lapply(covar_mat[,4:ncol(covar_mat)], function(x) (length(unique(x)) == 1 | sum(x != 0) < length(x)*0.1))) # onyl use genes with at least 1% pop has the mutaion
-tx_vector = tx_vector[!as.logical(check)]
+# tx_vector = colnames(covar_mat[,4:ncol(covar_mat)])
+# check = unlist(lapply(covar_mat[,4:ncol(covar_mat)], function(x) (length(unique(x)) == 1 | sum(x != 0) < length(x)*0.05))) # onyl use genes with at least 1% pop has the mutaion
+# tx_vector = tx_vector[!as.logical(check)]
 
 obsNumber <- dim(covar_mat)[1]
 trainId <- sample(1: obsNumber, floor(obsNumber/2), replace = FALSE)
 registerDoParallel(10)
 
-result <- run.hte(covar_mat, tx_vector, whole_dataset, project, covar_type = "mutation", trainId, seed = 111, is.binary = T, is_save = T, save_split = T, is.tuned = F, thres = 0.75, n_core = 8, output_directory = output_file)
+result <- run.hte(covar_mat, cmon_gene, whole_dataset, project, covar_type = "mutation", trainId, seed = 111, is.binary = T, is_save = T, save_split = T, is.tuned = F, thres = 0.75, n_core = 8, output_directory = output_file)
 write.csv(result[[1]], paste0(output_file, project, '_expression_correlation_test_result.csv'), quote = F, row.names = F)
 write.csv(result[[2]], paste0(output_file, project, '_expression_calibration_result.csv'), quote = F, row.names = F)
 write.csv(result[[3]], paste0(output_file, project, '_expression_median_t_test_result.csv'), quote = F, row.names = F)

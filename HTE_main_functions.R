@@ -108,7 +108,11 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
         if(is.binary){
             if (covar_type == "mutation") {
                 treatment <- as.numeric(treatment != 0) # only for mutation
-                    
+                if (length(unique(treatment)) == 1) {
+                    print("Gene mutation distribution too sparse, skipping.")
+                    next
+                }
+                
             } else if (covar_type == "expression") {
                
                # Read corresponding FC in tumor
@@ -193,7 +197,7 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
         simes.pval <- simes.test(tau_stats[, 3])
         partial.simes.pval <- simes.partial(floor(no.obs * 0.05), tau_stats[, 3])
 
-        if(simes.pval <= 0.01) { 
+        if(simes.pval <= 0.05) { 
             print("Performing permutation.")
             cor.overall <- cor.test(covar_mat[, tx], Y, method = 'pearson', alternative = 'greater', use="na.or.complete")
             
