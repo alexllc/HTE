@@ -1,5 +1,4 @@
 library(TCGAbiolinks)
-library(SGSeq)
 library(biomaRt)
 
 setwd("/home/alex/project/HTE/wd/")
