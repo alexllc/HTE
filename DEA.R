@@ -1,5 +1,4 @@
 library(TCGAbiolinks)
-library(biomaRt)
 
 setwd("/home/alex/project/HTE/wd/")
 
@@ -59,18 +58,33 @@ for (cancer in cancer_list) {
     dataPrep <- TCGAanalyze_Preprocessing(object = dataPrep, 
                                         cor.cut = 0.6,
                                         datatype = "HTSeq - Counts")                      
-    dataPrep = data
     # load(paste0("./expression_HTE/DEA/TCGA_", cancer,"_HTSeq_Counts.rda"))
+    # dataPrep = data
     dataNorm <- TCGAanalyze_Normalization(tabDF = dataPrep,
                                         geneInfo = geneInfoHT,
                                         method = "gcContent") 
 
-    #boxplot(dataPrep, outline = FALSE)
-    #boxplot(dataNorm, outline = FALSE)
+    # pdf("prep_plot.pdf") 
+    # boxplot(dataPrep, outline = FALSE)
+    # dev.off() 
+
+    # pdf("norm_plot.pdf")
+    # boxplot(dataNorm, outline = FALSE)
+    # dev.off()
+
+    # prep.cor = cor(dataPrep, method = c("spearman"))
+    # pdf("prep_heat.pdf")
+    # heatmap(x = prep.cor, symm = TRUE)
+    # dev.off()
+
+    # norm.cor = cor(dataNorm, method = c("spearman"))
+    # pdf("norm_heat.pdf")
+    # heatmap(x = norm.cor, symm = TRUE)
+    # dev.off()
 
     dataFilt <- TCGAanalyze_Filtering(tabDF = dataNorm,
                                     method = "quantile", 
-                                    qnt.cut =  0.25)   
+                                    qnt.cut =  0.25)  
 
 # https://github.com/BioinformaticsFMRP/TCGAbiolinks/issues/293
     # dataDEGs <- TCGAanalyze_DEA(mat1 = dataFilt[,dataSmTP], ##########TP = tumor, NT = normal
