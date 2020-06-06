@@ -44,3 +44,29 @@ for (gene in BRCA.perm$mutName){
 stats = as.data.frame(stats)
 stats = stats[order(stats$V3),]
 
+######## For local
+library(dplyr)
+
+stats = NULL
+for (gene in perm$mutName){
+    tmp = read.csv(paste0("./KIRC_tau_", gene, ".csv"))
+    dat = c(exp(max(tmp$tau.val)), exp(min(tmp$tau.val)), abs(exp(max(tmp$tau.val)) - exp(min(tmp$tau.val))))
+    stats = rbind(stats, dat)
+    
+}
+stats = as.data.frame(stats)
+stats = stats[order(stats$V3),]
+rownames(stats) = perm$mutName
+stats$marker = perm$mutName
+colnames(stats) = c('max','min','diff')
+
+deg = read.csv("KIRC_DEGtable.csv")
+deg$logFC = -deg$logFC # cuz you flipped up reg and lower reg
+stats = left_join(stats, deg, by = c("marker"))
+
+write.csv(stats, "min_max_deg.csv")
+
+
+read.table(pipe("xclip -selection clipboard -o",open="r"), header = T)
+
+

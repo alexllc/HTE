@@ -32,7 +32,7 @@ library(biomaRt)
 library(RTCGAToolbox)
 
 # 2. Make sure all four accompanying scripts are in the same directory as the header script
-#setwd("./HTE")
+#setwd("../HTE")
 source("./grf_parameters.R")
 source("./HTE_main_functions.R")
 source("./HTE_validation_functions.R")
@@ -106,9 +106,9 @@ if (!file.exists(paste0(project, "_maf.csv"))) {
 
     GDCdownload(m_query)
     maf = GDCprepare(m_query)
-    write.csv(maf, paste0(project, "_maf.csv"), row.names = F)
+    write.csv(maf, paste0("maf", project, "_maf.csv"), row.names = F)
 
-} else {maf = read.csv(paste0(project, "_maf.csv"))}
+} else {maf = read.csv(paste0("maf",project, "_maf.csv"))}
 
 pmaf = dplyr::filter(maf, BIOTYPE == "protein_coding")
 pmaf$SNNS = ifelse(pmaf$One_Consequence == "synonymous_variant" | is.na(pmaf$Amino_acids),"SN", "NS")
