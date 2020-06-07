@@ -158,27 +158,25 @@ print("Processed patient dataframe: ")
 head(ss_patient)
 
 
-suppressWarnings(  # ever since updates we have a lot of crippling warnings
-    if (!file.exists(paste0("./HTSeqData/", project, "_exp.rda")) ) {
-        
-        # Fetch expression data from GDC
-        g_query <- GDCquery(project = paste0("TCGA-", project),
-                        data.category = "Transcriptome Profiling",
-                        legacy = F,
-                        data.type = "Gene Expression Quantification",
-                        workflow.type = "HTSeq - FPKM-UQ",
-                        sample.type = "Primary Tumor")
+if (!file.exists(paste0("./HTSeqData/", project, "_exp.rda")) ) {
+    
+    # Fetch expression data from GDC
+    g_query <- GDCquery(project = paste0("TCGA-", project),
+                    data.category = "Transcriptome Profiling",
+                    legacy = F,
+                    data.type = "Gene Expression Quantification",
+                    workflow.type = "HTSeq - FPKM-UQ",
+                    sample.type = "Primary Tumor")
 
-        GDCdownload(g_query)
-        expdat <- GDCprepare(query = g_query,
-                            save = TRUE,
-                            save.filename = paste0("./HTSeqData/",project, "_exp.rda"))
-        prep <- GDCprepare(g_query) 
-    } else {
-        load(paste0("./HTSeqData/", project, "_exp.rda"))
-        prep = data
-    }
-)
+    GDCdownload(g_query)
+    expdat <- GDCprepare(query = g_query,
+                        save = TRUE,
+                        save.filename = paste0("./HTSeqData/",project, "_exp.rda"))
+    prep <- GDCprepare(g_query) 
+} else {
+    load(paste0("./HTSeqData/", project, "_exp.rda"))
+    prep = data
+}
 
 exp_matrix <- SummarizedExperiment::assay(prep, "HTSeq - FPKM-UQ")
 
@@ -226,29 +224,34 @@ exp_matrix <- dplyr::select(exp_matrix, -c(bcr, patient))
 # 4. Can assign at least 10% as treatment group
 
 # Select for DEEG only
-DEGs = read.csv(paste0("./tables/", project, "_DEGtable.csv"))
-cancer_DEG = as.character(DEGs$X)
-intersect_DEG = cancer_DEG[cancer_DEG %in% colnames(exp_matrix)]
-zeros = colnames(exp_matrix)[apply(exp_matrix,2, function(x) all(x == 0))]
-intersect_DEG = intersect_DEG[!intersect_DEG %in% zeros]
+# intersect_DEG = cancer_DEG[cancer_DEG %in% colnames(exp_matrix)]
+# zeros = colnames(exp_matrix)[apply(exp_matrix,2, function(x) all(x == 0))]
+# intersect_DEG = intersect_DEG[!intersect_DEG %in% zeros]
 
 ####### WE ARE RUNNING HTE FOR THE REVERSE
-exp_matrix = dplyr::select(exp_matrix, intersect_DEG)
+# exp_matrix = dplyr::select(exp_matrix, all_of(intersect_DEG))
 
 # 4. Prepare covariate matrix, whole dataset matrix and a vectoor of treatment types
-tx_vector = colnames(exp_matrix)[colnames(exp_matrix) %in% c("donorId", "TSS", "portion", "plate", "center") == F]
+# tx_vector = colnames(exp_matrix)[colnames(exp_matrix) %in% c("donorId", "TSS", "portion", "plate", "center") == F]
 
-ensembl = useMart("ensembl","hsapiens_gene_ensembl", host = "useast.ensembl.org")
-res = getBM(attributes=c("ensembl_gene_id", "transcript_biotype"), filters = "ensembl_gene_id", values=tx_vector, mart=ensembl)
+# ensembl = useMart("ensembl","hsapiens_gene_ensembl", host = "useast.ensembl.org")
+# res = getBM(attributes=c("ensembl_gene_id", "transcript_biotype"), filters = "ensembl_gene_id", values=tx_vector, mart=ensembl)
 # Only keep protein coding transcripts
-res = res[which(res$transcript_biotype=="protein_coding"),] 
-tx_vector = res$ensembl_gene_id
-tx_vector = sample(tx_vector, 4233)
+# res = res[which(res$transcript_biotype=="protein_coding"),] 
+# tx_vector = res$ensembl_gene_id
+# tx_vector = sample(tx_vector, 4233)
+
+## DEA re-run 07-06-2020
+DEGs = read.csv(paste0("./tables/", project, "_DEGtable.csv"))
+DEG_ls = as.character(DEGs$X)
+tx_vector = DEG_ls[DEG_ls %in% colnames(exp_matrix)]
+message(paste0("Treatments to assess: ", length(tx_vector)))
 
 whole_dataset = inner_join(ss_patient, exp_matrix , by = "donorId")
-whole_dataset = dplyr::select(whole_dataset, c("donorId","outcome", "TSS", "portion", "p    late", "center", tx_vector))
+whole_dataset = dplyr::select(whole_dataset, all_of(c("donorId","outcome", "TSS", "portion", "plate", "center", tx_vector)))
 covar_mat= dplyr::select(whole_dataset, -c("donorId", "outcome"))
 
+write.csv(whole_dataset, paste0("./wds_backup/", project, "_wds.csv"), row.names=F)
 # We need to remove genes with uniformly 0 eexpression as treatments!!!
 
 
@@ -261,7 +264,7 @@ obsNumber <- dim(covar_mat)[1]
 trainId <- sample(1: obsNumber, floor(obsNumber/2), replace = FALSE)
 registerDoParallel(10)
 
-result <- run.hte(covar_mat, tx_vector, whole_dataset, project, covar_type = "expression", trainId, seed = 111, is.binary = T, is_save = T, save_split = T, is.tuned = F, thres = 0.75, n_core = 8, output_directory = output_file)
+result <- run.hte(covar_mat, tx_vector, whole_dataset, project, covar_type = "expression", trainId, seed = 111, is.binary = T, is_save = T, save_split = T, is.tuned = F, thres = 0.75, n_core = 6, output_directory = output_file)
 write.csv(result[[1]], paste0(output_file, project, '_expression_correlation_test_result.csv'), quote = F, row.names = F)
 write.csv(result[[2]], paste0(output_file, project, '_expression_calibration_result.csv'), quote = F, row.names = F)
 write.csv(result[[3]], paste0(output_file, project, '_expression_median_t_test_result.csv'), quote = F, row.names = F)
