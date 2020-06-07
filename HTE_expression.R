@@ -165,7 +165,7 @@ if (!file.exists(paste0("./HTSeqData/", project, "_exp.rda")) ) {
                     legacy = F,
                     data.type = "Gene Expression Quantification",
                     workflow.type = "HTSeq - FPKM-UQ",
-                    sample.type = "Primary solid Tumor")
+                    sample.type = "Primary Tumor")
 
     GDCdownload(g_query)
     expdat <- GDCprepare(query = g_query,
