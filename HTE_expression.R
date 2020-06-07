@@ -158,7 +158,7 @@ print("Processed patient dataframe: ")
 head(ss_patient)
 
 
-suppressWarnings({  # ever since updates we have a lot of crippling warnings
+suppressWarnings(  # ever since updates we have a lot of crippling warnings
     if (!file.exists(paste0("./HTSeqData/", project, "_exp.rda")) ) {
         
         # Fetch expression data from GDC
@@ -178,7 +178,7 @@ suppressWarnings({  # ever since updates we have a lot of crippling warnings
         load(paste0("./HTSeqData/", project, "_exp.rda"))
         prep = data
     }
-)}
+)
 
 exp_matrix <- SummarizedExperiment::assay(prep, "HTSeq - FPKM-UQ")
 
