@@ -4,13 +4,13 @@ setwd("/home/alex/project/HTE/wd/")
 
 cancer_list = c(
                 # 'BLCA',
-                'COAD',
-                'BRCA',
-                # 'LGG', # no NT
-                'GBM',
-                'STAD',
-                'HNSC',
-                'KIRC',
+                # 'COAD',
+                # 'BRCA',
+                # # 'LGG', # no NT
+                # 'GBM',
+                # 'STAD',
+                # 'HNSC',
+                # 'KIRC',
                 'LUAD',
                 'LUSC',
                 #'OV', # no NT
