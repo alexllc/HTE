@@ -40,7 +40,7 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
     # @whole_dataset: dataframe with outcome, covariates and treatment assignments
     # @is.tuned is consistent within the scope of function, thus it only needs to be set once here.
     
-    correlation.test.ret <- data.frame(mutName = character(),
+    correlation.test.ret <- data.frame(gene = character(),
                                        simes.pval = double(),
                                        partial.simes.pval = double(),
                                        pearson.estimate = double(),
@@ -51,13 +51,13 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
                                        spearman.pvalue = double(),
                                        stringsAsFactors = FALSE)
 
-    double.dataset.test.ret <- data.frame(mutName = character(),
+    double.dataset.test.ret <- data.frame(gene = character(),
                                           fisher.pval = double(),
                                           t.test.a.pval = double(),
                                           t.test.b.pval = double(),
                                           stringsAsFactors = FALSE)
 
-    calibration.ret <- data.frame(mutName = character(),
+    calibration.ret <- data.frame(gene = character(),
                                   simes.pval = double(),
                                   simes.partial = double(),
                                   cor.mut.Y.estimate = double(),
@@ -69,12 +69,12 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
                                   diff.pred.pval = double(),
                                   stringsAsFactors = FALSE)
 
-    permutate.testing.ret <- data.frame(mutName = character(),                                       
+    permutate.testing.ret <- data.frame(gene = character(),                                       
                                         var.pval = double(),
                                         fixed.YW.risk.pval = double(),
                                         stringsAsFactors = FALSE)
 
-    observed.tau.risk.var.ret <- data.frame(mutName = character(),                                       
+    observed.tau.risk.var.ret <- data.frame(gene = character(),                                       
                                             var = double(),
                                             fixed.YW.risk = double(),
                                             stringsAsFactors = FALSE)
@@ -115,17 +115,19 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
                 
             } else if (covar_type == "expression") {
                
-               # Read corresponding FC in tumor
-                    DEGs = read.csv(paste0("./tables/", project, "_DEGtable.csv"))
+            #    # Read corresponding FC in tumor
+            #         DEGs = read.csv(paste0("./tables/", project, "_DEGtable.csv"))
                # determine if over expressed or under expressed in tumor
                     DEmeters = dplyr::filter(DEGs, X==tx)
                # set threshold based on gene behavior in tumors
                     if (DEmeters$logFC > 0){
                         # we take UQ
                         treatment = as.numeric(treatment > quantile(treatment, 0.75))
+                        message("Taking >UQ as treatment group.")
                     } else {
                         # we take LQ
                         treatment = as.numeric(treatment < quantile(treatment, 0.25))
+                        message("Taking <LQ as treatment group.")
                         }
             
                     

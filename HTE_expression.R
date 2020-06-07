@@ -40,7 +40,7 @@ source("./survival_imputation.R")
 
 #usrwd = "/exeh_4/alex_lau"
 usrwd = "/home/alex/project"
-setwd(paste0(usrwd, "/HTE/wd/expression_HTE"))
+setwd(paste0(usrwd, "/HTE/wd/expression_HTE/"))
 # 3. Set your project and make sure you have created a file called result under the working directory
 cancer_list = c(
                 'BLCA',
@@ -57,14 +57,12 @@ cancer_list = c(
                 'PRAD',
                 #'SKCM', # no NT
                 'THCA',
-                'UCEC',
-                'ESCA')
+                'UCEC')
+                # , 'ESCA')
 
-#for (project in cancer_list) {
-
-project = cancer_list[6]
+for (project in cancer_list) {
     print(paste0("running ", project))
-output_file = paste0("./result/reverse/", project, "/")
+output_file = paste0("./result/DEAcor/", project, "/")
 
 # SURVIVAL DATA MUST USE TCGA-CDR CENTRAL DATASET https://www.sciencedirect.com/science/article/pii/S0092867418302290?via%3Dihub
 

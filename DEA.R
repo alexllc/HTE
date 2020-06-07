@@ -3,15 +3,16 @@ library(TCGAbiolinks)
 setwd("/home/alex/project/HTE/wd/")
 
 cancer_list = c(
-                # 'BLCA',
-                # 'COAD',
-                # 'BRCA',
-                # # 'LGG', # no NT
-                # 'GBM',
-                # 'STAD',
-                # 'HNSC',
-                # 'KIRC',
+                'BLCA',
+                'COAD',
+                'BRCA',
+                # 'LGG', # no NT
+                'GBM',
+                'STAD',
+                'HNSC',
+                'KIRC',
                 'LUAD',
+
                 'LUSC',
                 #'OV', # no NT
                 'PRAD',
