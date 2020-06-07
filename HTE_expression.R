@@ -157,25 +157,28 @@ ss_patient = dplyr::select(ss_patient, -c(type, OS, OS.time))
 print("Processed patient dataframe: ")
 head(ss_patient)
 
-if (!file.exists(paste0("./HTSeqData/", project, "_exp.rda")) ) {
 
-    # Fetch expression data from GDC
-    g_query <- GDCquery(project = paste0("TCGA-", project),
-                    data.category = "Transcriptome Profiling",
-                    legacy = F,
-                    data.type = "Gene Expression Quantification",
-                    workflow.type = "HTSeq - FPKM-UQ",
-                    sample.type = "Primary Tumor")
+suppressWarnings({  # ever since updates we have a lot of crippling warnings
+    if (!file.exists(paste0("./HTSeqData/", project, "_exp.rda")) ) {
+        
+        # Fetch expression data from GDC
+        g_query <- GDCquery(project = paste0("TCGA-", project),
+                        data.category = "Transcriptome Profiling",
+                        legacy = F,
+                        data.type = "Gene Expression Quantification",
+                        workflow.type = "HTSeq - FPKM-UQ",
+                        sample.type = "Primary Tumor")
 
-    GDCdownload(g_query)
-    expdat <- GDCprepare(query = g_query,
-                        save = TRUE,
-                        save.filename = paste0("./HTSeqData/",project, "_exp.rda"))
-    prep <- GDCprepare(g_query) 
-} else {
-    load(paste0("./HTSeqData/", project, "_exp.rda"))
-    prep = data
-}
+        GDCdownload(g_query)
+        expdat <- GDCprepare(query = g_query,
+                            save = TRUE,
+                            save.filename = paste0("./HTSeqData/",project, "_exp.rda"))
+        prep <- GDCprepare(g_query) 
+    } else {
+        load(paste0("./HTSeqData/", project, "_exp.rda"))
+        prep = data
+    }
+)}
 
 exp_matrix <- SummarizedExperiment::assay(prep, "HTSeq - FPKM-UQ")
 
