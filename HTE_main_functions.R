@@ -122,7 +122,7 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
                # set threshold based on gene behavior in tumors
                     if (DEmeters$logFC > 0){
                         # we take UQ
-                        treatment = as.numeric(treatment > quantile(treatment, 0.75))
+                        treatment = as.numeric(treatment > quantile(treatment, thres))
                         message("Taking >UQ as treatment group.")
                     } else {
                         # we take LQ
@@ -138,7 +138,7 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
                     }
                     
             } else if (covar_type=="UQ"){
-                    treatment = as.numeric(treatment > quantile(treatment, 0.75))
+                    treatment = as.numeric(treatment > quantile(treatment, thres))
                     if (length(unique(treatment)) == 1 | sum(treatment) < length(treatment)*0.1) {
                         print("Gene expression distribution too sparse, skipping.")
                         next
@@ -169,6 +169,7 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
                                 binary = is.binary, 
                                 is_save = is_save, 
                                 save_split = save_split, 
+                                varimp_names = colnames(X.covariates)
                                 is_tuned = is.tuned,
                                 file_prefix = file_prefix,
                                 col_names = col_names, 
