@@ -180,12 +180,12 @@ split_half_testing <- function(covariates, Y,
             write.csv(observation_result.b, file = paste0(file_prefix,  '_observation_', i,'_result_b.csv'))
             
             # Extract varimp from each of the split half forest (Jun 13, 2020 @alex)
-            varImp = variable_importance(tau.forest.train
-            train.varimp <- data.frame(variable = varimp_names, varImp ,  max.depth = 4))
+            varImp = variable_importance(tau.forest.train)
+            train.varimp <- data.frame(variable = varimp_names, varImp, max.depth = 4)
             write.csv(train.varimp, file = paste0(file_prefix, '_observation_', i, '_varimp_train.csv'), row.names = F, quote = F)
 
-            varImp = variable_importance(tau.forest.test
-            test.varimp <- data.frame(variable = varimp_names, varImp ,  max.depth = 4))
+            varImp = variable_importance(tau.forest.test)
+            test.varimp <- data.frame(variable = varimp_names, varImp, max.depth = 4)
             write.csv(test.varimp, file = paste0(file_prefix, '_observation_', i, '_varimp_test.csv'), row.names = F, quote = F)
             #message(paste0("Varimp for observation ", i, " saved."))
         }
