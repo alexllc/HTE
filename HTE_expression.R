@@ -43,9 +43,9 @@ usrwd = "/home/alex/project"
 setwd(paste0(usrwd, "/HTE/wd/expression_HTE/"))
 # 3. Set your project and make sure you have created a file called result under the working directory
 cancer_list = c(
-                'BLCA',
-                'COAD',
-                'BRCA',
+                # 'BLCA',
+                # 'COAD',
+                # 'BRCA',
                 #'LGG',
                 'GBM',
                 'STAD',
