@@ -124,16 +124,16 @@ wtcga = as.data.frame(wtcga)
 colnames(wtcga)[1] = "donorId"
 
 
-mskcc = read.table("./MSKCC-PRAD/data_mutations_extended.txt", sep  ='\t', header=T)
-smsk = dplyr::select(mskcc, Hugo_Symbol, Tumor_Sample_Barcode)
-smsk = smsk %>% group_by(Tumor_Sample_Barcode) %>% add_count(Hugo_Symbol)
-smsk = smsk[!duplicated(smsk),]
-wmsk = smsk %>% spread(Hugo_Symbol, n)
-wmsk[is.na(wmsk)] = 0
+# mskcc = read.table("./MSKCC-PRAD/data_mutations_extended.txt", sep  ='\t', header=T)
+# smsk = dplyr::select(mskcc, Hugo_Symbol, Tumor_Sample_Barcode)
+# smsk = smsk %>% group_by(Tumor_Sample_Barcode) %>% add_count(Hugo_Symbol)
+# smsk = smsk[!duplicated(smsk),]
+# wmsk = smsk %>% spread(Hugo_Symbol, n)
+# wmsk[is.na(wmsk)] = 0
 
-cmon_gene = colnames(wmsk)[colnames(wmsk) %in% colnames(wtcga)]
+# cmon_gene = colnames(wmsk)[colnames(wmsk) %in% colnames(wtcga)]
 
-wtcga = dplyr::select(wtcga, c("donorId", cmon_gene))
+# wtcga = dplyr::select(wtcga, c("donorId", cmon_gene))
 
 # Pns_mat = read.csv(paste0("./Pns/TCGA-", project, "_Pns.csv"))
 
