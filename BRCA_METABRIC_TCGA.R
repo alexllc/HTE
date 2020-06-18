@@ -57,9 +57,22 @@ cf.estimator <- ifelse(is.tuned, cf.tuned, cf)
 
 col_names <- c('simes.pval', 'partial.simes.pval', 'pearson.estimate','pearson.pvalue', 'kendall.estimate','kendall.pvalue', 'spearman.estimate','spearman.pvalue', 'fisher.pval', 't.test.a.pval', 't.test.b.pval')
 
-for (tx in sel_genes){
+correlation.test.ret <- data.frame(gene = character(),
+                                    simes.pval = double(),
+                                    partial.simes.pval = double(),
+                                    pearson.estimate = double(),
+                                    pearson.pvalue = double(),
+                                    kendall.estimate = double(),
+                                    kendall.pvalue = double(), 
+                                    spearman.estimate = double(),
+                                    spearman.pvalue = double(),
+                                    stringsAsFactors = FALSE)
 
+for (tx in sel_genes){
+    
+    print(paste0(c('#', rep('-', 40), ' running ', which(tx %in% sel_genes), ' of ', length(sel_genes), rep('-', 40)), collapse = ''))
     # tx vector and covar mat for TCGA
+    cat('Treatment name:', tx, fill = T)
 
     T_treatment <- as.data.frame(covar_mat)[, tx]
     T_covariates <- as.matrix(dplyr::select(covar_mat, -tx))
@@ -144,4 +157,25 @@ for (tx in sel_genes){
         write.csv(correlation_matrix, file = paste0(file_prefix, '_split_half.csv'), row.names = F, quote = F)
     }
     
+
+    # change to partial_simes_pval 20190929
+    aggregated_rslt <- sapply(seq(dim(correlation_matrix)[2]), function(i){
+        removed_na <- na.omit(correlation_matrix[, i])
+        # simes_pval <- ifelse(length(removed_na) > 0, simes.test(removed_na), NA)
+        if(!(i %in% c(3, 5, 7))){
+            pval <- ifelse(length(removed_na) > 0, simes.partial(2, removed_na), NA)
+        } else {
+            pval <- ifelse(length(removed_na) > 0, extract_binom_pval(removed_na), NA) 
+        }
+        pval
+    })
+
+    cat('Fisher extact test pval in trainset:', aggregated_rslt[9], fill = T)
+    cat('pearson correlation pval in trainset:', aggregated_rslt[4], fill = T)
+    cat('kedall correlation pval in trainset:', aggregated_rslt[6], fill = T)
+    cat('spearman correlation pval in trainset:', aggregated_rslt[8], fill = T)
+
+    current_ret <- do.call('c', list(list(tx), as.list(aggregated_rslt[1: 8])))
+    correlation.test.ret <- append(correlation.test.ret, current_ret)
+                             
 }
