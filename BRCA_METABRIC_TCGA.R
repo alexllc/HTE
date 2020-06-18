@@ -68,7 +68,7 @@ correlation.test.ret <- data.frame(gene = character(),
                                     spearman.pvalue = double(),
                                     stringsAsFactors = FALSE)
 
-for (tx in sel_genes[153:length(sel_genes)]){
+for (tx in sel_genes[154:length(sel_genes)]){
     
     print(paste0(c('#', rep('-', 40), ' running ', which(tx %in% sel_genes), ' of ', length(sel_genes), rep('-', 40)), collapse = ''))
     # tx vector and covar mat for TCGA
