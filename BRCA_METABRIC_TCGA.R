@@ -141,7 +141,7 @@ for (tx in sel_genes){
 
         # check the correlation between two predictions from two datasets
         test_res_tcga <- correlation_test(tau_tcga_train_stats[, 1], tau_metab_stats[, 1], methods = c('pearson', 'kendall', 'spearman'))
-        test_res_metab <- correlation_test(tau_tcga_stats[, 1], tau_metab_train_stat[, 1], methods = c('pearson', 'kendall', 'spearman'))
+        test_res_metab <- correlation_test(tau_tcga_stats[, 1], tau_metab_train_stats[, 1], methods = c('pearson', 'kendall', 'spearman'))
 
         fisher_pval_tcga <- fisher.exact.test(tau_tcga_train_stats[, 3], tau_metab_stats[, 3])
         fisher_pval_metab <- fisher.exact.test(tau_tcga_stats[, 3], tau_metab_train_stats[, 3])
