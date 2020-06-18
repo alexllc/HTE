@@ -137,11 +137,11 @@ colnames(wtcga)[1] = "donorId"
 
 # Pns_mat = read.csv(paste0("./Pns/TCGA-", project, "_Pns.csv"))
 
-# whole_dataset = left_join(ss_patient, wtcga, by = "donorId")
+whole_dataset = left_join(ss_patient, wtcga, by = "donorId")
 # whole_dataset = whole_dataset[complete.cases(whole_dataset),]
-# covar_mat= dplyr::select(whole_dataset, -c("donorId", "outcome"))
+covar_mat= dplyr::select(whole_dataset, -c("donorId", "outcome"))
+tx_vector = colnames(covar_mat[,4:ncol(covar_mat)])
 
-# tx_vector = colnames(covar_mat[,4:ncol(covar_mat)])
 # check = unlist(lapply(covar_mat[,4:ncol(covar_mat)], function(x) (length(unique(x)) == 1 | sum(x != 0) < length(x)*0.01))) # onyl use genes with at least 1% pop has the mutaion
 # tx_vector = tx_vector[!as.logical(check)]
 
