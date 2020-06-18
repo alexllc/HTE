@@ -112,11 +112,11 @@ for (tx in sel_genes){
             # Extract varimp from each of the split half forest (Jun 13, 2020 @alex)
             T_varImp_extract = variable_importance(tcga_forest, max.depth = 4)
             T_varImp <- data.frame(variable = colnames(T_covariates), T_varImp_extract)
-            write.csv(T_varImp, file = paste0(file_prefix, '_observation_', i, '_varimp_train.csv'), row.names = F, quote = F)
+            write.csv(T_varImp, file = paste0(file_prefix, '_observation_', i, '_varimp_tcga.csv'), row.names = F, quote = F)
 
             M_varImp_extract = variable_importance(metab_forest, max.depth = 4)
             M_varImp <- data.frame(variable = colnames(M_covariates), M_varImp_extract)
-            write.csv(M_varImp, file = paste0(file_prefix, '_observation_', i, '_varimp_test.csv'), row.names = F, quote = F)
+            write.csv(M_varImp, file = paste0(file_prefix, '_observation_', i, '_varimp_metab.csv'), row.names = F, quote = F)
             #message(paste0("Varimp for observation ", i, " saved."))
         }
 
@@ -139,6 +139,9 @@ for (tx in sel_genes){
         correlation_rslt <- rbind(c(simes_pval_tcga, partial_simes_pval_tcga, test_res_tcga, fisher_pval_tcga, t_test_pval_tcga), c(simes_pval_metab, simes_pval_metab, test_res_metab, fisher_pval_metab, t_test_pval_metab))
         correlation_matrix = rbind(correlation_matrix, correlation_rslt)
     }
-
-
+    if(is_save){
+        colnames(correlation_matrix) <- col_names 
+        write.csv(correlation_matrix, file = paste0(file_prefix, '_split_half.csv'), row.names = F, quote = F)
+    }
+    
 }
