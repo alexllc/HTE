@@ -68,9 +68,13 @@ correlation.test.ret <- data.frame(gene = character(),
                                     spearman.pvalue = double(),
                                     stringsAsFactors = FALSE)
 
-for (tx in sel_genes[154:length(sel_genes)]){
+## Skipping TAF1 because tau prediction from this gene is constant
+sel_genes = sel_genes[-which(sel_genes == "TAF1")]
+
+
+for (tx in sel_genes){
     
-    print(paste0(c('#', rep('-', 40), ' running ', which(tx %in% sel_genes), ' of ', length(sel_genes), rep('-', 40)), collapse = ''))
+    print(paste0(c('#', rep('-', 40), ' running ', which(sel_genes == tx), ' of ', length(sel_genes), rep('-', 40)), collapse = ''))
     # tx vector and covar mat for TCGA
     cat('Treatment name:', tx, fill = T)
 
@@ -179,3 +183,4 @@ for (tx in sel_genes[154:length(sel_genes)]){
     correlation.test.ret <- append(correlation.test.ret, current_ret)
                              
 }
+write.csv(correlation.test.ret, paste0(output_file, project, '_validation_correlation_test_result.csv'), quote = F, row.names = F)
