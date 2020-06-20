@@ -46,7 +46,7 @@ cancer_list = c(
                 # 'BLCA',
                 # 'COAD',
                 'BRCA',
-                'LGG',
+                'LGG')
                 # 'GBM',
                 # 'STAD',
                 # 'HNSC',
