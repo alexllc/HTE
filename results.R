@@ -6,8 +6,8 @@ txdb = TxDb.Hsapiens.UCSC.hg19.knownGene
 cancer_list = c(
                 'BLCA',
                 'COAD',
-                'BRCA',
-                #'LGG',
+                # 'BRCA',
+                # 'LGG',
                 'GBM',
                 'STAD',
                 'HNSC',
@@ -18,9 +18,7 @@ cancer_list = c(
                 'PRAD',
                 #'SKCM', # no NT
                 'THCA',
-                'UCEC',
-                'ESCA')
-
+                'UCEC')
 total = 0
 for (c in cancer_list) {
     tmp = read.csv(paste0("./", c, "/", c, "_expression_permutate_testing_result.csv"))

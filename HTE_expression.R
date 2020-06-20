@@ -45,19 +45,19 @@ setwd(paste0(usrwd, "/HTE/wd/expression_HTE/"))
 cancer_list = c(
                 # 'BLCA',
                 # 'COAD',
-                # 'BRCA',
-                #'LGG',
-                'GBM',
-                'STAD',
-                'HNSC',
-                'KIRC',
-                'LUAD',
-                'LUSC',
-                #'OV', # no NT
-                'PRAD',
-                #'SKCM', # no NT
-                'THCA',
-                'UCEC')
+                'BRCA',
+                'LGG',
+                # 'GBM',
+                # 'STAD',
+                # 'HNSC',
+                # 'KIRC',
+                # 'LUAD',
+                # 'LUSC',
+                # #'OV', # no NT
+                # 'PRAD',
+                # #'SKCM', # no NT
+                # 'THCA',
+                # 'UCEC')
                 # , 'ESCA')
 
 for (project in cancer_list) {
