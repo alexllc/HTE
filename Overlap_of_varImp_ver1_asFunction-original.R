@@ -123,7 +123,8 @@ test_overlap_VarImp <- function (input_matrix,
     t1 = proc.time()
 
     all_perm_results = foreach(j = 1:no_perm, .combine = 'rbind') %dopar% {
-
+        library(TFisher) 
+        library(metap) 
 
         #_______________________________________________
         # permutation to determine signicance
