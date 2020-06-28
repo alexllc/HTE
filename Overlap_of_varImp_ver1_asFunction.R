@@ -13,9 +13,9 @@ input_matrix= input_matrix[,c(1,3,8)]
 
 
 test_overlap_VarImp <- function (input_matrix,
-								no_perm = 5000,
-								no_cluster = 10, #no. of clusters for parallel running 
-								top_percentile_list = c(0.01, 0.03, 0.05, 0.1, 0.2, 0.3) ) {
+                              no_perm = 5000,
+                              no_cluster = 10, #no. of clusters for parallel running 
+                              top_percentile_list = c(0.01, 0.03, 0.05, 0.1, 0.2, 0.3) ) {
 
 
 #library(energy)
@@ -57,7 +57,7 @@ order_2nd = order(abs(imp2),decreasing = TRUE)
 fisher_test_result = NULL
 fisher_res_topK = NULL
 for (i in 1:length(list_TopK_genes)) {      
-TopK_genes = list_TopK_genes[i]
+      TopK_genes = list_TopK_genes[i]
       top_gene_1st_list = gene_list[order_1st][1:TopK_genes] # obtain topKgenes in trueIDA list
       top_gene_2nd_list = gene_list[order_2nd][1:TopK_genes] #obtain topK genes in estimateIDA list
 	  
@@ -75,7 +75,7 @@ TopK_genes = list_TopK_genes[i]
       
 }
 
-#fisher_res_topK 
+fisher_res_topK 
 
 
 top_gene_1st_list = gene_list[imp1>0] # obtain topKgenes in trueIDA list
@@ -127,95 +127,95 @@ t1 = proc.time()
 all_perm_results = foreach(j = 1:no_perm, .combine = 'rbind') %dopar% {
 
 
-library(TFisher) 
-library(metap) 
-#_______________________________________________
-# permutation to determine signicance
-#_______________________________________________
+      library(TFisher) 
+      library(metap) 
+      #_______________________________________________
+      # permutation to determine signicance
+      #_______________________________________________
 
 
-#to do: permutation: imp1 <- sample(imp1) 
-# combine pval across thresholds by fisher, min, omni
+      #to do: permutation: imp1 <- sample(imp1) 
+      # combine pval across thresholds by fisher, min, omni
 
 
 
-gene_list = input_matrix[,1]
+      perm_gene_list = input_matrix[,1]
 
-#_______________________________________________
-# note the permutation here
-#______________________________________________
-imp1 = sample(  as.numeric( input_matrix[,2] )   ) 
-imp2 = as.numeric( input_matrix[,3] ) 
+      #_______________________________________________
+      # note the permutation here
+      #______________________________________________
+      perm_imp1 = sample(  as.numeric( input_matrix[,2] )   ) # shuffling?
+      perm_imp2 = as.numeric( input_matrix[,3] ) 
 
-genes_num = length(gene_list) 
-list_quantiles = quantile(1:genes_num, top_percentile_list )
-list_TopK_genes = round(list_quantiles)   #c(20, 50, 100, 200, 300) 
+      perm_genes_num = length(gene_list) 
+      perm_list_quantiles = quantile(1:genes_num, top_percentile_list )
+      perm_list_TopK_genes = round(list_quantiles)   #c(20, 50, 100, 200, 300) 
 
-#add some rank inforamtion
+      #add some rank inforamtion
 
-order_1st = order(abs(imp1),decreasing = TRUE)
-order_2nd = order(abs(imp2),decreasing = TRUE)
-      
-      #show dataframe in order with a particular column
-      # dt_IDA2 = dt_IDA[order(dt_IDA$Rank_ABS_true_IDA),]
-	  
-fisher_test_result = NULL
+      perm_order_1st = order(abs(perm_imp1),decreasing = TRUE)
+      perm_order_2nd = order(abs(perm_imp2),decreasing = TRUE) # same as order_2nd
+            
+            #show dataframe in order with a particular column
+            # dt_IDA2 = dt_IDA[order(dt_IDA$Rank_ABS_true_IDA),]
+            
+      perm_fisher_test_result = NULL
 
-for (i in 1:length(list_TopK_genes)) {      
-      TopK_genes = list_TopK_genes[i]
-      top_gene_1st_list = gene_list[order_1st][1:TopK_genes] # obtain topKgenes in trueIDA list
-      top_gene_2nd_list = gene_list[order_2nd][1:TopK_genes] #obtain topK genes in estimateIDA list
-	  
-	  #top_gene_1st_list = order_1st[1:TopK_genes] # obtain topKgenes in trueIDA list
-      #top_gene_2nd_list = order_2nd[1:TopK_genes] #obtain topK genes in estimateIDA list
-	  
+      for (i in 1:length(perm_list_TopK_genes)) {      
+            perm_TopK_genes = perm_list_TopK_genes[i]
+            perm_top_gene_1st_list = perm_gene_list[perm_order_1st][1:perm_TopK_genes] # obtain topKgenes in trueIDA list
+            perm_top_gene_2nd_list = gene_list[perm_order_2nd][1:perm_TopK_genes] #obtain topK genes in estimateIDA list
+            
+            #top_gene_1st_list = order_1st[1:TopK_genes] # obtain topKgenes in trueIDA list
+            #top_gene_2nd_list = order_2nd[1:TopK_genes] #obtain topK genes in estimateIDA list
+            
+            perm_intersection = intersect(perm_top_gene_1st_list,perm_top_gene_2nd_list ) # obtain the intersection of these two list, and the series stand the gene serial number
+            
+            contingency_table_11 = length(perm_intersection)
+            contingency_table_12 = perm_TopK_genes-contingency_table_11
+            contingency_table_21 = perm_TopK_genes-contingency_table_11
+            contingency_table_22 = perm_genes_num-contingency_table_21-contingency_table_11-contingency_table_12
+            
+            perm_fisher_test_result[i] = fisher.test(rbind(c(contingency_table_11,contingency_table_12),c(contingency_table_21,contingency_table_22)), alternative="greater")$p.value
+            
+      }
+
+      perm_fisher_test_result
+
+
+      top_gene_1st_list = gene_list[imp1>0] # obtain topKgenes in trueIDA list
+      top_gene_2nd_list = gene_list[imp2>0] #obtain topK genes in estimateIDA list
+            
       intersection = intersect(top_gene_1st_list,top_gene_2nd_list ) # obtain the intersection of these two list, and the series stand the gene serial number
-       
+            
       contingency_table_11 = length(intersection)
-      contingency_table_12 = TopK_genes-contingency_table_11
-      contingency_table_21 = TopK_genes-contingency_table_11
-      contingency_table_22 = genes_num-contingency_table_21-contingency_table_11-contingency_table_12
-      
-      fisher_test_result[i] = fisher.test(rbind(c(contingency_table_11,contingency_table_12),c(contingency_table_21,contingency_table_22)), alternative="greater")$p.value
-      
-}
+      contingency_table_12 =  sum(imp2>0) - contingency_table_11
+      contingency_table_21 =  sum(imp1>0) - contingency_table_11
+      contingency_table_22 = genes_num -contingency_table_21-contingency_table_11-contingency_table_12
+            
+      fisher_test_cutoffzero = fisher.test(rbind(c(contingency_table_11,contingency_table_12),c(contingency_table_21,contingency_table_22)), alternative="greater")$p.value
+      fisher_test_cutoffzero   
 
-#fisher_test_result
+      #__________________________________________________________
+      #  combine across p-values at differnet quantiles 
+      #____________________________________________________________
+      library(foreach)
+      library(TFisher) 
+      library(metap) 
 
+      pall = c(fisher_test_result, fisher_test_cutoffzero) 
+      perm_fisher =  sumlog(pall)$p
+      perm_min = min(pall)
+      perm_simes =  simes.test(pall)	
 
-top_gene_1st_list = gene_list[imp1>0] # obtain topKgenes in trueIDA list
-top_gene_2nd_list = gene_list[imp2>0] #obtain topK genes in estimateIDA list
-	  
-intersection = intersect(top_gene_1st_list,top_gene_2nd_list ) # obtain the intersection of these two list, and the series stand the gene serial number
-       
-contingency_table_11 = length(intersection)
-contingency_table_12 =  sum(imp2>0) - contingency_table_11
-contingency_table_21 =  sum(imp1>0) - contingency_table_11
-contingency_table_22 = genes_num -contingency_table_21-contingency_table_11-contingency_table_12
-      
-fisher_test_cutoffzero = fisher.test(rbind(c(contingency_table_11,contingency_table_12),c(contingency_table_21,contingency_table_22)), alternative="greater")$p.value
-#fisher_test_cutoffzero   
+      TAU1 = c(0.05, 0.1, 0.5, 1)
+      no_p = length(pall) 
+      q_omni = stat.soft.omni(p=pall, TAU1=TAU1)
+      perm_softomni = p.soft.omni(q=q_omni$omni, n=no_p, TAU1=TAU1, M = NULL)
 
-#__________________________________________________________
-#  combine across p-values at differnet quantiles 
-#____________________________________________________________
-library(foreach)
-library(TFisher) 
-library(metap) 
-
-pall = c(fisher_test_result, fisher_test_cutoffzero) 
-perm_fisher =  sumlog(pall)$p
-perm_min = min(pall)
-perm_simes =  simes.test(pall)	
-
-TAU1 = c(0.05, 0.1, 0.5, 1)
-no_p = length(pall) 
-q_omni = stat.soft.omni(p=pall, TAU1=TAU1)
-perm_softomni = p.soft.omni(q=q_omni$omni, n=no_p, TAU1=TAU1, M = NULL)
-
-##results of fisher p, min p etc. under the permutation null distribution
-perm_list = c(perm_fisher, perm_min, perm_simes, perm_softomni) 
-#perm_list  
+      ##results of fisher p, min p etc. under the permutation null distribution
+      perm_list = c(perm_fisher, perm_min, perm_simes, perm_softomni) 
+      print(perm_list)
 
 }
 

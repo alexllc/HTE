@@ -3,6 +3,17 @@ library(cgdsr)
 
 project = "BRCA"
 source("./HTE_mutation.R")
+source("./Overlap_of_varImp_ver1_asFunction-original.R")
+
+aggr_res <- function(res_mat, i, pval_col_list = NULL) {
+    removed_na <- na.omit(res_mat[, i])
+    # simes_pval <- ifelse(length(removed_na) > 0, simes.test(removed_na), NA)
+    if(!(i %in% pval_col_list)){
+        pval <- ifelse(length(removed_na) > 0, simes.partial(2, removed_na), NA)
+    } else {
+        pval <- ifelse(length(removed_na) > 0, extract_binom_pval(removed_na), NA) 
+    }
+}
 
 ## Import and downloading METABRIC mutation data
 mut = fread("./METABRIC/data_mutations_extended.txt")
@@ -67,9 +78,24 @@ correlation.test.ret <- data.frame(gene = character(),
                                     spearman.estimate = double(),
                                     spearman.pvalue = double(),
                                     stringsAsFactors = FALSE)
+                                
+overlap_test_res = data.frame(gene = character(),
+                            fisher_top1 = double(),
+                            fisher_top3 = double(),
+                            fisher_top5 = double(),
+                            fisher_top10 = double(),
+                            fisher_top20 = double(),
+                            fisher_top30 = double(),
+                            above0_est = double(),
+                            above0_pval = double(),
+                            perm_fisher = double(),
+                            perm_min = double(),
+                            perm_simes = double(),
+                            perm_softomni = double()
+                            )
 
 ## Skipping TAF1 because tau prediction from this gene is constant
-sel_genes = sel_genes[-which(sel_genes == "TAF1")]
+sel_genes = sel_genes[-which(sel_genes == "TAF1")] # 166 for BRCA
 
 
 for (tx in sel_genes){
@@ -100,6 +126,8 @@ for (tx in sel_genes){
     M_obs <- dim(M_covariates)[1]
 
     correlation_matrix = NULL
+    overlap_matrix = NULL
+
     no_repeats = 10
     for (i in seq(no_repeats)) {
         observation_result_tcga <- matrix(0, nrow = T_obs, ncol = 4)
@@ -137,6 +165,21 @@ for (tx in sel_genes){
             #message(paste0("Varimp for observation ", i, " saved."))
         }
 
+        # Overlap of varimp using Prof So's script (Jun 17, 2020)
+        input_matrix = merge(T_varImp, M_varImp, by = "variable")
+
+        overlap = test_overlap_VarImp (input_matrix,
+                            no_perm = 5000,
+                            no_cluster = 10, #no. of clusters for parallel running 
+                            top_percentile_list = c(0.01, 0.03, 0.05, 0.1, 0.2, 0.3) 		
+                            )
+        overlap_ext = c()
+        for (i in 1:length(overlap)) {
+            if (i != 2) overlap_ext = c(overlap_ext, overlap[[i]])
+        }
+
+        overlap_matrix = rbind(overlap_matrix, overlap_ext)
+
         simes_pval_tcga <- simes.test(tau_tcga_stats[, 3])
         simes_pval_metab <- simes.test(tau_metab_stats[, 3])
 
@@ -156,31 +199,45 @@ for (tx in sel_genes){
         correlation_rslt <- rbind(c(simes_pval_tcga, partial_simes_pval_tcga, test_res_tcga, fisher_pval_tcga, t_test_pval_tcga), c(simes_pval_metab, simes_pval_metab, test_res_metab, fisher_pval_metab, t_test_pval_metab))
         correlation_matrix = rbind(correlation_matrix, correlation_rslt)
     }
+
     if(is_save){
         colnames(correlation_matrix) <- col_names 
         write.csv(correlation_matrix, file = paste0(file_prefix, '_split_half.csv'), row.names = F, quote = F)
     }
-    
+    aggregated_corr_rslt <- sapply(seq(dim(correlation_matrix)[2]), aggr_res, pval_col_list = c(3, 5, 7), res_mat = correlation_matrix)
 
+    aggregated_overlap_rslt <- sapply(seq(dim(overlap_matrix)[2]), aggr_res, pval_col_list = c(1:6, 8:dim(overlap_matrix)[2]), res_mat = overlap_matrix)
+
+    ## Alex: Moved to a declared function Jun 27, 2020
     # change to partial_simes_pval 20190929
     aggregated_rslt <- sapply(seq(dim(correlation_matrix)[2]), function(i){
         removed_na <- na.omit(correlation_matrix[, i])
         # simes_pval <- ifelse(length(removed_na) > 0, simes.test(removed_na), NA)
-        if(!(i %in% c(3, 5, 7))){
+        if(!(i %in% pval_col_list)){
             pval <- ifelse(length(removed_na) > 0, simes.partial(2, removed_na), NA)
         } else {
             pval <- ifelse(length(removed_na) > 0, extract_binom_pval(removed_na), NA) 
         }
-        pval
+        return(pval)
     })
 
-    cat('Fisher extact test pval in trainset:', aggregated_rslt[9], fill = T)
-    cat('pearson correlation pval in trainset:', aggregated_rslt[4], fill = T)
-    cat('kedall correlation pval in trainset:', aggregated_rslt[6], fill = T)
-    cat('spearman correlation pval in trainset:', aggregated_rslt[8], fill = T)
 
-    current_ret <- do.call('c', list(list(tx), as.list(aggregated_rslt[1: 8])))
+
+    cat('Fisher extact test pval in trainset:', aggregated_corr_rslt[9], fill = T)
+    cat('pearson correlation pval in trainset:', aggregated_corr_rslt[4], fill = T)
+    cat('kedall correlation pval in trainset:', aggregated_corr_rslt[6], fill = T)
+    cat('spearman correlation pval in trainset:', aggregated_corr_rslt[8], fill = T)
+
+    message("===========Varimp overlap results: ==============")
+    for(k in 2:ncol(overlap_test_res)) {
+        cat(paste0(colnames(overlap_test_res)[k], ": "), aggregated_overlap_rslt[k], fill = T)
+    }
+
+    current_ret <- do.call('c', list(list(tx), as.list(aggregated_corr_rslt[1: 8])))
     correlation.test.ret <- append(correlation.test.ret, current_ret)
+
+    overlap_tmp <- do.call('c', list(list(tx), as.list(aggregated_overlap_rslt)))
+    overlap_test_res <- append(overlap_test_res, overlap_tmp)
                              
 }
 write.csv(correlation.test.ret, paste0(output_file, project, '_validation_correlation_test_result.csv'), quote = F, row.names = F)
