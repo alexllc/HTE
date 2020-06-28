@@ -1,8 +1,8 @@
 library(cgdsr)
 setwd("../HTE")
 project = "BRCA"
-source("./HTE_mutation.R")
 source("./Overlap_of_varImp_ver1_asFunction-original.R")
+source("./HTE_mutation.R")
 
 aggr_res <- function(res_mat, i, est_col_list = NULL) {
     removed_na <- na.omit(res_mat[, i])
