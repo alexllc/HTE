@@ -67,31 +67,13 @@ cf.estimator <- ifelse(is.tuned, cf.tuned, cf)
 
 col_names <- c('simes.pval', 'partial.simes.pval', 'pearson.estimate','pearson.pvalue', 'kendall.estimate','kendall.pvalue', 'spearman.estimate','spearman.pvalue', 'fisher.pval', 't.test.a.pval', 't.test.b.pval')
 
-correlation.test.ret <- data.frame(gene = character(),
-                                    simes.pval = double(),
-                                    partial.simes.pval = double(),
-                                    pearson.estimate = double(),
-                                    pearson.pvalue = double(),
-                                    kendall.estimate = double(),
-                                    kendall.pvalue = double(), 
-                                    spearman.estimate = double(),
-                                    spearman.pvalue = double(),
-                                    stringsAsFactors = FALSE)
-                                
-overlap_test_res = data.frame(gene = character(),
-                            fisher_top1 = double(),
-                            fisher_top3 = double(),
-                            fisher_top5 = double(),
-                            fisher_top10 = double(),
-                            fisher_top20 = double(),
-                            fisher_top30 = double(),
-                            above0_est = double(),
-                            above0_pval = double(),
-                            perm_fisher = double(),
-                            perm_min = double(),
-                            perm_simes = double(),
-                            perm_softomni = double()
-                            )
+correlation_test_ret = NULL
+corr_test_names = c("gene", "simes.pval", "partial.simes.pval", "pearson.estimate", "pearson.pvalue", "kendall.estimate", "kendall.pvalue", "spearman.estimate", "spearman.pvalue")
+correlation_test_ret = NULL 
+
+
+overlap_test_res = NULL
+overlap_test_names = c("gene","fisher_top1","fisher_top3","fisher_top5","fisher_top10","fisher_top20","fisher_top30","above0_est","above0_pval","perm_fisher","perm_min","perm_simes","perm_softomni")
 
 ## Skipping TAF1 because tau prediction from this gene is constant
 sel_genes = sel_genes[-which(sel_genes == "TAF1")] # 166 for BRCA
@@ -202,6 +184,7 @@ for (tx in sel_genes){
     if(is_save){
         colnames(correlation_matrix) <- col_names 
         write.csv(correlation_matrix, file = paste0(file_prefix, '_split_half.csv'), row.names = F, quote = F)
+        write.csv(overlap_matrix, file = paste0(file_prefix, '_varimp_overlap.csv'), row.names = F, quote = F)
     }
     aggregated_corr_rslt <- sapply(seq(dim(correlation_matrix)[2]), aggr_res, est_col_list = c(3, 5, 7), res_mat = correlation_matrix)
 
@@ -232,12 +215,17 @@ for (tx in sel_genes){
         cat(paste0(colnames(overlap_test_res)[k], ": "), aggregated_overlap_rslt[k], fill = T)
     }
 
+    # Alex @ Jun28, 2020 do.call then append to preset data.frame does not work anymore, switching to rbindlist
     current_ret <- do.call('c', list(list(tx), as.list(aggregated_corr_rslt[1: 8])))
-    correlation.test.ret <- append(correlation.test.ret, current_ret)
+    current_ret <- rbindlist(list(current_ret))
+    correlation_test_ret <- rbind(correlation_test_ret, current_ret)
 
     overlap_tmp <- do.call('c', list(list(tx), as.list(aggregated_overlap_rslt)))
-    overlap_test_res <- append(overlap_test_res, overlap_tmp)
+    overlap_tmp <- rbindlist(list(overlap_tmp))
+    overlap_test_res <- rbind(overlap_test_res, overlap_tmp)
                              
 }
-write.csv(correlation.test.ret, paste0(output_file, project, '_validation_correlation_test_result.csv'), quote = F, row.names = F)
+
+colnames(correlation_test_ret) <- corr_test_names
+write.csv(correlation_test_ret, paste0(output_file, project, '_validation_correlation_test_result.csv'), quote = F, row.names = F)
 write.csv(overlap_test_res, paste0(output_file, project, '_validation_varimp_overlap_result.csv'), quote = F, row.names = F)
