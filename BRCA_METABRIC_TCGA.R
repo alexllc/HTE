@@ -1,14 +1,13 @@
 library(cgdsr)
-#setwd("../HTE")
-
+setwd("../HTE")
 project = "BRCA"
 source("./HTE_mutation.R")
 source("./Overlap_of_varImp_ver1_asFunction-original.R")
 
-aggr_res <- function(res_mat, i, pval_col_list = NULL) {
+aggr_res <- function(res_mat, i, est_col_list = NULL) {
     removed_na <- na.omit(res_mat[, i])
     # simes_pval <- ifelse(length(removed_na) > 0, simes.test(removed_na), NA)
-    if(!(i %in% pval_col_list)){
+    if(!(i %in% est_col_list)){
         pval <- ifelse(length(removed_na) > 0, simes.partial(2, removed_na), NA)
     } else {
         pval <- ifelse(length(removed_na) > 0, extract_binom_pval(removed_na), NA) 
@@ -204,22 +203,22 @@ for (tx in sel_genes){
         colnames(correlation_matrix) <- col_names 
         write.csv(correlation_matrix, file = paste0(file_prefix, '_split_half.csv'), row.names = F, quote = F)
     }
-    aggregated_corr_rslt <- sapply(seq(dim(correlation_matrix)[2]), aggr_res, pval_col_list = c(3, 5, 7), res_mat = correlation_matrix)
+    aggregated_corr_rslt <- sapply(seq(dim(correlation_matrix)[2]), aggr_res, est_col_list = c(3, 5, 7), res_mat = correlation_matrix)
 
-    aggregated_overlap_rslt <- sapply(seq(dim(overlap_matrix)[2]), aggr_res, pval_col_list = c(1:6, 8:dim(overlap_matrix)[2]), res_mat = overlap_matrix)
+    aggregated_overlap_rslt <- sapply(seq(dim(overlap_matrix)[2]), aggr_res, est_col_list = 7, res_mat = overlap_matrix)
 
     ## Alex: Moved to a declared function Jun 27, 2020
     # change to partial_simes_pval 20190929
-    aggregated_rslt <- sapply(seq(dim(correlation_matrix)[2]), function(i){
-        removed_na <- na.omit(correlation_matrix[, i])
-        # simes_pval <- ifelse(length(removed_na) > 0, simes.test(removed_na), NA)
-        if(!(i %in% pval_col_list)){
-            pval <- ifelse(length(removed_na) > 0, simes.partial(2, removed_na), NA)
-        } else {
-            pval <- ifelse(length(removed_na) > 0, extract_binom_pval(removed_na), NA) 
-        }
-        return(pval)
-    })
+    # aggregated_rslt <- sapply(seq(dim(correlation_matrix)[2]), function(i){
+    #     removed_na <- na.omit(correlation_matrix[, i])
+    #     # simes_pval <- ifelse(length(removed_na) > 0, simes.test(removed_na), NA)
+    #     if(!(i %in% pval_col_list)){
+    #         pval <- ifelse(length(removed_na) > 0, simes.partial(2, removed_na), NA)
+    #     } else {
+    #         pval <- ifelse(length(removed_na) > 0, extract_binom_pval(removed_na), NA) 
+    #     }
+    #     return(pval)
+    # })
 
 
 
@@ -229,7 +228,7 @@ for (tx in sel_genes){
     cat('spearman correlation pval in trainset:', aggregated_corr_rslt[8], fill = T)
 
     message("===========Varimp overlap results: ==============")
-    for(k in 2:ncol(overlap_test_res)) {
+    for(k in 2:length(aggregated_overlap_rslt)) {
         cat(paste0(colnames(overlap_test_res)[k], ": "), aggregated_overlap_rslt[k], fill = T)
     }
 
@@ -241,3 +240,4 @@ for (tx in sel_genes){
                              
 }
 write.csv(correlation.test.ret, paste0(output_file, project, '_validation_correlation_test_result.csv'), quote = F, row.names = F)
+write.csv(overlap_test_res, paste0(output_file, project, '_validation_varimp_overlap_result.csv'), quote = F, row.names = F)

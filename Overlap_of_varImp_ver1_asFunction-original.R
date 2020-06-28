@@ -4,6 +4,10 @@
 # 1st col: gene_name /ID
 # 2nd col: varImp of first dataset 
 # 3rd col: VarImp of 2nd dataset 
+library(foreach)
+library(TFisher) 
+library(metap) 
+
 
 #example input 
 # file1= read.csv("/exeh_3/yuping/demap_expression/BRCA/demap_BRCA_expression/FAM110D_interaction_test_expr.csv")
@@ -19,8 +23,6 @@ test_overlap_VarImp <- function (input_matrix,
 
     #library(energy)
     #library(HHG) 
-    library(TFisher) 
-    library(metap) 
 
 
 
@@ -93,9 +95,6 @@ test_overlap_VarImp <- function (input_matrix,
     #__________________________________________________________
     #  combine across p-values at differnet quantiles 
     #____________________________________________________________
-    library(foreach)
-    library(TFisher) 
-    library(metap) 
 
     pall = c(fisher_res_topK, fisher_res_aboveZero) 
     obs_fisher =  sumlog(pall)$p
@@ -126,8 +125,6 @@ test_overlap_VarImp <- function (input_matrix,
     all_perm_results = foreach(j = 1:no_perm, .combine = 'rbind') %dopar% {
 
 
-        library(TFisher) 
-        library(metap) 
         #_______________________________________________
         # permutation to determine signicance
         #_______________________________________________
@@ -198,9 +195,6 @@ test_overlap_VarImp <- function (input_matrix,
         #__________________________________________________________
         #  combine across p-values at differnet quantiles 
         #____________________________________________________________
-        library(foreach)
-        library(TFisher) 
-        library(metap) 
 
         pall = c(fisher_test_result, fisher_test_cutoffzero) 
         perm_fisher =  sumlog(pall)$p
@@ -238,7 +232,7 @@ test_overlap_VarImp <- function (input_matrix,
     perm_p_res = c(perm_p1, perm_p2, perm_p3, perm_p4) 
 
 
-    perm_p_res 
+    # perm_p_res 
 
 
     return( list(fisher_res_topK  = fisher_res_topK ,
@@ -252,11 +246,11 @@ test_overlap_VarImp <- function (input_matrix,
 
 
 
-res = test_overlap_VarImp (input_matrix,
-								no_perm = 5000,
-								no_cluster = 10, #no. of clusters for parallel running 
-								top_percentile_list = c(0.01, 0.03, 0.05, 0.1, 0.2, 0.3) 
+# res = test_overlap_VarImp (input_matrix,
+# 								no_perm = 5000,
+# 								no_cluster = 10, #no. of clusters for parallel running 
+# 								top_percentile_list = c(0.01, 0.03, 0.05, 0.1, 0.2, 0.3) 
 								
-					)
+# 					)
 					
-res
+# res
