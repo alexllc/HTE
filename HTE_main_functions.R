@@ -111,7 +111,8 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
                 
             } else if (covar_type == "expression") {
                 # extrating DEG information in main script instead of run.hte @alex: Jul5, 2020
-                treatment  = ifelse((txdirct[tx] > 0), as.numeric(treatment > quantile(treatment, thres)), as.numeric(treatment < quantile(treatment, 1- thres)))
+                if(txdirct[tx] > 0) {treatment = as.numeric(treatment > quantile(treatment, thres))
+                } else {treatment  = as.numeric(treatment < quantile(treatment, 1- thres))}
                     
             } else if (covar_type=="UQ"){
                 treatment = as.numeric(treatment > quantile(treatment, thres))
