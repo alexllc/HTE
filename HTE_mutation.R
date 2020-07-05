@@ -42,6 +42,8 @@ source("./survival_imputation.R")
 usrwd = "/home/alex/project"
 setwd(paste0(usrwd, "/HTE/wd/mut_HTE"))
 
+
+# for (project in cancer_list) {}
 output_file = paste0("./result/", project, "/")
 
 

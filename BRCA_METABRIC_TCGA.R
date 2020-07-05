@@ -212,7 +212,7 @@ for (tx in sel_genes){
 
     message("===========Varimp overlap results: ==============")
     for(k in 2:length(aggregated_overlap_rslt)) {
-        cat(paste0(colnames(overlap_test_res)[k], ": "), aggregated_overlap_rslt[k], fill = T)
+        cat(paste0(overlap_test_names[k], ": "), aggregated_overlap_rslt[k], fill = T)
     }
 
     # Alex @ Jun28, 2020 do.call then append to preset data.frame does not work anymore, switching to rbindlist
@@ -227,5 +227,6 @@ for (tx in sel_genes){
 }
 
 colnames(correlation_test_ret) <- corr_test_names
+colnames(overlap_test_res) <- overlap_test_names
 write.csv(correlation_test_ret, paste0(output_file, project, '_validation_correlation_test_result.csv'), quote = F, row.names = F)
 write.csv(overlap_test_res, paste0(output_file, project, '_validation_varimp_overlap_result.csv'), quote = F, row.names = F)

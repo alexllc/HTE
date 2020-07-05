@@ -34,7 +34,7 @@ setMethod("append", signature(x = "data.frame", values = "vector"),
     }
 )
 
-run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = NULL, trainId, seed = NULL, is.binary = TRUE, is_save = T, save_split = T, is.tuned = F, thres = 0.75, n_core = 8, output_directory = NULL){
+run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = NULL, txdirct = NULL, trainId, seed = NULL, is.binary = TRUE, is_save = T, save_split = T, is.tuned = F, thres = 0.75, n_core = 8, output_directory = NULL){
     # @covar_mat: covariates matrix (with treatment assignments as well if each of the covariates are taking turns to be analyzed as treatments). Treatment assignments can be binary or continuous.
     # @tx_vector: a vector of variables that will each be used as treatments
     # @whole_dataset: dataframe with outcome, covariates and treatment assignments
@@ -108,48 +108,23 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
         if(is.binary){
             if (covar_type == "mutation") {
                 treatment <- as.numeric(treatment != 0) # only for mutation
-                if (length(unique(treatment)) == 1) {
-                    print("Gene mutation distribution too sparse, skipping.")
-                    next
-                }
                 
             } else if (covar_type == "expression") {
-               
-            #    # Read corresponding FC in tumor
-            #         DEGs = read.csv(paste0("./tables/", project, "_DEGtable.csv"))
-               # determine if over expressed or under expressed in tumor
-                    DEmeters = dplyr::filter(DEGs, X==tx)
-               # set threshold based on gene behavior in tumors
-                    if (DEmeters$logFC > 0){
-                        # we take UQ
-                        treatment = as.numeric(treatment > quantile(treatment, thres))
-                        message("Taking >UQ as treatment group.")
-                    } else {
-                        # we take LQ
-                        treatment = as.numeric(treatment < quantile(treatment, 0.25))
-                        message("Taking <LQ as treatment group.")
-                        }
-            
-                    
-                    # Safeguarding against uniform treatment assignment
-                    if (length(unique(treatment)) == 1 | sum(treatment != 0) < length(treatment)*0.1) {
-                        print("Gene expression distribution too sparse, skipping.")
-                        next
-                    }
+                # extrating DEG information in main script instead of run.hte @alex: Jul5, 2020
+                treatment  = ifelse((txdirct[tx] > 0), as.numeric(treatment > quantile(treatment, thres)), as.numeric(treatment < quantile(treatment, 1- thres)))
                     
             } else if (covar_type=="UQ"){
-                    treatment = as.numeric(treatment > quantile(treatment, thres))
-                    if (length(unique(treatment)) == 1 | sum(treatment) < length(treatment)*0.1) {
-                        print("Gene expression distribution too sparse, skipping.")
-                        next
-                }
+                treatment = as.numeric(treatment > quantile(treatment, thres))
             }
-                
-                
-                 else {
-                    treatment <- as.numeric(treatment)
-                    }
-        }
+            # Check if we have enough tx observations
+            if (length(unique(treatment)) == 1 | sum(treatment) < length(treatment)*0.1) {
+                print("Gene expression distribution too sparse, skipping.")
+                next
+            }  
+            
+        } else {
+            treatment <- as.numeric(treatment)
+            }
         # split whole dataset into two parts, and the idea of validation is similar to prediction strength.
         
         col_names <- c('simes.pval', 'partial.simes.pval', 'pearson.estimate','pearson.pvalue',
