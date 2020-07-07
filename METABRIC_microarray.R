@@ -154,7 +154,8 @@ txnames =try(AnnotationDbi::select(Homo.sapiens, keys = unique(TCGA_cor_res$gene
 TCGA_genes = left_join(TCGA_cor_res, txnames, by = c("gene" = "ENSEMBL"))
 TCGA_genes = unique(TCGA_genes$SYMBOL)
 
-tx_vector = colnames(medexp[,-ncol(medexp)])
+medexp$PATIENT_ID = NULL
+tx_vector = colnames(medexp)
 tx_vector = tx_vector[tx_vector %in% colnames(cna) & tx_vector %in% TCGA_genes]
 # test code
 tx_vector = tx_vector[1:5]
