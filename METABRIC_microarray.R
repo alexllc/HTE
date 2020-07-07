@@ -34,7 +34,7 @@ library(TxDb.Hsapiens.UCSC.hg19.knownGene)
 library(Homo.sapiens)
 
 # 2. Make sure all four accompanying scripts are in the same directory as the header script
-setwd("../../HTE")
+# setwd("../../HTE")
 source("./grf_parameters.R")
 source("./HTE_main_functions.R")
 source("./HTE_validation_functions.R")
