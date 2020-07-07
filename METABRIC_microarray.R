@@ -22,14 +22,16 @@ library(readxl)
 library(survival)
 
 # For expression retreival
-library(TCGAbiolinks)
+# library(TCGAbiolinks)
 library(DT)
 library(SummarizedExperiment)
 library(plyr)
 library(dplyr)
 library(tidyr)
 library(biomaRt)
-library(RTCGAToolbox)
+# library(RTCGAToolbox)
+library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+library(Homo.sapiens)
 
 # 2. Make sure all four accompanying scripts are in the same directory as the header script
 setwd("../../HTE")
@@ -37,10 +39,12 @@ source("./grf_parameters.R")
 source("./HTE_main_functions.R")
 source("./HTE_validation_functions.R")
 source("./survival_imputation.R")
-setwd("../expression_HTE/METABRIC")
+# setwd("../expression_HTE/METABRIC")
+setwd("../mut_HTE/METABRIC")
 # Prepare clinical data
 
-dirct = "./data_jul4/"
+# dirct = "./data_jul4/"
+dirct = "./data_jun11/"
 project = "BRCA"
 output_file = paste0("./result/", project, "/")
 
@@ -110,36 +114,31 @@ for (c in colnames(clinical)) {
 }
 
 # Prepare microarray data
+if(!file.exists("./transposed_data_expression_median.txt")) {
 
-if(!file.exists("./transposed_data_expression_median.csv")) {
     medexp = fread(paste0(dirct,"data_expression_median.txt"))
     message("Transposing expression matrix, this could take a *LONG* while.")
-
-    medexp = as.matrix(medexp)
     medexp = t(medexp)
-    medexp = as.data.frame(medexp)
     colnames(medexp) = medexp[1,]
     medexp = medexp[-c(1:2),]
-    medexp = cbind(rownames(medexp), medexp)
-    colnames(medexp)[1] = "PATIENT_ID"
-    medex = medex[complete.cases(medex),]
-    medex = as.numeric(medex)
-    medex = sapply(medex, as.numeric)
-    write.csv(medexp, "transposed_data_expression_median.csv", row.names = F) # as of R4.0 R no longer automatically converts strings as factors
+    class(medexp) = "numeric"
+    medexp = as.data.frame(medexp)
+    medexp$PATIENT_ID = rownames(medexp)
+    write.table(medexp, "transposed_data_expression_median.txt", sep = "\t", row.names = F) # as of R4.0 R no longer automatically converts strings as factors
 } else {
-    medexp = read.csv("transposed_data_expression_median.csv")
+    medexp = fread("transposed_data_expression_median.txt")
 }
 
 
 # HTE datset
 wholedat = left_join(clinical, medexp, by = "PATIENT_ID")
+colnames(wholedat)[1] = "donorId"
 wholedat = wholedat[complete.cases(wholedat),]
-covar = dplyr::select(wholedat, -c(PATIENT_ID, outcome))
-tx_vector = colnames(medexp[,-1])
+covar = dplyr::select(wholedat, -c(donorId, outcome))
 
 
 # add tx direction
-cna = fread("./data_jul4/data_CNA.txt")
+cna = fread(paste0(dirct, "data_CNA.txt"))
 cna = as.data.frame(t(as.matrix(cna)))
 colnames(cna) = cna[1,]
 cna = cna[-c(1,2),]
@@ -147,12 +146,25 @@ cna = cna[complete.cases(cna),]
 cna = sapply(cna, as.numeric)
 DEGs = apply(cna, 2, sum)
 
+
+# retreive TCGA results
+TCGA_cor_res = read.csv("/home/alex/project/HTE/wd/expression_HTE/result/DEAcor/BRCA/BRCA_expression_correlation_test_result.csv")
+txdb = TxDb.Hsapiens.UCSC.hg19.knownGene
+txnames = AnnotationDbi::select(Homo.sapiens, keys = unique(TCGA_cor_res$gene), columns = "SYMBOL", keytype = "ENSEMBL", multiVals = "CharacterList")
+TCGA_genes = left_join(TCGA_cor_res, txnames, by = c("gene" = "ENSEMBL"))
+TCGA_genes = unique(TCGA_genes$SYMBOL)
+
+tx_vector = colnames(medexp[,-ncol(medexp)])
+tx_vector = tx_vector[tx_vector %in% colnames(cna) & tx_vector %in% TCGA_genes]
+# test code
+tx_vector = tx_vector[1:5]
+
 obsNumber <- dim(covar)[1]
 trainId <- sample(1: obsNumber, floor(obsNumber/2), replace = FALSE)
 registerDoParallel(10)
 
 
-result <- run.hte(covar, tx_vector, wholedat, project, covar_type = "expression", trainId, seed = 111, is.binary = T, is_save = T, save_split = T, is.tuned = F, thres = 0.75, n_core = 8, output_directory = output_file)
+result <- run.hte(covar, tx_vector, wholedat, project, covar_type = "expression", txdirct = DEGs, trainId, seed = 111, is.binary = T, is_save = T, save_split = T, is.tuned = F, thres = 0.75, n_core = 6, output_directory = output_file)
 write.csv(result[[1]], paste0(output_file, project, '_expression_correlation_test_result.csv'), quote = F, row.names = F)
 write.csv(result[[2]], paste0(output_file, project, '_expression_calibration_result.csv'), quote = F, row.names = F)
 write.csv(result[[3]], paste0(output_file, project, '_expression_median_t_test_result.csv'), quote = F, row.names = F)

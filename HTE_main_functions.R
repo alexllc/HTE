@@ -128,9 +128,7 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
             }
         # split whole dataset into two parts, and the idea of validation is similar to prediction strength.
         
-        col_names <- c('simes.pval', 'partial.simes.pval', 'pearson.estimate','pearson.pvalue',
-               'kendall.estimate','kendall.pvalue', 'spearman.estimate','spearman.pvalue',
-               'fisher.pval', 't.test.a.pval', 't.test.b.pval')
+        col_names <- c('simes.pval', 'partial.simes.pval', 'pearson.estimate','pearson.pvalue', 'kendall.estimate','kendall.pvalue', 'spearman.estimate','spearman.pvalue', 'fisher.pval', 't.test.a.pval', 't.test.b.pval')
 
         #test
         file_prefix = paste0(output_directory, project, "_", tx)
