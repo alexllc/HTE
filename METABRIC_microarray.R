@@ -150,7 +150,7 @@ DEGs = apply(cna, 2, sum)
 # retreive TCGA results
 TCGA_cor_res = read.csv("/home/alex/project/HTE/wd/expression_HTE/result/DEAcor/BRCA/BRCA_expression_correlation_test_result.csv")
 txdb = TxDb.Hsapiens.UCSC.hg19.knownGene
-txnames = AnnotationDbi::select(Homo.sapiens, keys = unique(TCGA_cor_res$gene), columns = "SYMBOL", keytype = "ENSEMBL", multiVals = "CharacterList")
+txnames =try(AnnotationDbi::select(Homo.sapiens, keys = unique(TCGA_cor_res$gene), columns = "SYMBOL", keytype = "ENSEMBL", multiVals = "CharacterList"))
 TCGA_genes = left_join(TCGA_cor_res, txnames, by = c("gene" = "ENSEMBL"))
 TCGA_genes = unique(TCGA_genes$SYMBOL)
 
