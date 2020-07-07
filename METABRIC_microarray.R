@@ -158,7 +158,6 @@ medexp$PATIENT_ID = NULL
 tx_vector = colnames(medexp)
 tx_vector = tx_vector[tx_vector %in% colnames(cna) & tx_vector %in% TCGA_genes]
 # test code
-tx_vector = tx_vector[1:5]
 
 obsNumber <- dim(covar)[1]
 trainId <- sample(1: obsNumber, floor(obsNumber/2), replace = FALSE)
