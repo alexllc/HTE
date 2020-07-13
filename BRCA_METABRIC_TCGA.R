@@ -1,5 +1,5 @@
 library(cgdsr)
-setwd("../HTE")
+setwd("../../HTE")
 project = "BRCA"
 source("./Overlap_of_varImp_ver1_asFunction-original.R")
 
@@ -69,37 +69,75 @@ if (mode == "mutation") {
 
     ## Running HTE for both datasets
     covar_type = "mutation"
-    } else if (mode == "microarray") {
-       source("./METABRIC_microarray.R")
-       output_file = "/home/alex/project/HTE/wd/mut_HTE/METABRIC/result/SHC_varimp_overlap"
-       metab_all = wholedat
-       M_txdirct = DEGs
-       names(M_txdirct) = txnames$ENSEMBL[txnames$SYMBOL %in% names(DEGs)]
+} else if (mode == "microarray") {
+    library(doParallel)
+    library(grf)
 
-       whole_dataset = read.csv(paste0("/home/alex/project/HTE/wd/expression_HTE/wds_backup/", project, "_wds.csv"))
-       T_DEG = read.csv(paste0("/home/alex/project/HTE/wd/expression_HTE/tables/", project, "_DEGtable.csv"))
-       T_txdirct = T_DEG$logFC
-       names(T_txdirct) = T_DEG$X
+    library(MASS)
+    library(doMC)
+    library(data.table)
+    library(survminer)
+    library(doParallel)
+    library(methods)
 
-        # Select only the overlapping genes
+    # For causal forest
+    library(grf)
+    library(BART)
+    library(ranger)
+    library(randomForestSRC)
+    library(randomForest)
 
-        txdb = TxDb.Hsapiens.UCSC.hg19.knownGene
-        TCGA_genes = colnames(whole_dataset)[10:ncol(whole_dataset)]
-        txnames =try(AnnotationDbi::select(Homo.sapiens, keys = unique(TCGA_genes), columns = "SYMBOL", keytype = "ENSEMBL", multiVals = "CharacterList"))
+    # For survival imputation
+    library(readxl)
+    library(survival)
 
-        metab_genes = colnames(metab_all)[16:ncol(metab_all)]
-        colnames(metab_all)[16:ncol(metab_all)] = txnames$ENSEMBL[txnames$SYMBOL %in% metab_genes]
-        metab_genes = colnames(metab_all)[16:ncol(metab_all)]
+    # For expression retreival
+    library(TCGAbiolinks)
+    library(DT)
+    library(SummarizedExperiment)
+    library(plyr)
+    library(dplyr)
+    library(tidyr)
+    library(biomaRt)
+    library(RTCGAToolbox)
 
-        overlap_genes = intersect(TCGA_genes, metab_genes)
-       
-       whole_dataset = dplyr::select(whole_dataset, all_of(c("donorId","outcome", "TSS", "portion", "plate", "center", overlap_genes)))
-       metab_clincol = head(colnames(metab_all), n = 15)
-       metab_all = dplyr::select(metab_all, all_of(c(metab_clincol, overlap_genes)))
+    # 2. Make sure all four accompanying scripts are in the same directory as the header script
+    #setwd("./HTE")
+    source("./grf_parameters.R")
+    source("./HTE_main_functions.R")
+    source("./HTE_validation_functions.R")
+    source("./survival_imputation.R")
 
-       covar_mat= dplyr::select(whole_dataset, -c("donorId", "outcome"))
-       metab_covar = dplyr::select(metab_all, -c("donorId", "outcome"))
-    }
+    source("./METABRIC_microarray.R")
+    output_file = "/home/alex/project/HTE/wd/expression_HTE/result/METABRIC_SHC_TCGA/"
+    metab_all = wholedat
+    M_txdirct = DEGs
+    names(M_txdirct) = txnames$ENSEMBL[txnames$SYMBOL %in% names(DEGs)]
+
+    whole_dataset = read.csv(paste0("/home/alex/project/HTE/wd/expression_HTE/wds_backup/", project, "_wds.csv"))
+    T_DEG = read.csv(paste0("/home/alex/project/HTE/wd/expression_HTE/tables/", project, "_DEGtable.csv"))
+    T_txdirct = T_DEG$logFC
+    names(T_txdirct) = T_DEG$X
+
+    # Select only the overlapping genes
+
+    txdb = TxDb.Hsapiens.UCSC.hg19.knownGene
+    TCGA_genes = colnames(whole_dataset)[10:ncol(whole_dataset)]
+    txnames =try(AnnotationDbi::select(Homo.sapiens, keys = unique(TCGA_genes), columns = "SYMBOL", keytype = "ENSEMBL", multiVals = "CharacterList"))
+
+    metab_genes = colnames(metab_all)[16:ncol(metab_all)]
+    colnames(metab_all)[16:ncol(metab_all)] = txnames$ENSEMBL[txnames$SYMBOL %in% metab_genes]
+    metab_genes = colnames(metab_all)[16:ncol(metab_all)]
+
+    overlap_genes = intersect(TCGA_genes, metab_genes)
+    
+    whole_dataset = dplyr::select(whole_dataset, all_of(c("donorId","outcome", overlap_genes)))
+    metab_clincol = colnames(metab_all)[c(1,10)]
+    metab_all = dplyr::select(metab_all, all_of(c(metab_clincol, overlap_genes)))
+
+    covar_mat= dplyr::select(whole_dataset, -c("donorId", "outcome"))
+    metab_covar = dplyr::select(metab_all, -c("donorId", "outcome"))
+}
 
 
 ## SHC code for the prepared data
