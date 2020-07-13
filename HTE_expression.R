@@ -42,11 +42,11 @@ source("./survival_imputation.R")
 usrwd = "/home/alex/project"
 setwd(paste0(usrwd, "/HTE/wd/expression_HTE/"))
 # 3. Set your project and make sure you have created a file called result under the working directory
-cancer_list = c(
+cancer_list = c("LIHC"
                 # 'BLCA',
                 # 'COAD',
-                'BRCA',
-                'LGG')
+                # 'BRCA',
+                # 'LGG',
                 # 'GBM',
                 # 'STAD',
                 # 'HNSC',
@@ -62,7 +62,7 @@ cancer_list = c(
 
 for (project in cancer_list) {
     print(paste0("running ", project))
-output_file = paste0("./result/DEAcor/", project, "/")
+output_file = paste0("../immunotx/result/exp_surv/")
 
 # SURVIVAL DATA MUST USE TCGA-CDR CENTRAL DATASET https://www.sciencedirect.com/science/article/pii/S0092867418302290?via%3Dihub
 
@@ -254,14 +254,6 @@ covar_mat= dplyr::select(whole_dataset, -c("donorId", "outcome"))
 write.csv(whole_dataset, paste0("./wds_backup/", project, "_wds.csv"), row.names=F)
 # We need to remove genes with uniformly 0 eexpression as treatments!!!
 
-
-######################################################
-# RESUMING GENES FROM ERROR
-# DEC 6: ERROR IN 214TH GENE
-#tx_vector = as.character(tx_vector[215:length(tx_vector)])
-
-## 
-DEGs = 
 
 obsNumber <- dim(covar_mat)[1]
 trainId <- sample(1: obsNumber, floor(obsNumber/2), replace = FALSE)

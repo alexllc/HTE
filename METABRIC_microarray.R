@@ -46,7 +46,9 @@ setwd("../mut_HTE/METABRIC")
 # dirct = "./data_jul4/"
 dirct = "./data_jun11/"
 project = "BRCA"
-output_file = paste0("./result/", project, "/")
+# output_file = paste0("./result/", project, "/")
+
+
 
 samp = fread(paste0(dirct, 'data_clinical_sample.txt'), skip=4)
 #  [1] "#Identifier to uniquely specify a patient."
@@ -164,8 +166,8 @@ trainId <- sample(1: obsNumber, floor(obsNumber/2), replace = FALSE)
 registerDoParallel(10)
 
 
-result <- run.hte(covar, tx_vector, wholedat, project, covar_type = "expression", txdirct = DEGs, trainId, seed = 111, is.binary = T, is_save = T, save_split = T, is.tuned = F, thres = 0.75, n_core = 6, output_directory = output_file)
-write.csv(result[[1]], paste0(output_file, project, '_expression_correlation_test_result.csv'), quote = F, row.names = F)
-write.csv(result[[2]], paste0(output_file, project, '_expression_calibration_result.csv'), quote = F, row.names = F)
-write.csv(result[[3]], paste0(output_file, project, '_expression_median_t_test_result.csv'), quote = F, row.names = F)
-write.csv(result[[4]], paste0(output_file, project, '_expression_permutate_testing_result.csv'), quote = F, row.names = F)
+# result <- run.hte(covar, tx_vector, wholedat, project, covar_type = "expression", txdirct = DEGs, trainId, seed = 111, is.binary = T, is_save = T, save_split = T, is.tuned = F, thres = 0.75, n_core = 6, output_directory = output_file)
+# write.csv(result[[1]], paste0(output_file, project, '_expression_correlation_test_result.csv'), quote = F, row.names = F)
+# write.csv(result[[2]], paste0(output_file, project, '_expression_calibration_result.csv'), quote = F, row.names = F)
+# write.csv(result[[3]], paste0(output_file, project, '_expression_median_t_test_result.csv'), quote = F, row.names = F)
+# write.csv(result[[4]], paste0(output_file, project, '_expression_permutate_testing_result.csv'), quote = F, row.names = F)

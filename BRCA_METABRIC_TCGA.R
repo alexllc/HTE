@@ -2,7 +2,6 @@ library(cgdsr)
 setwd("../HTE")
 project = "BRCA"
 source("./Overlap_of_varImp_ver1_asFunction-original.R")
-source("./HTE_mutation.R")
 
 aggr_res <- function(res_mat, i, est_col_list = NULL) {
     removed_na <- na.omit(res_mat[, i])
@@ -14,45 +13,78 @@ aggr_res <- function(res_mat, i, est_col_list = NULL) {
     }
 }
 
-## Import and downloading METABRIC mutation data
-mut = fread("./METABRIC/data_mutations_extended.txt")
-cnt = mut %>% group_by(Tumor_Sample_Barcode) %>% count(Hugo_Symbol)
-cnt = spread(cnt, Hugo_Symbol, n)
-cnt[is.na(cnt)] = 0
-sel_genes = intersect(colnames(cnt), tx_vector) # should be 167/174 of METABRIC's panel
-cnt = dplyr::select(cnt, all_of(c("Tumor_Sample_Barcode", sel_genes)))
-
-## Procress METABRIC clinical data
-clinical = fread("./METABRIC/data_clinical_patient.txt", skip = 4, header = T)
-clinical = dplyr::select(clinical, PATIENT_ID, OS_MONTHS, OS_STATUS, AGE_AT_DIAGNOSIS)
-clinical = na.omit(clinical)
-# Convert event to 0/1
-clinical$OS_STATUS = as.integer(clinical$OS_STATUS=="1:DECEASED") # METABRIC updated the OS status term
-# Convert OS mo to days
-clinical$OS_MONTHS = clinical$OS_MONTHS * 30.4167
-# Impute survival time
-max_censored = max(clinical$OS_MONTHS[clinical$OS_STATUS == 0], na.rm = T)
-clinical$OS_STATUS[clinical$OS_MONTHS==max_censored] = 1
-clinical$outcome = impute.survival(clinical$OS_MONTHS,  clinical$OS_STATUS)
-colnames(clinical)[1] = "Tumor_Sample_Barcode"
-clinical$OS_MONTHS = NULL
-clinical$OS_STATUS = NULL
-head(clinical)
-
-metab_all = inner_join(clinical, cnt, by = "Tumor_Sample_Barcode")
-colnames(metab_all)[1] = "donorId"
-metab_covar = dplyr::select(metab_all, -c(donorId, outcome))
+binary_tx <- function(treatment, tx_dirct, tx_gene, thres) {
+    if(tx_dirct[tx_gene] > 0) {
+        treatment = as.numeric(treatment > quantile(treatment, thres))
+    } else {
+        treatment  = as.numeric(treatment < quantile(treatment, 1- thres))}
+}
 
 
-## Process TCGA data to match METABRIC data
-whole_dataset = left_join(ss_patient, dplyr::select(wtcga, all_of(c("donorId", sel_genes))), by = "donorId")
-whole_dataset = dplyr::select(whole_dataset, -c("gender", "ajcc_pathologic_tumor_stage"))
-whole_dataset = whole_dataset[complete.cases(whole_dataset),]
-covar_mat= dplyr::select(whole_dataset, -c("donorId", "outcome"))
+mode_list = c("mutation", "microarray")
+mode = mode_list[2]
 
 
-## Running HTE for both datasets
-covar_type = "mutation"
+if (mode == "mutation") {
+
+    source("./HTE_mutation.R")
+    output_file = "./result/BRCA/"
+
+    ## Import and downloading METABRIC mutation data
+    mut = fread("./METABRIC/data_mutations_extended.txt")
+    cnt = mut %>% group_by(Tumor_Sample_Barcode) %>% count(Hugo_Symbol)
+    cnt = spread(cnt, Hugo_Symbol, n)
+    cnt[is.na(cnt)] = 0
+    sel_genes = intersect(colnames(cnt), tx_vector) # should be 167/174 of METABRIC's panel
+    cnt = dplyr::select(cnt, all_of(c("Tumor_Sample_Barcode", sel_genes)))
+
+    ## Procress METABRIC clinical data
+    clinical = fread("./METABRIC/data_clinical_patient.txt", skip = 4, header = T)
+    clinical = dplyr::select(clinical, PATIENT_ID, OS_MONTHS, OS_STATUS, AGE_AT_DIAGNOSIS)
+    clinical = na.omit(clinical)
+    # Convert event to 0/1
+    clinical$OS_STATUS = as.integer(clinical$OS_STATUS=="1:DECEASED") # METABRIC updated the OS status term
+    # Convert OS mo to days
+    clinical$OS_MONTHS = clinical$OS_MONTHS * 30.4167
+    # Impute survival time
+    max_censored = max(clinical$OS_MONTHS[clinical$OS_STATUS == 0], na.rm = T)
+    clinical$OS_STATUS[clinical$OS_MONTHS==max_censored] = 1
+    clinical$outcome = impute.survival(clinical$OS_MONTHS,  clinical$OS_STATUS)
+    colnames(clinical)[1] = "Tumor_Sample_Barcode"
+    clinical$OS_MONTHS = NULL
+    clinical$OS_STATUS = NULL
+    head(clinical)
+
+    metab_all = inner_join(clinical, cnt, by = "Tumor_Sample_Barcode")
+    colnames(metab_all)[1] = "donorId"
+    metab_covar = dplyr::select(metab_all, -c(donorId, outcome))
+
+
+    ## Process TCGA data to match METABRIC data
+    whole_dataset = left_join(ss_patient, dplyr::select(wtcga, all_of(c("donorId", sel_genes))), by = "donorId")
+    whole_dataset = dplyr::select(whole_dataset, -c("gender", "ajcc_pathologic_tumor_stage"))
+    whole_dataset = whole_dataset[complete.cases(whole_dataset),]
+    covar_mat= dplyr::select(whole_dataset, -c("donorId", "outcome"))
+
+
+    ## Running HTE for both datasets
+    covar_type = "mutation"
+    } else if (mode == "microarray") {
+       source("./METABRIC_microarray.R")
+
+       metab_all = wholedat
+       metab_covar = covar
+       M_txdirct = DEGs
+
+       whole_dataset = read.csv(paste0("/home/alex/project/HTE/wd/expression_HTE/wds_backup/", project, "_wds.csv"))
+       covar_mat= dplyr::select(whole_dataset, -c("donorId", "outcome"))
+       T_DEG = read.csv(paste0("/home/alex/project/HTE/wd/expression_HTE/tables/", project, "_DEGtable.csv"))
+       T_txdirct = T_DEG$logFC
+       names(T_txdirct) = T_DEG$X
+    }
+
+
+## SHC code for the prepared data
 seed = 111
 is.binary = T
 is_save = T
@@ -87,13 +119,24 @@ for (tx in sel_genes){
 
     T_treatment <- as.data.frame(covar_mat)[, tx]
     T_covariates <- as.matrix(dplyr::select(covar_mat, -tx))
-    T_treatment <- as.numeric(T_treatment != 0) # only for mutation
+    ## CHANGE WHEN RUNNING EXPRESSION/MUTATION
+    if (mode == "mutation") {
+        T_treatment <- as.numeric(T_treatment != 0) # only for mutation
+    } else {
+       T_treatment <- binary_tx(treatment = T_treatment, tx_dirct = DEGs, tx_gene = tx, thres = thres)
+    }
     T_Y <- whole_dataset$outcome
 
     # tx vector and covar mat for METAB
     M_treatment <- as.data.frame(metab_covar)[, tx]
     M_covariates <- as.matrix(dplyr::select(metab_covar, -tx))
-    M_treatment <- as.numeric(M_treatment != 0) # only for mutation
+    
+    if (mode == "mutation") {
+        M_treatment <- as.numeric(M_treatment != 0) # only for mutation
+    } else {
+       T_treatment <- binary_tx(treatment = T_treatment, tx_dirct = DEGs, tx_gene = tx, thres = thres)
+    }
+    
     M_Y <- metab_all$outcome
 
     if (length(unique(T_treatment) <= 1 | unique(M_treatment)) <= 1) {
