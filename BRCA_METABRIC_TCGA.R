@@ -71,6 +71,7 @@ if (mode == "mutation") {
     covar_type = "mutation"
     } else if (mode == "microarray") {
        source("./METABRIC_microarray.R")
+       output_file = "/home/alex/project/HTE/wd/mut_HTE/METABRIC/result/SHC_varimp_overlap"
        metab_all = wholedat
        M_txdirct = DEGs
        names(M_txdirct) = txnames$ENSEMBL[txnames$SYMBOL %in% names(DEGs)]
