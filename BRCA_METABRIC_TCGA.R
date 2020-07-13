@@ -71,16 +71,33 @@ if (mode == "mutation") {
     covar_type = "mutation"
     } else if (mode == "microarray") {
        source("./METABRIC_microarray.R")
-
        metab_all = wholedat
-       metab_covar = covar
        M_txdirct = DEGs
+       names(M_txdirct) = txnames$ENSEMBL[txnames$SYMBOL %in% names(DEGs)]
 
        whole_dataset = read.csv(paste0("/home/alex/project/HTE/wd/expression_HTE/wds_backup/", project, "_wds.csv"))
-       covar_mat= dplyr::select(whole_dataset, -c("donorId", "outcome"))
        T_DEG = read.csv(paste0("/home/alex/project/HTE/wd/expression_HTE/tables/", project, "_DEGtable.csv"))
        T_txdirct = T_DEG$logFC
        names(T_txdirct) = T_DEG$X
+
+        # Select only the overlapping genes
+
+        txdb = TxDb.Hsapiens.UCSC.hg19.knownGene
+        TCGA_genes = colnames(whole_dataset)[10:ncol(whole_dataset)]
+        txnames =try(AnnotationDbi::select(Homo.sapiens, keys = unique(TCGA_genes), columns = "SYMBOL", keytype = "ENSEMBL", multiVals = "CharacterList"))
+
+        metab_genes = colnames(metab_all)[16:ncol(metab_all)]
+        colnames(metab_all)[16:ncol(metab_all)] = txnames$ENSEMBL[txnames$SYMBOL %in% metab_genes]
+        metab_genes = colnames(metab_all)[16:ncol(metab_all)]
+
+        overlap_genes = intersect(TCGA_genes, metab_genes)
+       
+       whole_dataset = dplyr::select(whole_dataset, all_of(c("donorId","outcome", "TSS", "portion", "plate", "center", overlap_genes)))
+       metab_clincol = head(colnames(metab_all), n = 15)
+       metab_all = dplyr::select(metab_all, all_of(c(metab_clincol, overlap_genes)))
+
+       covar_mat= dplyr::select(whole_dataset, -c("donorId", "outcome"))
+       metab_covar = dplyr::select(metab_all, -c("donorId", "outcome"))
     }
 
 
@@ -107,8 +124,8 @@ correlation_test_ret = NULL
 overlap_test_res = NULL
 overlap_test_names = c("gene","fisher_top1","fisher_top3","fisher_top5","fisher_top10","fisher_top20","fisher_top30","above0_est","above0_pval","perm_fisher","perm_min","perm_simes","perm_softomni")
 
-## Skipping TAF1 because tau prediction from this gene is constant
-sel_genes = sel_genes[-which(sel_genes == "TAF1")] # 166 for BRCA
+## Select significant treatment genes 
+sel_genes = intersect(names(T_txdirct), names(M_txdirct)) # 166 for BRCA
 
 
 for (tx in sel_genes){
@@ -123,7 +140,7 @@ for (tx in sel_genes){
     if (mode == "mutation") {
         T_treatment <- as.numeric(T_treatment != 0) # only for mutation
     } else {
-       T_treatment <- binary_tx(treatment = T_treatment, tx_dirct = DEGs, tx_gene = tx, thres = thres)
+       T_treatment <- binary_tx(treatment = T_treatment, tx_dirct = T_txdirct, tx_gene = tx, thres = thres)
     }
     T_Y <- whole_dataset$outcome
 
@@ -134,7 +151,7 @@ for (tx in sel_genes){
     if (mode == "mutation") {
         M_treatment <- as.numeric(M_treatment != 0) # only for mutation
     } else {
-       T_treatment <- binary_tx(treatment = T_treatment, tx_dirct = DEGs, tx_gene = tx, thres = thres)
+       M_treatment <- binary_tx(treatment = M_treatment, tx_dirct = M_txdirct, tx_gene = tx, thres = thres)
     }
     
     M_Y <- metab_all$outcome
