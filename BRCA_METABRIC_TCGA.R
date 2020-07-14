@@ -208,43 +208,65 @@ for (tx in sel_genes){
     correlation_matrix = NULL
     overlap_matrix = NULL
 
-    no_repeats = 10
-    for (i in seq(no_repeats)) {
-        observation_result_tcga <- matrix(0, nrow = T_obs, ncol = 4)
-        observation_result_metab <- matrix(0, nrow = M_obs <- dim(T_covariates)[1], ncol = 4)
+    # Skipping repeats, seemes unnecessary
+    # no_repeats = 10
+    # for (i in seq(no_repeats)) {
+    i = 0
+    observation_result_tcga <- matrix(0, nrow = T_obs, ncol = 4)
+    observation_result_metab <- matrix(0, nrow = M_obs <- dim(T_covariates)[1], ncol = 4)
 
-        tcga_forest <- cf.estimator(T_covariates, T_Y, T_treatment, seed = seed)
-        tau_pred_tcga_train <- predict(tcga_forest, estimate.variance = T, num.threads = n_core)
-        tau_pred_tcga_metab <- predict(tcga_forest, newdata = M_covariates, estimate.variance = T, num.threads = n_core)
+    tcga_forest <- cf.estimator(T_covariates, T_Y, T_treatment, seed = seed)
+    tau_pred_tcga_train <- predict(tcga_forest, estimate.variance = T, num.threads = n_core)
+    tau_pred_tcga_metab <- predict(tcga_forest, newdata = M_covariates, estimate.variance = T, num.threads = n_core)
 
-        metab_forest <- cf.estimator(M_covariates, M_Y, M_treatment, seed = seed)
-        tau_pred_metab_train <- predict(metab_forest, estimate.variance = T, num.threads = n_core)
-        tau_pred_metab_tcga <- predict(metab_forest, newdata = T_covariates, estimate.variance = T, num.threads = n_core)
+    metab_forest <- cf.estimator(M_covariates, M_Y, M_treatment, seed = seed)
+    tau_pred_metab_train <- predict(metab_forest, estimate.variance = T, num.threads = n_core)
+    tau_pred_metab_tcga <- predict(metab_forest, newdata = T_covariates, estimate.variance = T, num.threads = n_core)
 
-        # compute z-score, pvalues, and ajusted.pvalues
-        tau_tcga_train_stats <- compute_stats(tau_pred_tcga_train)
-        tau_tcga_stats <- compute_stats(tau_pred_tcga_metab)
-        tau_metab_train_stats <- compute_stats(tau_pred_metab_train)
-        tau_metab_stats <- compute_stats(tau_pred_metab_tcga)
+    # compute z-score, pvalues, and ajusted.pvalues
+    tau_tcga_train_stats <- compute_stats(tau_pred_tcga_train)
+    tau_tcga_stats <- compute_stats(tau_pred_tcga_metab)
+    tau_metab_train_stats <- compute_stats(tau_pred_metab_train)
+    tau_metab_stats <- compute_stats(tau_pred_metab_tcga)
 
-        if(save_split){
-            write.csv(tau_tcga_train_stats, file = paste0(file_prefix, '_observation_', i, '_result_tcga.csv'), row.names = F)
-            write.csv(tau_metab_stats, file = paste0(file_prefix, '_observation_', i, '_result_tcga_in_metab.csv'), row.names = F)
-            
-            write.csv(tau_metab_train_stats, file = paste0(file_prefix,  '_observation_', i,'_result_metab.csv'), row.names = F)
-            write.csv(tau_tcga_stats, file = paste0(file_prefix, '_observation_', i,'_result_metab_in_tcga.csv'), row.names = F)
+    if(save_split){
+        write.csv(tau_tcga_train_stats, file = paste0(file_prefix, '_observation_', i, '_result_tcga.csv'), row.names = F)
+        write.csv(tau_metab_stats, file = paste0(file_prefix, '_observation_', i, '_result_tcga_in_metab.csv'), row.names = F)
+        
+        write.csv(tau_metab_train_stats, file = paste0(file_prefix,  '_observation_', i,'_result_metab.csv'), row.names = F)
+        write.csv(tau_tcga_stats, file = paste0(file_prefix, '_observation_', i,'_result_metab_in_tcga.csv'), row.names = F)
 
-            # Extract varimp from each of the split half forest (Jun 13, 2020 @alex)
-            T_varImp_extract = variable_importance(tcga_forest, max.depth = 4)
-            T_varImp <- data.frame(variable = colnames(T_covariates), T_varImp_extract)
-            write.csv(T_varImp, file = paste0(file_prefix, '_observation_', i, '_varimp_tcga.csv'), row.names = F, quote = F)
+        # Extract varimp from each of the split half forest (Jun 13, 2020 @alex)
+        T_varImp_extract = variable_importance(tcga_forest, max.depth = 4)
+        T_varImp <- data.frame(variable = colnames(T_covariates), T_varImp_extract)
+        write.csv(T_varImp, file = paste0(file_prefix, '_observation_', i, '_varimp_tcga.csv'), row.names = F, quote = F)
 
-            M_varImp_extract = variable_importance(metab_forest, max.depth = 4)
-            M_varImp <- data.frame(variable = colnames(M_covariates), M_varImp_extract)
-            write.csv(M_varImp, file = paste0(file_prefix, '_observation_', i, '_varimp_metab.csv'), row.names = F, quote = F)
-            #message(paste0("Varimp for observation ", i, " saved."))
-        }
+        M_varImp_extract = variable_importance(metab_forest, max.depth = 4)
+        M_varImp <- data.frame(variable = colnames(M_covariates), M_varImp_extract)
+        write.csv(M_varImp, file = paste0(file_prefix, '_observation_', i, '_varimp_metab.csv'), row.names = F, quote = F)
+        #message(paste0("Varimp for observation ", i, " saved."))
+    }
 
+    simes_pval_tcga <- simes.test(tau_tcga_stats[, 3])
+    simes_pval_metab <- simes.test(tau_metab_stats[, 3])
+
+    partial_simes_pval_tcga <- simes.partial(floor(dim(T_covariates)[1] * 0.05), tau_tcga_stats[, 3])
+    partial_simes_pval_metab <- simes.partial(floor(dim(M_covariates)[1] * 0.05), tau_metab_stats[, 3])
+
+    # check the correlation between two predictions from two datasets
+    test_res_tcga <- correlation_test(tau_tcga_train_stats[, 1], tau_metab_stats[, 1], methods = c('pearson', 'kendall', 'spearman'))
+    test_res_metab <- correlation_test(tau_tcga_stats[, 1], tau_metab_train_stats[, 1], methods = c('pearson', 'kendall', 'spearman'))
+
+    fisher_pval_tcga <- fisher.exact.test(tau_tcga_train_stats[, 3], tau_metab_stats[, 3])
+    fisher_pval_metab <- fisher.exact.test(tau_tcga_stats[, 3], tau_metab_train_stats[, 3])
+
+    t_test_pval_tcga <- quantile.t.test(tau_tcga_train_stats[, 1], tau_metab_stats[, 1])
+    t_test_pval_metab <- quantile.t.test(tau_tcga_stats[, 1], tau_metab_train_stats[, 1]) 
+    
+    correlation_rslt <- rbind(c(simes_pval_tcga, partial_simes_pval_tcga, test_res_tcga, fisher_pval_tcga, t_test_pval_tcga), c(simes_pval_metab, simes_pval_metab, test_res_metab, fisher_pval_metab, t_test_pval_metab))
+    correlation_matrix = rbind(correlation_matrix, correlation_rslt)
+
+    if( all(test_res_tcga[c(2,4,6)] < 0.05)) {
         # Overlap of varimp using Prof So's script (Jun 17, 2020)
         input_matrix = merge(T_varImp, M_varImp, by = "variable")
 
@@ -257,34 +279,19 @@ for (tx in sel_genes){
         for (i in 1:length(overlap)) {
             if (i != 2) overlap_ext = c(overlap_ext, overlap[[i]])
         }
-
-        overlap_matrix = rbind(overlap_matrix, overlap_ext)
-
-        simes_pval_tcga <- simes.test(tau_tcga_stats[, 3])
-        simes_pval_metab <- simes.test(tau_metab_stats[, 3])
-
-        partial_simes_pval_tcga <- simes.partial(floor(dim(T_covariates)[1] * 0.05), tau_tcga_stats[, 3])
-        partial_simes_pval_metab <- simes.partial(floor(dim(M_covariates)[1] * 0.05), tau_metab_stats[, 3])
-
-        # check the correlation between two predictions from two datasets
-        test_res_tcga <- correlation_test(tau_tcga_train_stats[, 1], tau_metab_stats[, 1], methods = c('pearson', 'kendall', 'spearman'))
-        test_res_metab <- correlation_test(tau_tcga_stats[, 1], tau_metab_train_stats[, 1], methods = c('pearson', 'kendall', 'spearman'))
-
-        fisher_pval_tcga <- fisher.exact.test(tau_tcga_train_stats[, 3], tau_metab_stats[, 3])
-        fisher_pval_metab <- fisher.exact.test(tau_tcga_stats[, 3], tau_metab_train_stats[, 3])
-
-        t_test_pval_tcga <- quantile.t.test(tau_tcga_train_stats[, 1], tau_metab_stats[, 1])
-        t_test_pval_metab <- quantile.t.test(tau_tcga_stats[, 1], tau_metab_train_stats[, 1]) 
         
-        correlation_rslt <- rbind(c(simes_pval_tcga, partial_simes_pval_tcga, test_res_tcga, fisher_pval_tcga, t_test_pval_tcga), c(simes_pval_metab, simes_pval_metab, test_res_metab, fisher_pval_metab, t_test_pval_metab))
-        correlation_matrix = rbind(correlation_matrix, correlation_rslt)
+        overlap_matrix = rbind(overlap_matrix, overlap_ext)
+    } else {
+        message("Skipping varimp overlap test.")
     }
+    # }
 
     if(is_save){
         colnames(correlation_matrix) <- col_names 
         write.csv(correlation_matrix, file = paste0(file_prefix, '_split_half.csv'), row.names = F, quote = F)
         write.csv(overlap_matrix, file = paste0(file_prefix, '_varimp_overlap.csv'), row.names = F, quote = F)
     }
+
     aggregated_corr_rslt <- sapply(seq(dim(correlation_matrix)[2]), aggr_res, est_col_list = c(3, 5, 7), res_mat = correlation_matrix)
 
     aggregated_overlap_rslt <- sapply(seq(dim(overlap_matrix)[2]), aggr_res, est_col_list = 7, res_mat = overlap_matrix)
