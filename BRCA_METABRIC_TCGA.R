@@ -135,9 +135,9 @@ if (mode == "mutation") {
     clin_col = c("donorId", "age", "outcome")
 
     ## (1) a. Get and process METABRIC clinical data. Same processing step as the METABRIC_microarray.R file, please refer to original for documentation
-    samp = fread(paste0(dirct, 'data_clinical_sample.txt'), skip=4)
+    samp = fread(paste0(metab_dirt, 'data_clinical_sample.txt'), skip=4)
     samp = samp[,c(1,4:7,9)]
-    pat = fread(paste0(dirct, 'data_clinical_patient.txt'), skip=4)
+    pat = fread(paste0(metab_dirt, 'data_clinical_patient.txt'), skip=4)
     pat = pat[,c(1:3,5,7:10,12,13,14,19)]
     pat = pat[which( !(pat$OS_MONTHS <= 0 | is.na(pat$OS_MONTHS) | pat$OS_STATUS == "")),]
     pat$OS_STATUS = as.integer(pat$OS_STATUS=="1:DECEASED") # METABRIC updated the OS status term
