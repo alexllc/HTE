@@ -189,7 +189,7 @@ if (mode == "mutation") {
     metab_txdirct = metab_txdirct[complete.cases(metab_txdirct),]
     metab_txdirct = sapply(metab_txdirct, as.numeric)
     metab_txdirct = apply(metab_txdirct, 2, sum)
-    names(metab_txdirct) = txnames$ENSEMBL[txnames$SYMBOL %in% names(metab_txdirct)]
+    names(metab_txdirct) = gene2ensembl(names(metab_txdirct), from = "SYMBOL", to = "ENSEMBL")
 
     ## (2) a. Get and process TCGA clinical data
     tcga_clin = read.csv("/home/alex/project/HTE/wd/expression_HTE/TCGA_CDR_clean.csv")
