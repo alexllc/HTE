@@ -1,5 +1,5 @@
 library(cgdsr)
-# setwd("../../HTE")
+# setwd("/home/alex/project/HTE/wd/HTE")
 project = "BRCA"
 source("./Overlap_of_varImp_ver2.R")
 
@@ -189,7 +189,7 @@ if (mode == "mutation") {
     metab_txdirct = metab_txdirct[complete.cases(metab_txdirct),]
     metab_txdirct = sapply(metab_txdirct, as.numeric)
     metab_txdirct = apply(metab_txdirct, 2, sum)
-    names(metab_txdirct) = gene2ensembl(names(metab_txdirct), from = "SYMBOL", to = "ENSEMBL")
+    # names(metab_txdirct) = gene2ensembl(names(metab_txdirct), from = "SYMBOL", to = "ENSEMBL")
 
     ## (2) a. Get and process TCGA clinical data
     tcga_clin = read.csv("/home/alex/project/HTE/wd/expression_HTE/TCGA_CDR_clean.csv")
@@ -206,7 +206,7 @@ if (mode == "mutation") {
         }
     }
     attach(tcga_clin)
-    tcga_imp = NNMIS(ajcc_pathologic_tumor_stage, xa = age_at_initial_pathologic_diagnosis, xb = age_at_initial_pathologic_diagnosis, time = OS.time, event = OS, imputeCT = T, Seed = 2020, mc.cores = 30)
+    tcga_imp = NNMIS(ajcc_pathologic_tumor_stage, xa = age_at_initial_pathologic_diagnosis, xb = age_at_initial_pathologic_diagnosis, time = OS.time, event = OS, imputeCT = T, Seed = 2020, mc.cores = 60)
     detach(tcga_clin)
     tcga_imp_surv = tcga_imp$dat.T.NNMI %>% mutate(mean = rowMeans(.))
     tcga_clin$outcome = tcga_imp_surv$mean
