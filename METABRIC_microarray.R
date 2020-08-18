@@ -28,6 +28,7 @@ library(SummarizedExperiment)
 library(plyr)
 library(dplyr)
 library(tidyr)
+library(tidyverse)
 library(biomaRt)
 # library(RTCGAToolbox)
 library(TxDb.Hsapiens.UCSC.hg19.knownGene)
@@ -47,7 +48,7 @@ setwd("../mut_HTE/METABRIC")
 dirct = "./data_jun11/"
 project = "BRCA"
 # output_file = paste0("./result/", project, "/")
-
+output_file = "/home/alex/project/HTE/wd/expression_HTE/result/METABRIC_NNMIS/"
 
 
 samp = fread(paste0(dirct, 'data_clinical_sample.txt'), skip=4)
@@ -88,15 +89,26 @@ pat = fread(paste0(dirct, 'data_clinical_patient.txt'), skip=4)
 # [20] "Text to describe a tumor's histologic subtype or mixed diagnosis that is different from previously specified options."
 # [21] "Type of Breast Surgery" (almost all get masectomy)
 
-pat = pat[,c(1,2,5,7:10,12,13,14,19)]
-pat = pat[which(!(pat$OS_MONTHS <= 0 | is.na(pat$OS_MONTHS))),]
+pat = pat[,c(1:3,5,7:10,12,13,14,19)]
+pat = pat[which( !(pat$OS_MONTHS <= 0 | is.na(pat$OS_MONTHS) | pat$OS_STATUS == "")),]
+
 pat$OS_STATUS = as.integer(pat$OS_STATUS=="1:DECEASED") # METABRIC updated the OS status term
 # Convert OS mo to days
 pat$OS_MONTHS = pat$OS_MONTHS * 30.4167
-# Impute survival time
-max_censored = max(pat$OS_MONTHS[pat$OS_STATUS == 0], na.rm = T)
-pat$OS_STATUS[pat$OS_MONTHS==max_censored] = 1
-pat$outcome = impute.survival(pat$OS_MONTHS,  pat$OS_STATUS)
+
+# Impute survival time using NNMIS @Alex Jul 17, 2020
+attach(pat)
+imp.dat = NNMIS(NPI, xa = AGE_AT_DIAGNOSIS, xb = AGE_AT_DIAGNOSIS, time = OS_MONTHS, event = OS_STATUS, imputeCT = T, Seed = 2020, mc.cores = 30)
+detach(pat)
+imp_surv = imp.dat$dat.T.NNMI %>% mutate(mean = rowMeans(.))
+pat$outcome = imp_surv$mean
+
+
+# max_censored = max(pat$OS_MONTHS[pat$OS_STATUS == 0], na.rm = T)
+# pat$OS_STATUS[pat$OS_MONTHS==max_censored] = 1
+# pat$outcome = impute.survival(pat$OS_MONTHS,  pat$OS_STATUS)
+
+
 pat$OS_MONTHS = NULL
 pat$OS_STATUS = NULL
 
@@ -166,7 +178,7 @@ trainId <- sample(1: obsNumber, floor(obsNumber/2), replace = FALSE)
 registerDoParallel(10)
 
 
-# result <- run.hte(covar, tx_vector, wholedat, project, covar_type = "expression", txdirct = DEGs, trainId, seed = 111, is.binary = T, is_save = T, save_split = T, is.tuned = F, thres = 0.75, n_core = 6, output_directory = output_file)
+result <- run.hte(covar, tx_vector, wholedat, project, covar_type = "expression", txdirct = DEGs, trainId, seed = 111, is.binary = T, is_save = T, save_split = T, is.tuned = F, thres = 0.75, n_core = 8, output_directory = output_file)
 # write.csv(result[[1]], paste0(output_file, project, '_expression_correlation_test_result.csv'), quote = F, row.names = F)
 # write.csv(result[[2]], paste0(output_file, project, '_expression_calibration_result.csv'), quote = F, row.names = F)
 # write.csv(result[[3]], paste0(output_file, project, '_expression_median_t_test_result.csv'), quote = F, row.names = F)

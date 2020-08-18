@@ -1,7 +1,7 @@
 library(cgdsr)
 # setwd("../../HTE")
 project = "BRCA"
-source("./Overlap_of_varImp_ver1_asFunction-original.R")
+source("./Overlap_of_varImp_ver2.R")
 
 aggr_res <- function(res_mat, i, est_col_list = NULL) {
     removed_na <- na.omit(res_mat[, i])
@@ -18,6 +18,21 @@ binary_tx <- function(treatment, tx_dirct, tx_gene, thres) {
         treatment = as.numeric(treatment > quantile(treatment, thres))
     } else {
         treatment  = as.numeric(treatment < quantile(treatment, 1- thres))}
+}
+
+gene2ensembl <- function(genels, from  = "ENSEMBL", to = "SYMBOL") {
+    # use keytypes(org.Hs.eg.db) to list available conversion types
+    txdb = TxDb.Hsapiens.UCSC.hg19.knownGene
+    txnames =AnnotationDbi::select(Homo.sapiens, keys = genels, columns = to, keytype = from, multiVals = "CharacterList")
+    genels = as.data.frame(genels)
+    genels = left_join(genels, txnames, by = c("genels" = from)) %>% group_by(genels) %>% dplyr::slice(1) %>% as.data.frame() # multiple matches are reduced by picking the first match
+    return(as.character(genels[,to]))
+}
+
+format_tcga_patient <- function(pat_ls) {
+    tmp = strsplit(pat_ls, "-")
+    tmp = unlist(lapply(tmp, function(x) paste(x[[1]], x[[2]], x[[3]], sep = "-")))
+    return(unlist(tmp))
 }
 
 
@@ -61,7 +76,7 @@ if (mode == "mutation") {
 
 
     ## Process TCGA data to match METABRIC data
-    whole_dataset = left_join(ss_patient, dplyr::select(wtcga, all_of(c("donorId", sel_genes))), by = "donorId")
+    whole_dataset = left_join(tcga_clin, dplyr::select(wtcga, all_of(c("donorId", sel_genes))), by = "donorId")
     whole_dataset = dplyr::select(whole_dataset, -c("gender", "ajcc_pathologic_tumor_stage"))
     whole_dataset = whole_dataset[complete.cases(whole_dataset),]
     covar_mat= dplyr::select(whole_dataset, -c("donorId", "outcome"))
@@ -90,6 +105,7 @@ if (mode == "mutation") {
     # For survival imputation
     library(readxl)
     library(survival)
+    library(NNMIS)
 
     # For expression retreival
     library(TCGAbiolinks)
@@ -101,44 +117,144 @@ if (mode == "mutation") {
     library(biomaRt)
     library(RTCGAToolbox)
 
-    # 2. Make sure all four accompanying scripts are in the same directory as the header script
-    #setwd("./HTE")
+    # For conversion between ensembl and gene symbol
+    library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+    library(Homo.sapiens)
+
+    setwd("/home/alex/project/HTE/wd/HTE/")
     source("./grf_parameters.R")
     source("./HTE_main_functions.R")
     source("./HTE_validation_functions.R")
     source("./survival_imputation.R")
+    setwd("/home/alex/project/HTE/wd/validation/METABRIC/METAB-TCGA-expression")
 
-    source("./METABRIC_microarray.R")
     output_file = "/home/alex/project/HTE/wd/expression_HTE/result/METABRIC_SHC_TCGA/"
-    metab_all = wholedat
-    M_txdirct = DEGs
-    names(M_txdirct) = txnames$ENSEMBL[txnames$SYMBOL %in% names(DEGs)]
+    metab_dirt = "/home/alex/project/HTE/wd/mut_HTE/METABRIC/data_jun11/"
+    tcga_dirt = "/home/alex/project/HTE/wd/validation/cbioportal_tcga_brca_pancan/"
+    
+    clin_col = c("donorId", "age", "outcome")
 
-    whole_dataset = read.csv(paste0("/home/alex/project/HTE/wd/expression_HTE/wds_backup/", project, "_wds.csv"))
+    ## (1) a. Get and process METABRIC clinical data. Same processing step as the METABRIC_microarray.R file, please refer to original for documentation
+    samp = fread(paste0(dirct, 'data_clinical_sample.txt'), skip=4)
+    samp = samp[,c(1,4:7,9)]
+    pat = fread(paste0(dirct, 'data_clinical_patient.txt'), skip=4)
+    pat = pat[,c(1:3,5,7:10,12,13,14,19)]
+    pat = pat[which( !(pat$OS_MONTHS <= 0 | is.na(pat$OS_MONTHS) | pat$OS_STATUS == "")),]
+    pat$OS_STATUS = as.integer(pat$OS_STATUS=="1:DECEASED") # METABRIC updated the OS status term
+    pat$OS_MONTHS = pat$OS_MONTHS * 30.4167
+    attach(pat)
+    imp.dat = NNMIS(NPI, xa = AGE_AT_DIAGNOSIS, xb = AGE_AT_DIAGNOSIS, time = OS_MONTHS, event = OS_STATUS, imputeCT = T, Seed = 2020, mc.cores = 30)
+    detach(pat)
+    imp_surv = imp.dat$dat.T.NNMI %>% mutate(mean = rowMeans(.))
+    pat$outcome = imp_surv$mean
+    pat$OS_MONTHS = NULL
+    pat$OS_STATUS = NULL
+    metab_clin = merge(pat, samp, by = "PATIENT_ID")
+    metab_clin = as.data.frame(metab_clin[complete.cases(metab_clin),])
+    for (c in colnames(metab_clin)) {
+
+        if (!is.numeric(metab_clin[,c]) && c != "PATIENT_ID") {
+            which.one <- which( levels(metab_clin[,c]) == "")
+            levels(metab_clin[,c])[which.one] <- NA
+            metab_clin[,c] = sapply(sapply(metab_clin[,c], as.factor), as.numeric) 
+            print(paste0(c, " is converted to numeric.")) 
+        }
+    }
+    metab_clin = dplyr::select(metab_clin, PATIENT_ID, AGE_AT_DIAGNOSIS, outcome)
+    colnames(metab_clin) = clin_col
+
+    ## (1) b. Import, transpose and save z-score data for METABRIC patients. Detail about normalization process is found in: https://docs.cbioportal.org/5.1-data-loading/data-loading/file-formats/z-score-normalization-script. We're using z-scores with ref. to diploid samples.
+    if(!file.exists("./metab_transposed_data_expression_median_zscore.txt")) {
+        metab_z = fread(paste0(metab_dirt,"data_mRNA_median_Zscores.txt"))
+        message("Transposing expression z-score matrix, this could take a *LONG* while.")
+        metab_z = t(metab_z)
+        colnames(metab_z) = metab_z[1,]
+        metab_z = metab_z[-c(1:2),]
+        class(metab_z) = "numeric"
+        metab_z = as.data.frame(metab_z)
+        metab_z$donorId = rownames(metab_z)
+        write.table(metab_z, "metab_transposed_data_expression_median_zscore.txt", sep = "\t", row.names = F) # as of R4.0 R no longer automatically converts strings as factors
+    } else {
+        metab_z = as.data.frame(fread("metab_transposed_data_expression_median_zscore.txt"))
+    }
+    ## METABRIC data sets does not have fully NA columns
+    metab_not_na = sapply(metab_z, function(x)all(!is.na(x)))
+    metab_z = metab_z[,metab_not_na] # only 1013 genes that are complete
+
+    ## (1) c. Import metab_txdirct infomraiton about METABRIC expression for treatment direciton
+    metab_txdirct = fread(paste0(metab_dirt, "data_CNA.txt"))
+    metab_txdirct = as.data.frame(t(as.matrix(metab_txdirct)))
+    colnames(metab_txdirct) = metab_txdirct[1,]
+    metab_txdirct = metab_txdirct[-c(1,2),]
+    metab_txdirct = metab_txdirct[complete.cases(metab_txdirct),]
+    metab_txdirct = sapply(metab_txdirct, as.numeric)
+    metab_txdirct = apply(metab_txdirct, 2, sum)
+    names(metab_txdirct) = txnames$ENSEMBL[txnames$SYMBOL %in% names(metab_txdirct)]
+
+    ## (2) a. Get and process TCGA clinical data
+    tcga_clin = read.csv("/home/alex/project/HTE/wd/expression_HTE/TCGA_CDR_clean.csv")
+    tcga_clin = filter(tcga_clin, type == "BRCA")
+    labels = c("[Discrepancy]","[Not Applicable]","[Not Available]","[Unknown]")
+    tcga_clin$ajcc_pathologic_tumor_stage[which(tcga_clin$ajcc_pathologic_tumor_stage %in% labels)] = NA
+
+    for (c in colnames(tcga_clin)) {
+        if (!is.numeric(tcga_clin[,c]) && c != "donorId") {
+            which.one <- which( levels(tcga_clin[,c]) == "")
+            levels(tcga_clin[,c])[which.one] <- NA
+            tcga_clin[,c] = sapply(sapply(tcga_clin[,c], as.factor), as.numeric) 
+            print(paste0(c, " is altered")) 
+        }
+    }
+    attach(tcga_clin)
+    tcga_imp = NNMIS(ajcc_pathologic_tumor_stage, xa = age_at_initial_pathologic_diagnosis, xb = age_at_initial_pathologic_diagnosis, time = OS.time, event = OS, imputeCT = T, Seed = 2020, mc.cores = 30)
+    detach(tcga_clin)
+    tcga_imp_surv = tcga_imp$dat.T.NNMI %>% mutate(mean = rowMeans(.))
+    tcga_clin$outcome = tcga_imp_surv$mean
+    tcga_clin = dplyr::select(tcga_clin, donorId, age_at_initial_pathologic_diagnosis, outcome)
+    colnames(tcga_clin) = clin_col
+
+    ## (2) b. Import z-score for TCGA patients downlaoded from cbioportal pancancer atlas.
+    if(!file.exists("./tcga_transposed_data_expression_median_zscore.txt")) {
+        tcga_z = fread(paste0(tcga_dirt,"data_RNA_Seq_v2_mRNA_median_Zscores.txt"))
+        message("Transposing expression z-score matrix, this could take a *LONG* while.")
+        tcga_z = t(tcga_z)
+        colnames(tcga_z) = tcga_z[1,]
+        tcga_z = tcga_z[-c(1:2),]
+        class(tcga_z) = "numeric"
+        tcga_z = as.data.frame(tcga_z)
+        tcga_z$donorId = rownames(tcga_z)
+        write.table(tcga_z, "tcga_transposed_data_expression_median_zscore.txt", sep = "\t", row.names = F) # as of R4.0 R no longer automatically converts strings as factors
+    } else {
+        tcga_z = as.data.frame(fread("tcga_transposed_data_expression_median_zscore.txt")) # donorId will be right at the back
+    }
+    tcga_not_na = sapply(tcga_z, function(x)all(!is.na(x))) # many genes are fully NA
+    tcga_z = tcga_z[,tcga_not_na]
+    tcga_z$donorId = format_tcga_patient(tcga_z$donorId)
+    ## All are complete cases
+    # tcga_z = tcga_z[complete.cases(tcga_z),]
+
+    ## (2) c. Import DEA results for treatment direction
     T_DEG = read.csv(paste0("/home/alex/project/HTE/wd/expression_HTE/tables/", project, "_DEGtable.csv"))
     T_txdirct = T_DEG$logFC
-    names(T_txdirct) = T_DEG$X
+    names(T_txdirct) = gene2ensembl(T_DEG$X, from = "ENSEMBL", to = "SYMBOL")
 
     # Select only the overlapping genes
-
-    txdb = TxDb.Hsapiens.UCSC.hg19.knownGene
-    TCGA_genes = colnames(whole_dataset)[10:ncol(whole_dataset)]
-    txnames =try(AnnotationDbi::select(Homo.sapiens, keys = unique(TCGA_genes), columns = "SYMBOL", keytype = "ENSEMBL", multiVals = "CharacterList"))
-
-    metab_genes = colnames(metab_all)[16:ncol(metab_all)]
-    colnames(metab_all)[16:ncol(metab_all)] = txnames$ENSEMBL[txnames$SYMBOL %in% metab_genes]
-    metab_genes = colnames(metab_all)[16:ncol(metab_all)]
-
-    overlap_genes = intersect(TCGA_genes, metab_genes)
+    overlap_genes = intersect(colnames(metab_z), colnames(tcga_z))
+    overlap_genes = overlap_genes[-which(overlap_genes == "donorId")]
     
-    whole_dataset = dplyr::select(whole_dataset, all_of(c("donorId","outcome", overlap_genes)))
-    metab_clincol = colnames(metab_all)[c(1,10)]
-    metab_all = dplyr::select(metab_all, all_of(c(metab_clincol, overlap_genes)))
+    metab_whole = dplyr::select(metab_z, all_of(c("donorId", overlap_genes))) %>% left_join(metab_clin, metab_whole, by = "donorId")
+    metab_whole = metab_whole[complete.cases(metab_whole),]
+    tcga_whole = dplyr::select(tcga_z, all_of(c("donorId", overlap_genes))) %>% left_join(tcga_clin, by = "donorId")
+    tcga_whole = tcga_whole[complete.cases(tcga_whole)]
+    metab_whole = dplyr::select(metab_whole, all_of(c("donorId", "outcome", overlap_genes)))
+    tcga_whole = dplyr::select(metab_whole, all_of(c("donorId", "outcome", overlap_genes)))
+    metab_covar = dplyr::select(metab_whole, -c("donorId", "outcome"))
+    tcga_covar= dplyr::select(tcga_whole, -c("donorId", "outcome"))
 
-    covar_mat= dplyr::select(whole_dataset, -c("donorId", "outcome"))
-    metab_covar = dplyr::select(metab_all, -c("donorId", "outcome"))
+    ## Select significant treatment genes 
+    overlap_DEG = intersect(names(T_txdirct), names(metab_txdirct)) # 166 for BRCA
+    overlap_DEG = overlap_DEG[overlap_DEG %in% overlap_genes]
 }
-
 
 ## SHC code for the prepared data
 seed = 111
@@ -150,7 +266,6 @@ thres = 0.75
 n_core = 8
 output_directory = output_file
 
-
 cf.estimator <- ifelse(is.tuned, cf.tuned, cf)
 
 col_names <- c('simes.pval', 'partial.simes.pval', 'pearson.estimate','pearson.pvalue', 'kendall.estimate','kendall.pvalue', 'spearman.estimate','spearman.pvalue', 'fisher.pval', 't.test.a.pval', 't.test.b.pval')
@@ -159,29 +274,24 @@ correlation_test_ret = NULL
 corr_test_names = c("gene", "simes.pval", "partial.simes.pval", "pearson.estimate", "pearson.pvalue", "kendall.estimate", "kendall.pvalue", "spearman.estimate", "spearman.pvalue")
 correlation_test_ret = NULL 
 
-
 overlap_test_res = NULL
-overlap_test_names = c("gene","fisher_top1","fisher_top3","fisher_top5","fisher_top10","fisher_top20","fisher_top30","above0_est","above0_pval","perm_fisher","perm_min","perm_simes","perm_softomni")
+overlap_test_names = c("gene","fisher_top1_pval","fisher_top3_pval","fisher_top5_pval","fisher_top10_pval","fisher_top20_pval","fisher_top30_pval","above0_pval","perm_fisher_pval","perm_min_pval","perm_simes_pval","perm_softomni_pval")
 
-## Select significant treatment genes 
-sel_genes = intersect(names(T_txdirct), names(M_txdirct)) # 166 for BRCA
-
-
-for (tx in sel_genes){
+for (tx in overlap_DEG){
     
-    print(paste0(c('#', rep('-', 40), ' running ', which(sel_genes == tx), ' of ', length(sel_genes), rep('-', 40)), collapse = ''))
+    print(paste0(c('#', rep('-', 40), ' running ', which(overlap_DEG == tx), ' of ', length(overlap_DEG), rep('-', 40)), collapse = ''))
     # tx vector and covar mat for TCGA
     cat('Treatment name:', tx, fill = T)
 
-    T_treatment <- as.data.frame(covar_mat)[, tx]
-    T_covariates <- as.matrix(dplyr::select(covar_mat, -tx))
+    T_treatment <- as.data.frame(tcga_covar)[, tx]
+    T_covariates <- as.matrix(dplyr::select(tcga_covar, -tx))
     ## CHANGE WHEN RUNNING EXPRESSION/MUTATION
     if (mode == "mutation") {
         T_treatment <- as.numeric(T_treatment != 0) # only for mutation
     } else {
        T_treatment <- binary_tx(treatment = T_treatment, tx_dirct = T_txdirct, tx_gene = tx, thres = thres)
     }
-    T_Y <- whole_dataset$outcome
+    T_Y <- tcga_whole$outcome
 
     # tx vector and covar mat for METAB
     M_treatment <- as.data.frame(metab_covar)[, tx]
@@ -190,10 +300,10 @@ for (tx in sel_genes){
     if (mode == "mutation") {
         M_treatment <- as.numeric(M_treatment != 0) # only for mutation
     } else {
-       M_treatment <- binary_tx(treatment = M_treatment, tx_dirct = M_txdirct, tx_gene = tx, thres = thres)
+       M_treatment <- binary_tx(treatment = M_treatment, tx_dirct = metab_txdirct, tx_gene = tx, thres = thres)
     }
     
-    M_Y <- metab_all$outcome
+    M_Y <- metab_whole$outcome
 
     if (length(unique(T_treatment) <= 1 | unique(M_treatment)) <= 1) {
         print("Gene mutation distribution too sparse, skipping.")
@@ -279,22 +389,24 @@ for (tx in sel_genes){
         for (i in 1:length(overlap)) {
             if (i != 2) overlap_ext = c(overlap_ext, overlap[[i]])
         }
-        
         overlap_matrix = rbind(overlap_matrix, overlap_ext)
+        write.csv(overlap_matrix, file = paste0(file_prefix, '_varimp_overlap.csv'), row.names = F, quote = F)
+        aggregated_overlap_rslt <- sapply(seq(dim(overlap_matrix)[2]), aggr_res, est_col_list = 7, res_mat = overlap_matrix)
+        message("===========Varimp overlap results: ==============")
+        for(k in 2:length(aggregated_overlap_rslt)) {
+            cat(paste0(overlap_test_names[k], ": "), aggregated_overlap_rslt[k], fill = T)
+        }
     } else {
-        message("Skipping varimp overlap test.")
+        message("TCGA SHC test correlation not significant, skipping varimp overlap test.")
     }
-    # }
 
     if(is_save){
         colnames(correlation_matrix) <- col_names 
         write.csv(correlation_matrix, file = paste0(file_prefix, '_split_half.csv'), row.names = F, quote = F)
-        write.csv(overlap_matrix, file = paste0(file_prefix, '_varimp_overlap.csv'), row.names = F, quote = F)
     }
 
     aggregated_corr_rslt <- sapply(seq(dim(correlation_matrix)[2]), aggr_res, est_col_list = c(3, 5, 7), res_mat = correlation_matrix)
 
-    aggregated_overlap_rslt <- sapply(seq(dim(overlap_matrix)[2]), aggr_res, est_col_list = 7, res_mat = overlap_matrix)
 
     ## Alex: Moved to a declared function Jun 27, 2020
     # change to partial_simes_pval 20190929
@@ -309,17 +421,11 @@ for (tx in sel_genes){
     #     return(pval)
     # })
 
-
-
     cat('Fisher extact test pval in trainset:', aggregated_corr_rslt[9], fill = T)
     cat('pearson correlation pval in trainset:', aggregated_corr_rslt[4], fill = T)
     cat('kedall correlation pval in trainset:', aggregated_corr_rslt[6], fill = T)
     cat('spearman correlation pval in trainset:', aggregated_corr_rslt[8], fill = T)
 
-    message("===========Varimp overlap results: ==============")
-    for(k in 2:length(aggregated_overlap_rslt)) {
-        cat(paste0(overlap_test_names[k], ": "), aggregated_overlap_rslt[k], fill = T)
-    }
 
     # Alex @ Jun28, 2020 do.call then append to preset data.frame does not work anymore, switching to rbindlist
     current_ret <- do.call('c', list(list(tx), as.list(aggregated_corr_rslt[1: 8])))
