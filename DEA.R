@@ -12,7 +12,6 @@ cancer_list = c(
                 'HNSC',
                 'KIRC',
                 'LUAD',
-
                 'LUSC',
                 #'OV', # no NT
                 'PRAD',

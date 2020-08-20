@@ -34,8 +34,8 @@ props = read.table("/exeh_4/alex_lau/proj/HTE/wd/pathways/props_pathway_score.ts
 tmp = strsplit(colnames(props), '\\.')
 tmp = sapply(tmp, function(x) x[[1]])
 colnames(props) = tmp
-tx_vector = colnames(props)
 props$donorId = format_tcga_patient(rownames(props))
+
 
 cdr = read.csv("/exeh_4/alex_lau/proj/HTE/wd/TCGA_CDR_clean.csv")
 cdr = dplyr::filter(cdr, type == "BRCA")
@@ -67,7 +67,7 @@ registerDoParallel(10)
 output_file = "/exeh_4/alex_lau/proj/HTE/wd/pathways/results/PROPS_"
 project = "BRCA"
 
-result <- run.hte(covar_mat, tx_vector, whole_dat, project, covar_type = "others", txdirct = NULL, trainId, seed = 111, is.binary = F, is_save = T, save_split = T, is.tuned = F, thres = 0.75, n_core = 8, output_directory = output_file)
+result <- run.hte(covar_mat, tx_vector, whole_dat, project, covar_type = "UQ", txdirct = NULL, trainId, seed = 111, is.binary = F, is_save = T, save_split = T, is.tuned = F, thres = 0.75, n_core = 8, output_directory = output_file)
 write.csv(result[[1]], paste0(output_file, project, '_expression_correlation_test_result.csv'), quote = F, row.names = F)
 write.csv(result[[2]], paste0(output_file, project, '_expression_calibration_result.csv'), quote = F, row.names = F)
 write.csv(result[[3]], paste0(output_file, project, '_expression_median_t_test_result.csv'), quote = F, row.names = F)

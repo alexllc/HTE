@@ -105,16 +105,3 @@ test_overlap_VarImp <- function (input_matrix,
                 perm_p_combineALL = perm_p_res) ) 
 			 
 }
-
-
-
-
-
-# res = test_overlap_VarImp (input_matrix,
-# 								no_perm = 5000,
-# 								no_cluster = 10, #no. of clusters for parallel running 
-# 								top_percentile_list = c(0.01, 0.03, 0.05, 0.1, 0.2, 0.3) 
-								
-# 					)
-					
-# res

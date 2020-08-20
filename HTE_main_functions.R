@@ -116,6 +116,8 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
                     
             } else if (covar_type=="UQ"){
                 treatment = as.numeric(treatment > quantile(treatment, thres))
+            } else if (covar_type == "LQ") {
+                treatment = as.numeric(treatment < quantile(treatment, 1 - thres))
             }
             # Check if we have enough tx observations
             if (length(unique(treatment)) == 1 | sum(treatment) < length(treatment)*0.1) {

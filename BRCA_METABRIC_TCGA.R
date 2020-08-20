@@ -435,7 +435,6 @@ for (tx in overlap_DEG){
     overlap_tmp <- do.call('c', list(list(tx), as.list(aggregated_overlap_rslt)))
     overlap_tmp <- rbindlist(list(overlap_tmp))
     overlap_test_res <- rbind(overlap_test_res, overlap_tmp)
-                             
 }
 
 colnames(correlation_test_ret) <- corr_test_names
