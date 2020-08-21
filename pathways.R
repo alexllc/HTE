@@ -34,6 +34,7 @@ props = read.table("/exeh_4/alex_lau/proj/HTE/wd/pathways/props_pathway_score.ts
 tmp = strsplit(colnames(props), '\\.')
 tmp = sapply(tmp, function(x) x[[1]])
 colnames(props) = tmp
+tx_vector = tmp
 props$donorId = format_tcga_patient(rownames(props))
 
 
