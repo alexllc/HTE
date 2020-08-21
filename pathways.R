@@ -64,7 +64,7 @@ covar_mat = dplyr::select(whole_dat, -c(donorId, outcome))
 obsNumber <- dim(covar_mat)[1]
 trainId <- sample(1: obsNumber, floor(obsNumber/2), replace = FALSE)
 registerDoParallel(10)
-output_file = "/exeh_4/alex_lau/proj/HTE/wd/pathways/results/PROPS_"
+output_file = "/exeh_4/alex_lau/proj/HTE/wd/pathways/UQ_results/PROPS_"
 project = "BRCA"
 
 result <- run.hte(covar_mat, tx_vector, whole_dat, project, covar_type = "UQ", txdirct = NULL, trainId, seed = 111, is.binary = F, is_save = T, save_split = T, is.tuned = F, thres = 0.75, n_core = 8, output_directory = output_file)
