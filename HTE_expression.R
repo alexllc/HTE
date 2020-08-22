@@ -33,7 +33,7 @@ library(biomaRt)
 library(RTCGAToolbox)
 
 # 2. Make sure all four accompanying scripts are in the same directory as the header script
-#setwd("./HTE")
+#setwd("../HTE")
 source("./grf_parameters.R")
 source("./HTE_main_functions.R")
 source("./HTE_validation_functions.R")
@@ -63,7 +63,7 @@ cancer_list = c(
 
 for (project in cancer_list) {
     print(paste0("running ", project))
-output_file = paste0("/home/alex/project/HTE/wd/expression_HTE/result/reverse_quantile/", project, "/")
+    output_file = paste0("/home/alex/project/HTE/wd/expression_HTE/result/norm_quantile/", project, "/")
 
 # SURVIVAL DATA MUST USE TCGA-CDR CENTRAL DATASET https://www.sciencedirect.com/science/article/pii/S0092867418302290?via%3Dihub
 
@@ -244,11 +244,13 @@ exp_matrix <- dplyr::select(exp_matrix, -c(bcr, patient))
 DEGs = read.csv(paste0("./tables/", project, "_DEGtable.csv"))
 DEG_ls = as.character(DEGs$X)
 tx_vector = DEG_ls[DEG_ls %in% colnames(exp_matrix)]
+txdirct = DEGs$logFC
+names(txdirct) = DEGs$X
 message(paste0("Treatments to assess: ", length(tx_vector)))
 
 TCGA_genes = colnames(exp_matrix)[5:ncol(exp_matrix)]
 whole_dataset = inner_join(ss_patient, exp_matrix , by = "donorId")
-whole_dataset = dplyr::select(whole_dataset, all_of(c("donorId","outcome", "TSS", "portion", "plate", "center", TCGA_genes)))
+# whole_dataset = dplyr::select(whole_dataset, all_of(c("donorId","outcome", "TSS", "portion", "plate", "center", TCGA_genes)))
 covar_mat= dplyr::select(whole_dataset, -c("donorId", "outcome"))
 
 write.csv(whole_dataset, paste0("./wds_backup/", project, "_wds.csv"), row.names=F)
@@ -259,7 +261,7 @@ obsNumber <- dim(covar_mat)[1]
 trainId <- sample(1: obsNumber, floor(obsNumber/2), replace = FALSE)
 registerDoParallel(10)
 
-result <- run.hte(covar_mat, tx_vector, whole_dataset, project, covar_type = "expression", txdirct = DEGs, trainId, seed = 111, is.binary = T, is_save = T, save_split = T, is.tuned = F, thres = 0.75, n_core = 6, output_directory = output_file)
+result <- run.hte(covar_mat, tx_vector, whole_dataset, project, covar_type = "expression", txdirct = txdirct, trainId, seed = 111, is.binary = T, is_save = T, save_split = T, is.tuned = F, thres = 0.75, n_core = 6, output_directory = output_file)
 write.csv(result[[1]], paste0(output_file, project, '_expression_correlation_test_result.csv'), quote = F, row.names = F)
 write.csv(result[[2]], paste0(output_file, project, '_expression_calibration_result.csv'), quote = F, row.names = F)
 write.csv(result[[3]], paste0(output_file, project, '_expression_median_t_test_result.csv'), quote = F, row.names = F)
