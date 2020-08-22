@@ -43,24 +43,23 @@ source("./HTE_validation_functions.R")
 usrwd = "/home/alex/project"
 setwd(paste0(usrwd, "/HTE/wd/expression_HTE/"))
 # 3. Set your project and make sure you have created a file called result under the working directory
-cancer_list = c("LIHC"
-                # 'BLCA',
-                # 'COAD',
-                # 'BRCA',
-                # 'LGG',
-                # 'GBM',
-                # 'STAD',
-                # 'HNSC',
-                # 'KIRC',
-                # 'LUAD',
-                # 'LUSC',
-                # #'OV', # no NT
-                # 'PRAD',
-                # #'SKCM', # no NT
-                # 'THCA',
-                # 'UCEC')
-                # , 'ESCA'
-                )
+cancer_list = c(
+                'BLCA',
+                'COAD',
+                'BRCA',
+                # 'LGG', # no NT
+                'GBM',
+                'STAD',
+                'HNSC',
+                'KIRC',
+                'LUAD',
+                'LUSC',
+                #'OV', # no NT
+                'PRAD',
+                #'SKCM', # no NT
+                'THCA',
+                'UCEC',
+                'ESCA')
 
 for (project in cancer_list) {
     print(paste0("running ", project))
