@@ -20,6 +20,7 @@ library(randomForest)
 # For survival imputation
 library(readxl)
 library(survival)
+library(NNMIS)
 
 # For expression retreival
 library(TCGAbiolinks)
@@ -36,7 +37,7 @@ library(RTCGAToolbox)
 source("./grf_parameters.R")
 source("./HTE_main_functions.R")
 source("./HTE_validation_functions.R")
-source("./survival_imputation.R")
+# source("./survival_imputation.R")
 
 #usrwd = "/exeh_4/alex_lau"
 usrwd = "/home/alex/project"
@@ -58,11 +59,12 @@ cancer_list = c("LIHC"
                 # #'SKCM', # no NT
                 # 'THCA',
                 # 'UCEC')
-                # , 'ESCA')
+                # , 'ESCA'
+                )
 
 for (project in cancer_list) {
     print(paste0("running ", project))
-output_file = paste0("../immunotx/result/exp_surv/")
+output_file = paste0("/home/alex/project/HTE/wd/expression_HTE/result/reverse_quantile/", project, "/")
 
 # SURVIVAL DATA MUST USE TCGA-CDR CENTRAL DATASET https://www.sciencedirect.com/science/article/pii/S0092867418302290?via%3Dihub
 
@@ -133,17 +135,8 @@ if (!file.exists(basename("TCGA_CDR_clean.csv"))) {
 
 # specify cancer type here
 ss_patient <- subset(clinical_dat, type %in% project & OS.time > 0)
-surv.times <- as.numeric(ss_patient$OS.time)
-cens <- as.numeric(ss_patient$OS)
-
-# get imputed log survival times
-max.censored <- max(surv.times[cens == 0])
-cens[surv.times == max.censored] <- 1
-outcome = impute.survival(surv.times, cens)
-
-# attach imputed.log.times to original dataset
-ss_patient <- cbind(ss_patient, outcome)
-
+labels = c("[Discrepancy]","[Not Applicable]","[Not Available]","[Unknown]")
+ss_patient$ajcc_pathologic_tumor_stage[which(ss_patient$ajcc_pathologic_tumor_stage %in% labels)] = NA
 for (c in colnames(ss_patient)) {
 
     if (!is.numeric(ss_patient[,c]) && c != "donorId") {
@@ -153,6 +146,13 @@ for (c in colnames(ss_patient)) {
         print(paste0(c, " is altered")) 
     }
 }
+attach(ss_patient)
+tcga_imp = NNMIS(ajcc_pathologic_tumor_stage, xa = age_at_initial_pathologic_diagnosis, xb = age_at_initial_pathologic_diagnosis, time = OS.time, event = OS, imputeCT = T, Seed = 2020, mc.cores = 60)
+detach(ss_patient)
+tcga_imp_surv = tcga_imp$dat.T.NNMI %>% mutate(mean = rowMeans(.))
+ss_patient$outcome = tcga_imp_surv$mean
+ss_patient = ss_patient[complete.cases(ss_patient),]
+
 ss_patient = dplyr::select(ss_patient, -c(type, OS, OS.time))
 print("Processed patient dataframe: ")
 head(ss_patient)
