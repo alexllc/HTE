@@ -179,7 +179,7 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
         simes.pval <- simes.test(tau_stats[, 3])
         partial.simes.pval <- simes.partial(floor(no.obs * 0.05), tau_stats[, 3])
 
-        if(simes.pval <= 0.05 & skip_perm = TRUE) { 
+        if(simes.pval <= 0.05 & skip_perm == TRUE) { 
             print("Performing permutation.")
             cor.overall <- cor.test(covar_mat[, tx], Y, method = 'pearson', alternative = 'greater', use="na.or.complete")
             
