@@ -145,11 +145,29 @@ for (c in colnames(ss_patient)) {
         print(paste0(c, " is altered")) 
     }
 }
-attach(ss_patient)
-tcga_imp = NNMIS(ajcc_pathologic_tumor_stage, xa = age_at_initial_pathologic_diagnosis, xb = age_at_initial_pathologic_diagnosis, time = OS.time, event = OS, imputeCT = T, Seed = 2020, mc.cores = 60)
+if(all(is.na(ss_patient$ajcc_pathologic_tumor_stage))) {
+    ss_patient$ajcc_pathologic_tumor_stage = NULL
+    cdr = read_excel("TCGA-CDR-SupplementalTableS1.xlsx")
+    cdr_sub = subset(cdr, type %in% project & OS.time > 0)
+    cdr_sub$tumor_status[which(cdr_sub$tumor_status %in% labels)] = NA
+    ss_patient = left_join(ss_patient, cdr_sub[,c(2,15)], by = c("donorId" = "bcr_patient_barcode"))
+    ss_patient$tumor_status = as.numeric(as.factor(ss_patient$tumor_status))
+    ss_patient$tumor_status[dim(ss_patient)[1]/2] = NA # manually removing one data point or else NNMIS will not permit using this as the auxillary variable
+    attach(ss_patient)
+    tcga_imp = NNMIS(tumor_status, xa = age_at_initial_pathologic_diagnosis, xb = age_at_initial_pathologic_diagnosis, time = OS.time, event = OS, imputeCT = T, Seed = 2020, mc.cores = 60)
+    tcga_imp_surv = tcga_imp$dat.T.NNMI %>% mutate(mean = rowMeans(.))
+    tcga_imp_covar = as.data.frame(sapply(tcga_imp$dat.NNMI, as.numeric)) %>% mutate(mean = rowMeans(.))
+    outcome = tcga_imp_surv$mean
+    tumor_status = tcga_imp_covar
+} else {
+    attach(ss_patient)
+    tcga_imp = NNMIS(ajcc_pathologic_tumor_stage, xa = age_at_initial_pathologic_diagnosis, xb = age_at_initial_pathologic_diagnosis, time = OS.time, event = OS, imputeCT = T, Seed = 2020, mc.cores = 60)
+    tcga_imp_surv = tcga_imp$dat.T.NNMI %>% mutate(mean = rowMeans(.))
+    tcga_imp_covar =  tcga_imp$dat.NNMI %>% mutate(mean = rowMeans(.))
+    outcome = tcga_imp_surv$mean
+    ajcc_pathologic_tumor_stage = tcga_imp_covar
+}
 detach(ss_patient)
-tcga_imp_surv = tcga_imp$dat.T.NNMI %>% mutate(mean = rowMeans(.))
-ss_patient$outcome = tcga_imp_surv$mean
 ss_patient = ss_patient[complete.cases(ss_patient),]
 
 ss_patient = dplyr::select(ss_patient, -c(type, OS, OS.time))
