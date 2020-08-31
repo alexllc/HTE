@@ -34,7 +34,7 @@ setMethod("append", signature(x = "data.frame", values = "vector"),
     }
 )
 
-run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = NULL, txdirct = NULL, trainId, seed = NULL, is.binary = TRUE, is_save = T, save_split = T, is.tuned = F, thres = 0.75, n_core = 8, output_directory = NULL){
+run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = NULL, txdirct = NULL, trainId, seed = NULL, is.binary = TRUE, is_save = T, save_split = T, is.tuned = F, thres = 0.75, n_core = 8, output_directory = NULL, skip_perm = FALSE){
     # @covar_mat: covariates matrix (with treatment assignments as well if each of the covariates are taking turns to be analyzed as treatments). Treatment assignments can be binary or continuous.
     # @tx_vector: a vector of variables that will each be used as treatments
     # @whole_dataset: dataframe with outcome, covariates and treatment assignments
@@ -179,7 +179,7 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
         simes.pval <- simes.test(tau_stats[, 3])
         partial.simes.pval <- simes.partial(floor(no.obs * 0.05), tau_stats[, 3])
 
-        if(simes.pval <= 0.05) { 
+        if(simes.pval <= 0.05 & skip_perm = TRUE) { 
             print("Performing permutation.")
             cor.overall <- cor.test(covar_mat[, tx], Y, method = 'pearson', alternative = 'greater', use="na.or.complete")
             

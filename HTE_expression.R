@@ -295,7 +295,7 @@ registerDoParallel(10)
 
 
 #########################@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-result <- run.hte(covar_mat, tx_vector, whole_dataset, project, covar_type = "UQ", txdirct = txdirct, trainId, seed = 111, is.binary = T, is_save = T, save_split = T, is.tuned = F, thres = 0.75, n_core = 6, output_directory = output_file) # running UQ for all non-DEA genes
+result <- run.hte(covar_mat, tx_vector, whole_dataset, project, covar_type = "UQ", txdirct = txdirct, trainId, seed = 111, is.binary = T, is_save = T, save_split = T, is.tuned = F, thres = 0.75, n_core = 6, output_directory = output_file, skip_perm = TRUE) # running UQ for all non-DEA genes
 write.csv(result[[1]], paste0(output_file, project, '_expression_correlation_test_result.csv'), quote = F, row.names = F)
 write.csv(result[[2]], paste0(output_file, project, '_expression_calibration_result.csv'), quote = F, row.names = F)
 write.csv(result[[3]], paste0(output_file, project, '_expression_median_t_test_result.csv'), quote = F, row.names = F)
