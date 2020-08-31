@@ -61,7 +61,13 @@ cancer_list = c(
                 'UCEC',
                 'ESCA')
 
-for (project in cancer_list) {
+# for (project in cancer_list) {
+
+#########################@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+    project = "BRCA"
+
+
     print(paste0("running ", project))
     output_file = paste0("/home/alex/project/HTE/wd/expression_HTE/result/norm_quantile/", project, "/")
 
@@ -158,7 +164,7 @@ if(all(is.na(ss_patient$ajcc_pathologic_tumor_stage))) {
     tcga_imp_surv = tcga_imp$dat.T.NNMI %>% mutate(mean = rowMeans(.))
     tcga_imp_covar = as.data.frame(sapply(tcga_imp$dat.NNMI, as.numeric)) %>% mutate(mean = rowMeans(.))
     outcome = tcga_imp_surv$mean
-    tumor_status = tcga_imp_covar
+    tumor_status = tcga_imp_covar$mean
 } else {
     attach(ss_patient)
     tcga_imp = NNMIS(ajcc_pathologic_tumor_stage, xa = age_at_initial_pathologic_diagnosis, xb = age_at_initial_pathologic_diagnosis, time = OS.time, event = OS, imputeCT = T, Seed = 2020, mc.cores = 60)
@@ -261,7 +267,15 @@ exp_matrix <- dplyr::select(exp_matrix, -c(bcr, patient))
 ## DEA re-run 07-06-2020
 DEGs = read.csv(paste0("./tables/", project, "_DEGtable.csv"))
 DEG_ls = as.character(DEGs$X)
-tx_vector = DEG_ls[DEG_ls %in% colnames(exp_matrix)]
+
+
+#########################@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+# tx_vector = DEG_ls[DEG_ls %in% colnames(exp_matrix)]
+DEA_length = length(DEG_ls)
+tx_vector = colnames(exp_matrix)[!(colnames(exp_matrix) %in% DEG_ls)]
+tx_vector = tx_vector[-(1:4)]
+
+
 txdirct = DEGs$logFC
 names(txdirct) = DEGs$X
 message(paste0("Treatments to assess: ", length(tx_vector)))
@@ -279,7 +293,9 @@ obsNumber <- dim(covar_mat)[1]
 trainId <- sample(1: obsNumber, floor(obsNumber/2), replace = FALSE)
 registerDoParallel(10)
 
-result <- run.hte(covar_mat, tx_vector, whole_dataset, project, covar_type = "expression", txdirct = txdirct, trainId, seed = 111, is.binary = T, is_save = T, save_split = T, is.tuned = F, thres = 0.75, n_core = 6, output_directory = output_file)
+
+#########################@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+result <- run.hte(covar_mat, tx_vector, whole_dataset, project, covar_type = "UQ", txdirct = txdirct, trainId, seed = 111, is.binary = T, is_save = T, save_split = T, is.tuned = F, thres = 0.75, n_core = 6, output_directory = output_file) # running UQ for all non-DEA genes
 write.csv(result[[1]], paste0(output_file, project, '_expression_correlation_test_result.csv'), quote = F, row.names = F)
 write.csv(result[[2]], paste0(output_file, project, '_expression_calibration_result.csv'), quote = F, row.names = F)
 write.csv(result[[3]], paste0(output_file, project, '_expression_median_t_test_result.csv'), quote = F, row.names = F)
