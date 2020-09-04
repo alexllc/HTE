@@ -98,11 +98,11 @@ get_reprtree <- function(forestfile, trainingset, n) {
     # Load a casual forest model
     load(forestfile) # This will create a variable "tau.forest" by default.
 
-    # Load the training data
-    # Read the KIRC_wds.csv (Gene set a treatment effect)
+    # Load the training data.
+    # Read the Training dataset.
     kirc_data <- data.table::fread(
         file = trainingset, header = TRUE) %>% as.data.frame()
-    rownames(kirc_data) <- kirc_data$donorId # Not sure whether it is needed
+    rownames(kirc_data) <- kirc_data$donorId
     kirc_data$donorId <- NULL
 
     # Obtain the W gene based on the given RData file.
@@ -118,7 +118,7 @@ get_reprtree <- function(forestfile, trainingset, n) {
     tree_num <- tau.forest$`_num_trees`
 
     # Initialize the distance matrix
-    d_matrix <- matrix(, nrow = tree_num, ncol = tree_num) 
+    d_matrix <- matrix(, nrow = tree_num, ncol = tree_num)
 
     # Calculate D(T).
     doParallel::registerDoParallel()
@@ -126,7 +126,7 @@ get_reprtree <- function(forestfile, trainingset, n) {
     for (i in 1:tree_num) {
         mount_tree <- grf::get_tree(tau.forest, i)
         for (j in 1:tree_num) {
-            if (i == j) { # Same tree will be omitted.
+            if (i <= j) { # Same tree will be omitted.
                 next
             } else {
                 tmp_tree <- grf::get_tree(tau.forest, j)
@@ -140,7 +140,7 @@ get_reprtree <- function(forestfile, trainingset, n) {
     for (i in 1:tree_num) {
         for (j in 1:tree_num) {
             if (i == j) {
-                d_matrix[i, j] <- 0.0
+                d_matrix[i, j] <- 0.0 # Distance between same tree should be 0.
             } else if (i > j) {
                 next
             } else {
@@ -154,7 +154,7 @@ get_reprtree <- function(forestfile, trainingset, n) {
     index_tree <- which.min(r)
     return(index_tree)
 
-    #' Return the tree object.
+    #' Return the tree object. (Modify if needed)
     #' reptree <- get_tree(tau.forest, index_tree)
     #' return(reptree)
 }
