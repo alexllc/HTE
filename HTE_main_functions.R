@@ -119,7 +119,7 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
                 treatment = as.numeric(treatment < quantile(treatment, 1 - thres))
             }
             # Check if we have enough tx observations
-            if( (length(unique(treatment)) == 1 | sum(treatment) < length(treatment)*0.1) && covar_type != "mutation") {
+            if( (length(unique(treatment)) == 1 | sum(treatment) < length(treatment)*0.1) & covar_type != "mutation") {
                 print("Gene expression distribution too sparse, skipping.")
                 next
             }  
@@ -179,7 +179,7 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
         simes.pval <- simes.test(tau_stats[, 3])
         partial.simes.pval <- simes.partial(floor(no.obs * 0.05), tau_stats[, 3])
 
-        if(simes.pval <= 0.05 & skip_perm == TRUE) { 
+        if(simes.pval <= 0.05 & skip_perm == FALSE) { 
             print("Performing permutation.")
             cor.overall <- cor.test(covar_mat[, tx], Y, method = 'pearson', alternative = 'greater', use="na.or.complete")
             
