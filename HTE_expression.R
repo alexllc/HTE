@@ -37,7 +37,7 @@ library(RTCGAToolbox)
 source("./grf_parameters.R")
 source("./HTE_main_functions.R")
 source("./HTE_validation_functions.R")
-# source("./survival_imputation.R")
+source("./NNMIS_survival_imputation.R")
 
 #usrwd = "/exeh_4/alex_lau"
 usrwd = "/home/alex/project"
