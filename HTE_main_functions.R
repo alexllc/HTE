@@ -119,7 +119,7 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
                 treatment = as.numeric(treatment < quantile(treatment, 1 - thres))
             }
             # Check if we have enough tx observations
-            if (length(unique(treatment)) == 1 | sum(treatment) < length(treatment)*0.1) {
+            if( (length(unique(treatment)) == 1 | sum(treatment) < length(treatment)*0.1) & covar_type != "mutation") {
                 print("Gene expression distribution too sparse, skipping.")
                 next
             }  
