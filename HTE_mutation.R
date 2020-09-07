@@ -125,11 +125,11 @@ write.csv(wtcga, paste0(project, "_all_mut_freq.csv"), row.names = F)
 # wtcga = dplyr::select(wtcga, c("donorId", cmon_gene))
 
 # Pns_mat = read.csv(paste0("./Pns/TCGA-", project, "_Pns.csv"))
+whole_dataset = left_join(ss_patient, wtcga, by = "donorId")
+whole_dataset = whole_dataset[complete.cases(whole_dataset),]
 freq_sum = sapply(wtcga, function(x) sum(x != 0))
 selection = freq_sum > dim(whole_dataset)[1]*0.02
 wtcga = wtcga[,selection]
-whole_dataset = left_join(ss_patient, wtcga, by = "donorId")
-whole_dataset = whole_dataset[complete.cases(whole_dataset),]
 # whole_dataset = whole_dataset[complete.cases(whole_dataset),]
 covar_mat= dplyr::select(whole_dataset, -c("donorId", "outcome"))
 tx_vector = names(which(selection == T))
@@ -142,7 +142,7 @@ obsNumber <- dim(covar_mat)[1]
 trainId <- sample(1: obsNumber, floor(obsNumber/2), replace = FALSE)
 registerDoParallel(10)
 
-result <- run.hte(covar_mat, tx_vector, whole_dataset, project, covar_type = "mutation", trainId = trainId, seed = 111, is.binary = T, is_save = T, save_split = T, is.tuned = F, thres = 0.75, n_core = 8, output_directory = output_file)
+result <- run.hte(covar_mat, tx_vector, whole_dataset, project, covar_type = "mutation", trainId = trainId, seed = 111, is.binary = T, is_save = T, save_split = T, is.tuned = F, thres = 0.75, n_core = 8, output_directory = output_file, skip_perm = FALSE)
 write.csv(result[[1]], paste0(output_file, project, '_expression_correlation_test_result.csv'), quote = F, row.names = F)
 write.csv(result[[2]], paste0(output_file, project, '_expression_calibration_result.csv'), quote = F, row.names = F)
 write.csv(result[[3]], paste0(output_file, project, '_expression_median_t_test_result.csv'), quote = F, row.names = F)
