@@ -43,7 +43,7 @@ source("./HTE_validation_functions.R")
 usrwd = "/home/alex/project"
 setwd(paste0(usrwd, "/HTE/wd/mut_HTE"))
 
-
+project = 'BRCA'
 # for (project in cancer_list) {}
 output_file = paste0("./result/", "small_forest_", project, "/")
 
