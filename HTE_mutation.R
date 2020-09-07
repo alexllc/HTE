@@ -96,6 +96,8 @@ if (!file.exists(paste0(project, "_maf.csv"))) {
 
 } else {maf = read.csv(paste0("maf",project, "_maf.csv"))}
 
+
+if (!file.exists(paste0(project, "_all_mut_freq.csv"))) {
 pmaf = dplyr::filter(maf, BIOTYPE == "protein_coding")
 # Sep 7@Alex: synonymous mutations are also counted 
 pmaf = dplyr::select(pmaf, c(Hugo_Symbol, Tumor_Sample_Barcode))
@@ -111,6 +113,9 @@ wtcga = as.data.frame(wtcga)
 zero_counts = sapply(wtcga, function(x) sum(x == 0))
 colnames(wtcga)[1] = "donorId"
 write.csv(wtcga, paste0(project, "_all_mut_freq.csv"), row.names = F)
+} else {
+    wtcga = read.csv(paste0(project, "_all_mut_freq.csv"))
+}
 
 
 # mskcc = read.table("./MSKCC-PRAD/data_mutations_extended.txt", sep  ='\t', header=T)
