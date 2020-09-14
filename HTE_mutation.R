@@ -46,7 +46,7 @@ setwd(paste0(usrwd, "/HTE/wd/mut_HTE"))
 
 project = 'BRCA'
 # for (project in cancer_list) {}
-output_file = paste0("./result/", "small_forest_", project, "/")
+output_file = paste0("./result/", "BRCA_w_ICGC_small_forest/")
 
 
 ## Clinical data
@@ -118,6 +118,28 @@ write.csv(wtcga, paste0(project, "_all_mut_freq.csv"), row.names = F)
 }
 
 
+#### Incooperate ICGC data (or else it will be too sparse) Alex@sep14,2020
+icgc = read.csv(paste0("./xena/ICGC_", project, "_df.csv"))
+common_gene = intersect(colnames(icgc),colnames(wtcga))
+icgc_sub = dplyr::select(icgc, all_of(c("sampleID", "donor_age_at_diagnosis", "donor_sex", "donor_tumour_stage_at_diagnosis", "outcome", "project_code", common_gene)))
+tmp = strsplit(icgc_sub$project_code, "-")
+tmp = sapply(tmp, function(x) x[[2]])
+icgc_sub$project_code = tmp
+icgc_sub$donor_sex = as.numeric(as.factor(icgc_sub$donor_sex))
+
+
+tcga_sub = dplyr::select(wtcga, all_of(c("donorId", common_gene)))
+ss_patient$country = "US"
+tcga_sub = left_join(ss_patient, tcga_sub, by = "donorId")
+
+common_clin = c("donorId", "age", "sex", "stage", "outcome", "country")
+colnames(icgc_sub)[1:6] = common_clin
+colnames(tcga_sub)[1:6] = common_clin
+
+whole_dataset = rbind(icgc_sub, tcga_sub)
+whole_dataset$country = as.numeric(as.factor(whole_dataset$country))
+whole_dataset[is.na(whole_dataset)] = 0
+
 # mskcc = read.table("./MSKCC-PRAD/data_mutations_extended.txt", sep  ='\t', header=T)
 # smsk = dplyr::select(mskcc, Hugo_Symbol, Tumor_Sample_Barcode)
 # smsk = smsk %>% group_by(Tumor_Sample_Barcode) %>% add_count(Hugo_Symbol)
@@ -130,15 +152,19 @@ write.csv(wtcga, paste0(project, "_all_mut_freq.csv"), row.names = F)
 # wtcga = dplyr::select(wtcga, c("donorId", cmon_gene))
 
 # Pns_mat = read.csv(paste0("./Pns/TCGA-", project, "_Pns.csv"))
-whole_dataset = left_join(ss_patient, wtcga, by = "donorId")
-whole_dataset = whole_dataset[complete.cases(whole_dataset),]
-freq_sum = sapply(wtcga, function(x) sum(x != 0))
+
+
+## Alex@sep14, 2020: no longer used
+# whole_dataset = left_join(ss_patient, wtcga, by = "donorId")
+# whole_dataset = whole_dataset[complete.cases(whole_dataset),]
+
+
+freq_sum = sapply(whole_dataset[,7:dim(whole_dataset)[2]], function(x) sum(x != 0))
 selection = freq_sum > dim(whole_dataset)[1]*0.02
-wtcga = wtcga[,selection]
+whole_dataset = whole_dataset[,c(rep(TRUE, 6), selection)]
 # whole_dataset = whole_dataset[complete.cases(whole_dataset),]
 covar_mat= dplyr::select(whole_dataset, -c("donorId", "outcome"))
 tx_vector = names(which(selection == T))
-tx_vector = tx_vector[-1]
 
 # check = unlist(lapply(covar_mat[,4:ncol(covar_mat)], function(x) (length(unique(x)) == 1 | sum(x != 0) < length(x)*0.01))) # onyl use genes with at least 1% pop has the mutaion
 # tx_vector = tx_vector[!as.logical(check)]
