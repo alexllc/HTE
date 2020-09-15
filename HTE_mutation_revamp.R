@@ -31,12 +31,11 @@ library(readxl)
 
 #usrwd = "/exeh_4/alex_lau"
 usrwd = "/exeh/exe4/alex_lau"
-source(paste0(usrwd, '/cancerl/hte_functions.R'))
-source(paste0(usrwd, '/cancerl/fetch_immune.R'))
-source(paste0(usrwd, '/cancerl/survival.imputation.R'))
-source(paste0(usrwd, '/cancerl/causal_inference_models.R'))
-source(paste0(usrwd, '/cancerl/hte.validation.R'))
-#source('paste0(usrwd, '/HTE_immune/HTE/HTE_estimation_causal_forest.R')
+source("./grf_parameters.R")
+source("./HTE_main_functions.R")
+source("./HTE_validation_functions.R")
+# source("./NNMIS_survival_imputation.R")
+source("./survival_imputation.R")
 
 cancerType <- "BRCA"#"LUSC" #"LUAD" #"BRCA" #"GBM"
 
