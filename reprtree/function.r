@@ -253,13 +253,10 @@ get_reprtree <- function(forestfile, trainingset, n, distance_type = "d1") {
                     0
                 } else {
                     tmp_tree <- grf::get_tree(tau.forest, j)
-                    # tryCatch(dt_ij <- obtain_d1_distance(mount_tree, tmp_tree),
-                    #          error = function(c) print(paste0(i, " ", j)))
                     dt_ij <- obtain_d1_distance(mount_tree, tmp_tree)
-                    # d_matrix[i, j] <- dt_ij
                 }
             }
-            
+
             for (m in 1:tree_num) {
                 d_matrix[i, m] <- a[[m]]
             }
@@ -272,13 +269,10 @@ get_reprtree <- function(forestfile, trainingset, n, distance_type = "d1") {
                     0
                 } else {
                     tmp_tree <- grf::get_tree(tau.forest, j)
-                    # tryCatch(dt_ij <- obtain_d1_distance(mount_tree, tmp_tree),
-                    #          error = function(c) print(paste0(i, " ", j)))
                     dt_ij <- obtain_d1_distance(mount_tree, tmp_tree)
-                    # d_matrix[i, j] <- dt_ij
                 }
             }
-            
+
             for (m in 1:tree_num) {
                 d_matrix[i, m] <- a[[m]]
             }
@@ -291,13 +285,10 @@ get_reprtree <- function(forestfile, trainingset, n, distance_type = "d1") {
                     0
                 } else {
                     tmp_tree <- grf::get_tree(tau.forest, j)
-                    # tryCatch(dt_ij <- obtain_d1_distance(mount_tree, tmp_tree),
-                    #          error = function(c) print(paste0(i, " ", j)))
                     dt_ij <- obtain_d1_distance(mount_tree, tmp_tree)
-                    # d_matrix[i, j] <- dt_ij
                 }
             }
-            
+
             for (m in 1:tree_num) {
                 d_matrix[i, m] <- a[[m]]
             }
