@@ -248,41 +248,58 @@ get_reprtree <- function(forestfile, trainingset, n, distance_type = "d1") {
     } else if (distance_type == "d1") {
         for (i in 1:tree_num) {
             mount_tree <- grf::get_tree(tau.forest, i)
-            for (j in 1:tree_num) {
+            a <- foreach (j = 1:tree_num) %dopar% {
                 if (i >= j) { # Same tree will be omitted.
-                    next
+                    0
                 } else {
                     tmp_tree <- grf::get_tree(tau.forest, j)
+                    # tryCatch(dt_ij <- obtain_d1_distance(mount_tree, tmp_tree),
+                    #          error = function(c) print(paste0(i, " ", j)))
                     dt_ij <- obtain_d1_distance(mount_tree, tmp_tree)
-                    d_matrix[i, j] <- dt_ij
+                    # d_matrix[i, j] <- dt_ij
                 }
+            }
+            
+            for (m in 1:tree_num) {
+                d_matrix[i, m] <- a[[m]]
             }
         }
     } else if (distance_type == "d1star") {
         for (i in 1:tree_num) {
             mount_tree <- grf::get_tree(tau.forest, i)
-            for (j in 1:tree_num) {
+            a <- foreach (j = 1:tree_num) %dopar% {
                 if (i >= j) { # Same tree will be omitted.
-                    next
+                    0
                 } else {
                     tmp_tree <- grf::get_tree(tau.forest, j)
-                    dt_ij <- obtain_d1_star_distance(mount_tree,
-                                                     tmp_tree, kirc_data)
-                    d_matrix[i, j] <- dt_ij
+                    # tryCatch(dt_ij <- obtain_d1_distance(mount_tree, tmp_tree),
+                    #          error = function(c) print(paste0(i, " ", j)))
+                    dt_ij <- obtain_d1_distance(mount_tree, tmp_tree)
+                    # d_matrix[i, j] <- dt_ij
                 }
+            }
+            
+            for (m in 1:tree_num) {
+                d_matrix[i, m] <- a[[m]]
             }
         }
     } else if (distance_type == "d0") {
         for (i in 1:tree_num) {
             mount_tree <- grf::get_tree(tau.forest, i)
-            for (j in 1:tree_num) {
+            a <- foreach (j = 1:tree_num) %dopar% {
                 if (i >= j) { # Same tree will be omitted.
-                    next
+                    0
                 } else {
                     tmp_tree <- grf::get_tree(tau.forest, j)
-                    dt_ij <- obtain_d0_distance(mount_tree, tmp_tree, kirc_data)
-                    d_matrix[i, j] <- dt_ij
+                    # tryCatch(dt_ij <- obtain_d1_distance(mount_tree, tmp_tree),
+                    #          error = function(c) print(paste0(i, " ", j)))
+                    dt_ij <- obtain_d1_distance(mount_tree, tmp_tree)
+                    # d_matrix[i, j] <- dt_ij
                 }
+            }
+            
+            for (m in 1:tree_num) {
+                d_matrix[i, m] <- a[[m]]
             }
         }
     }
