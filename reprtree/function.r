@@ -3,33 +3,119 @@
 #' @data the data used to train the casual forest.
 obtain_bs <- function(tree, data) {
     variable_label <- rep(0, length(colnames(data)))
-    nodes_count <- length(tree$nodes)
-    for (j in 1:nodes_count) {
-        # Check whether is a leaf
-        if (tree$nodes[[j]]$is_leaf == FALSE) {
-            variable_label[tree$nodes[[j]]$split_variable] <- 1
-        } else {
-            next
-        }
-    }
+
+    nodes  <-  tree$nodes
+    is_leaf <- sapply(nodes, function(x) x["is_leaf"])
+    ind_leaf <- which(unlist(is_leaf) == FALSE)
+    node_split_set <- sapply(nodes, function(x) x["split_variable"])
+    node_split_set <- unlist(node_split_set[ind_leaf])
+    variable_label[node_split_set] <- 1
 
     return(variable_label)
 }
 
-#' Obtain Hamming distance between two trees.
+#' Obtain Hamming distance between two trees. (d0)
 #' @binlist1 binary strings corresponding to tree 1.
 #' @binlist2 binary strings corresponding to tree 2.
-obtain_hamming_distance <- function(binlist1, binlist2) {
-    mismatch_count <- 0
-    for (i in 1:length(binlist1)) {
-        if (binlist1[i] != binlist2[i]) {
-            mismatch_count <- mismatch_count + 1
-        }
-    }
+obtain_d0_distance <- function(tree1, tree2, data) {
+    binlist1 <- obtain_bs(tree1, data)
+    binlist2 <- obtain_bs(tree2, data)
 
-    d_0_t1_t2 <- mismatch_count/length(binlist1)
+    d_0_t1_t2 <- length(union(setdiff(binlist1, binlist2),
+                        setdiff(binlist2, binlist1)))/length(colnames(data))
 
     return(d_0_t1_t2)
+}
+
+#' Obtain d1 distance between two trees.
+#' @tree1 tree 1.
+#' @tree2 tree 2
+obtain_d1_distance <- function(tree1, tree2) {
+    # Get the nodes list of tree 1 and tree 2 respectively
+    nodes1  <-  tree1$nodes
+    nodes2  <-  tree2$nodes
+
+    # Obtain the subjects that are included in both trees
+    ovlap_subj <- sort(intersect(tree1$drawn_samples, tree2$drawn_samples))
+    total_pair <- as.data.frame(t(combn(ovlap_subj, 2)))
+
+    # Obtain the subject selected by both trees during construction
+    tree1_sample <- sort(intersect(tree1$drawn_samples, ovlap_subj))
+    tree2_sample <- sort(intersect(tree2$drawn_samples, ovlap_subj))
+
+    # Obtain the pair subject not located in the same node in both tree
+    is_leaf <- sapply(nodes1, function(x) x["is_leaf"])
+    ind_leaf <- which(unlist(is_leaf) == TRUE)
+    cluster_samp <- sapply(nodes1, function(x) x["samples"])
+    cluster_samp <- cluster_samp[ind_leaf]
+    cluster_samp <- lapply(cluster_samp, function(x) intersect(x, ovlap_subj))
+    cluster_samp_unique <- lapply(cluster_samp, function(x) t(combn(x,2)))
+    df_1 <- distinct(as.data.frame(do.call("rbind", cluster_samp_unique)))
+
+    is_leaf <- sapply(nodes2, function(x) x["is_leaf"])
+    ind_leaf <- which(unlist(is_leaf) == TRUE)
+    cluster_samp <- sapply(nodes2, function(x) x["samples"])
+    cluster_samp <- cluster_samp[ind_leaf]
+    cluster_samp <- lapply(cluster_samp, function(x) intersect(x, ovlap_subj))
+    cluster_samp_unique <- lapply(cluster_samp, function(x) t(combn(x, 2)))
+    df_2 <- distinct(as.data.frame(do.call("rbind", cluster_samp_unique)))
+
+    df_3 <- data.frame(V1 = df_2$V2, V2 = df_2$V1)
+
+    a <- intersect(df_1, df_2)
+    b <- intersect(df_1, df_3)
+    c <- rbind(a, b)
+
+    numerator <- dim(df_1)[1] + dim(df_2)[1] - 2 * dim(c)[1]
+    denominator <- choose(length(ovlap_subj), 2)
+
+    return(numerator/denominator)
+}
+
+#' Obtain d1* distance between two trees.
+#' @tree1 tree 1.
+#' @tree2 tree 2
+obtain_d1_star_distance <- function(tree1, tree2, data) {
+    # Get the nodes list of tree 1 and tree 2 respectively
+    nodes1  <-  tree1$nodes
+    nodes2  <-  tree2$nodes
+
+    # Obtain the subjects that are included in both trees
+    ovlap_subj <- sort(intersect(tree1$drawn_samples, tree2$drawn_samples))
+    total_pair <- as.data.frame(t(combn(ovlap_subj, 2)))
+
+    # Obtain the subject selected by both trees during construction
+    tree1_sample <- sort(intersect(tree1$drawn_samples, ovlap_subj))
+    tree2_sample <- sort(intersect(tree2$drawn_samples, ovlap_subj))
+
+    # Obtain the pair subject not located in the same node in both tree
+    is_leaf <- sapply(nodes1, function(x) x["is_leaf"])
+    ind_leaf <- which(unlist(is_leaf) == TRUE)
+    cluster_samp <- sapply(nodes1, function(x) x["samples"])
+    cluster_samp <- cluster_samp[ind_leaf]
+    cluster_samp <- lapply(cluster_samp, function(x) intersect(x, ovlap_subj))
+    cluster_samp_unique <- lapply(cluster_samp, function(x) t(combn(x, 2)))
+    df_1 <- distinct(as.data.frame(do.call("rbind", cluster_samp_unique)))
+
+    is_leaf <- sapply(nodes2, function(x) x["is_leaf"])
+    ind_leaf <- which(unlist(is_leaf) == TRUE)
+    cluster_samp <- sapply(nodes2, function(x) x["samples"])
+    cluster_samp <- cluster_samp[ind_leaf]
+    cluster_samp <- lapply(cluster_samp, function(x) intersect(x, ovlap_subj))
+    cluster_samp_unique <- lapply(cluster_samp, function(x) t(combn(x, 2)))
+    df_2 <- distinct(as.data.frame(do.call("rbind", cluster_samp_unique)))
+
+    df_3 <- data.frame(V1 = df_2$V2, V2 = df_2$V1)
+
+    a <- intersect(df_1, df_2)
+    b <- intersect(df_1, df_3)
+    c <- rbind(a, b)
+
+    numerator <- dim(df_1)[1] + dim(df_2)[1] - 2 * dim(c)[1]
+    numerator <- numerator * obtain_d0_distance(tree1, tree2, data)
+    denominator <- choose(length(ovlap_subj), 2)
+
+    return(numerator/denominator)
 }
 
 #' Obtain d2 distance between two trees. (Deprecated)
@@ -86,7 +172,8 @@ predict_tree <- function(node, sample, tree) {
 #' "KIRC_ENSG00000162975_forest.RData".
 #' @trainingset file name of the training data.
 #' @n number of thread used.
-get_reprtree <- function(forestfile, trainingset, n) {
+#' @distance_type d0, d1, d1star, d2
+get_reprtree <- function(forestfile, trainingset, n, distance_type = "d1") {
     # Load required packages.
     library(grf)
     library(randomForest)
@@ -123,15 +210,59 @@ get_reprtree <- function(forestfile, trainingset, n) {
     # Calculate D(T).
     doParallel::registerDoParallel()
     options(cores = n)
-    for (i in 1:tree_num) {
-        mount_tree <- grf::get_tree(tau.forest, i)
-        for (j in 1:tree_num) {
-            if (i <= j) { # Same tree will be omitted.
-                next
-            } else {
-                tmp_tree <- grf::get_tree(tau.forest, j)
-                dt_ij <- obtain_d2_distance_mc(mount_tree, tmp_tree, kirc_data)
-                d_matrix[i, j] <- dt_ij
+
+    if (distance_type == "d2") {
+        for (i in 1:tree_num) {
+            mount_tree <- grf::get_tree(tau.forest, i)
+            for (j in 1:tree_num) {
+                if (i <= j) { # Same tree will be omitted.
+                    next
+                } else {
+                    tmp_tree <- grf::get_tree(tau.forest, j)
+                    dt_ij <- obtain_d2_distance_mc(mount_tree, 
+                                                   tmp_tree, kirc_data)
+                    d_matrix[i, j] <- dt_ij
+                }
+            }
+        }
+    } else if (distance_type == "d1") {
+        for (i in 1:tree_num) {
+            mount_tree <- grf::get_tree(tau.forest, i)
+            for (j in 1:tree_num) {
+                if (i <= j) { # Same tree will be omitted.
+                    next
+                } else {
+                    tmp_tree <- grf::get_tree(tau.forest, j)
+                    dt_ij <- obtain_d1_distance(mount_tree, tmp_tree)
+                    d_matrix[i, j] <- dt_ij
+                }
+            }
+        }
+    } else if (distance_type == "d1star") {
+        for (i in 1:tree_num) {
+            mount_tree <- grf::get_tree(tau.forest, i)
+            for (j in 1:tree_num) {
+                if (i <= j) { # Same tree will be omitted.
+                    next
+                } else {
+                    tmp_tree <- grf::get_tree(tau.forest, j)
+                    dt_ij <- obtain_d1_star_distance(mount_tree,
+                                                     tmp_tree, kirc_data)
+                    d_matrix[i, j] <- dt_ij
+                }
+            }
+        }
+    } else if (distance_type == "d0") {
+        for (i in 1:tree_num) {
+            mount_tree <- grf::get_tree(tau.forest, i)
+            for (j in 1:tree_num) {
+                if (i <= j) { # Same tree will be omitted.
+                    next
+                } else {
+                    tmp_tree <- grf::get_tree(tau.forest, j)
+                    dt_ij <- obtain_d0_distance(mount_tree, tmp_tree, kirc_data)
+                    d_matrix[i, j] <- dt_ij
+                }
             }
         }
     }
