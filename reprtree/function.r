@@ -235,7 +235,7 @@ get_reprtree <- function(forestfile, trainingset, n, distance_type = "d1") {
         for (i in 1:tree_num) {
             mount_tree <- grf::get_tree(tau.forest, i)
             for (j in 1:tree_num) {
-                if (i <= j) { # Same tree will be omitted.
+                if (i >= j) { # Same tree will be omitted.
                     next
                 } else {
                     tmp_tree <- grf::get_tree(tau.forest, j)
@@ -249,7 +249,7 @@ get_reprtree <- function(forestfile, trainingset, n, distance_type = "d1") {
         for (i in 1:tree_num) {
             mount_tree <- grf::get_tree(tau.forest, i)
             for (j in 1:tree_num) {
-                if (i <= j) { # Same tree will be omitted.
+                if (i >= j) { # Same tree will be omitted.
                     next
                 } else {
                     tmp_tree <- grf::get_tree(tau.forest, j)
@@ -262,7 +262,7 @@ get_reprtree <- function(forestfile, trainingset, n, distance_type = "d1") {
         for (i in 1:tree_num) {
             mount_tree <- grf::get_tree(tau.forest, i)
             for (j in 1:tree_num) {
-                if (i <= j) { # Same tree will be omitted.
+                if (i >= j) { # Same tree will be omitted.
                     next
                 } else {
                     tmp_tree <- grf::get_tree(tau.forest, j)
@@ -276,7 +276,7 @@ get_reprtree <- function(forestfile, trainingset, n, distance_type = "d1") {
         for (i in 1:tree_num) {
             mount_tree <- grf::get_tree(tau.forest, i)
             for (j in 1:tree_num) {
-                if (i <= j) { # Same tree will be omitted.
+                if (i >= j) { # Same tree will be omitted.
                     next
                 } else {
                     tmp_tree <- grf::get_tree(tau.forest, j)
