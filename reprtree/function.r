@@ -49,6 +49,11 @@ obtain_d1_distance <- function(tree1, tree2) {
     cluster_samp <- sapply(nodes1, function(x) x["samples"])
     cluster_samp <- cluster_samp[ind_leaf]
     cluster_samp <- lapply(cluster_samp, function(x) intersect(x, ovlap_subj))
+
+    ind_not_zero <- which(unlist(sapply(cluster_samp,
+                                        function(x) length(x))) != 0)
+    cluster_samp <- cluster_samp[ind_not_zero]
+
     cluster_samp_unique <- lapply(cluster_samp, function(x) t(combn(x,2)))
     df_1 <- distinct(as.data.frame(do.call("rbind", cluster_samp_unique)))
 
@@ -57,6 +62,11 @@ obtain_d1_distance <- function(tree1, tree2) {
     cluster_samp <- sapply(nodes2, function(x) x["samples"])
     cluster_samp <- cluster_samp[ind_leaf]
     cluster_samp <- lapply(cluster_samp, function(x) intersect(x, ovlap_subj))
+
+    ind_not_zero <- which(unlist(sapply(cluster_samp,
+                                        function(x) length(x))) != 0)
+    cluster_samp <- cluster_samp[ind_not_zero]
+
     cluster_samp_unique <- lapply(cluster_samp, function(x) t(combn(x, 2)))
     df_2 <- distinct(as.data.frame(do.call("rbind", cluster_samp_unique)))
 
@@ -94,6 +104,11 @@ obtain_d1_star_distance <- function(tree1, tree2, data) {
     cluster_samp <- sapply(nodes1, function(x) x["samples"])
     cluster_samp <- cluster_samp[ind_leaf]
     cluster_samp <- lapply(cluster_samp, function(x) intersect(x, ovlap_subj))
+
+    ind_not_zero <- which(unlist(sapply(cluster_samp,
+                                        function(x) length(x))) != 0)
+    cluster_samp <- cluster_samp[ind_not_zero]
+
     cluster_samp_unique <- lapply(cluster_samp, function(x) t(combn(x, 2)))
     df_1 <- distinct(as.data.frame(do.call("rbind", cluster_samp_unique)))
 
@@ -102,6 +117,11 @@ obtain_d1_star_distance <- function(tree1, tree2, data) {
     cluster_samp <- sapply(nodes2, function(x) x["samples"])
     cluster_samp <- cluster_samp[ind_leaf]
     cluster_samp <- lapply(cluster_samp, function(x) intersect(x, ovlap_subj))
+
+    ind_not_zero <- which(unlist(sapply(cluster_samp,
+                                        function(x) length(x))) != 0)
+    cluster_samp <- cluster_samp[ind_not_zero]
+
     cluster_samp_unique <- lapply(cluster_samp, function(x) t(combn(x, 2)))
     df_2 <- distinct(as.data.frame(do.call("rbind", cluster_samp_unique)))
 
