@@ -248,7 +248,7 @@ get_reprtree <- function(forestfile, trainingset, n, distance_type = "d1") {
     } else if (distance_type == "d1") {
         for (i in 1:tree_num) {
             mount_tree <- grf::get_tree(tau.forest, i)
-            a <- foreach (j = 1:tree_num) %dopar% {
+            a <- foreach(j = 1:tree_num) %dopar% {
                 if (i >= j) { # Same tree will be omitted.
                     0
                 } else {
@@ -264,7 +264,7 @@ get_reprtree <- function(forestfile, trainingset, n, distance_type = "d1") {
     } else if (distance_type == "d1star") {
         for (i in 1:tree_num) {
             mount_tree <- grf::get_tree(tau.forest, i)
-            a <- foreach (j = 1:tree_num) %dopar% {
+            a <- foreach(j = 1:tree_num) %dopar% {
                 if (i >= j) { # Same tree will be omitted.
                     0
                 } else {
@@ -280,7 +280,7 @@ get_reprtree <- function(forestfile, trainingset, n, distance_type = "d1") {
     } else if (distance_type == "d0") {
         for (i in 1:tree_num) {
             mount_tree <- grf::get_tree(tau.forest, i)
-            a <- foreach (j = 1:tree_num) %dopar% {
+            a <- foreach(j = 1:tree_num) %dopar% {
                 if (i >= j) { # Same tree will be omitted.
                     0
                 } else {
@@ -300,7 +300,7 @@ get_reprtree <- function(forestfile, trainingset, n, distance_type = "d1") {
         for (j in 1:tree_num) {
             if (i == j) {
                 d_matrix[i, j] <- 0.0 # Distance between same tree should be 0.
-            } else if (i > j) {
+            } else if (i < j) {
                 next
             } else {
                 d_matrix[i, j] <- d_matrix[j, i]
