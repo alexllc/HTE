@@ -44,39 +44,56 @@ obtain_d1_distance <- function(tree1, tree2) {
     tree2_sample <- sort(intersect(tree2$drawn_samples, ovlap_subj))
 
     # Obtain the pair subject not located in the same node in both tree
+    # This is the numerator
+
+    # Tree 1
+    # Obtain the elements that occured in both trees in each leaf node
     is_leaf <- sapply(nodes1, function(x) x["is_leaf"])
     ind_leaf <- which(unlist(is_leaf) == TRUE)
     cluster_samp <- sapply(nodes1, function(x) x["samples"])
     cluster_samp <- cluster_samp[ind_leaf]
     cluster_samp <- lapply(cluster_samp, function(x) intersect(x, ovlap_subj))
 
+    # Need to remove the list element that contains zero subjects
     ind_not_zero <- which(unlist(sapply(cluster_samp,
                                         function(x) length(x))) != 0)
     cluster_samp <- cluster_samp[ind_not_zero]
 
-    cluster_samp_unique <- lapply(cluster_samp, function(x) t(combn(x,2)))
+    # Obtain all "within nodes" combination in tree 1
+    cluster_samp_unique <- lapply(cluster_samp, function(x) t(combn(x, 2)))
     df_1 <- distinct(as.data.frame(do.call("rbind", cluster_samp_unique)))
 
+    # Tree 2
+    # Obtain the elements that occured in both trees in each leaf node
     is_leaf <- sapply(nodes2, function(x) x["is_leaf"])
     ind_leaf <- which(unlist(is_leaf) == TRUE)
     cluster_samp <- sapply(nodes2, function(x) x["samples"])
     cluster_samp <- cluster_samp[ind_leaf]
     cluster_samp <- lapply(cluster_samp, function(x) intersect(x, ovlap_subj))
 
+    # Need to remove the list element that contains zero subjects
     ind_not_zero <- which(unlist(sapply(cluster_samp,
                                         function(x) length(x))) != 0)
     cluster_samp <- cluster_samp[ind_not_zero]
 
+    # Obtain all "within nodes" combination in tree 2
     cluster_samp_unique <- lapply(cluster_samp, function(x) t(combn(x, 2)))
     df_2 <- distinct(as.data.frame(do.call("rbind", cluster_samp_unique)))
 
+    # Need to add a new data frame with opposite order. (V1, V2) -> (V2, V1)
+    # dplyr intersecrion cannot handle this.
     df_3 <- data.frame(V1 = df_2$V2, V2 = df_2$V1)
 
+    # Obatin the pair existed in both tree.
     a <- intersect(df_1, df_2)
     b <- intersect(df_1, df_3)
     c <- rbind(a, b)
 
+    # The numerator is the number of the pair that only exists in one tree
     numerator <- dim(df_1)[1] + dim(df_2)[1] - 2 * dim(c)[1]
+
+    # The denominator is the number of the combination
+    # among all included samples in both trees.
     denominator <- choose(length(ovlap_subj), 2)
 
     return(numerator/denominator)
@@ -99,40 +116,58 @@ obtain_d1_star_distance <- function(tree1, tree2, data) {
     tree2_sample <- sort(intersect(tree2$drawn_samples, ovlap_subj))
 
     # Obtain the pair subject not located in the same node in both tree
+    # This is the numerator
+
+    # Tree 1
+    # Obtain the elements that occured in both trees in each leaf node
     is_leaf <- sapply(nodes1, function(x) x["is_leaf"])
     ind_leaf <- which(unlist(is_leaf) == TRUE)
     cluster_samp <- sapply(nodes1, function(x) x["samples"])
     cluster_samp <- cluster_samp[ind_leaf]
     cluster_samp <- lapply(cluster_samp, function(x) intersect(x, ovlap_subj))
 
+    # Need to remove the list element that contains zero subjects
     ind_not_zero <- which(unlist(sapply(cluster_samp,
                                         function(x) length(x))) != 0)
     cluster_samp <- cluster_samp[ind_not_zero]
 
+    # Obtain all "within nodes" combination in tree 1
     cluster_samp_unique <- lapply(cluster_samp, function(x) t(combn(x, 2)))
     df_1 <- distinct(as.data.frame(do.call("rbind", cluster_samp_unique)))
 
+    # Tree 2
+    # Obtain the elements that occured in both trees in each leaf node
     is_leaf <- sapply(nodes2, function(x) x["is_leaf"])
     ind_leaf <- which(unlist(is_leaf) == TRUE)
     cluster_samp <- sapply(nodes2, function(x) x["samples"])
     cluster_samp <- cluster_samp[ind_leaf]
     cluster_samp <- lapply(cluster_samp, function(x) intersect(x, ovlap_subj))
 
+    # Need to remove the list element that contains zero subjects
     ind_not_zero <- which(unlist(sapply(cluster_samp,
                                         function(x) length(x))) != 0)
     cluster_samp <- cluster_samp[ind_not_zero]
 
+    # Obtain all "within nodes" combination in tree 2
     cluster_samp_unique <- lapply(cluster_samp, function(x) t(combn(x, 2)))
     df_2 <- distinct(as.data.frame(do.call("rbind", cluster_samp_unique)))
 
+    # Need to add a new data frame with opposite order. (V1, V2) -> (V2, V1)
+    # dplyr intersecrion cannot handle this.
     df_3 <- data.frame(V1 = df_2$V2, V2 = df_2$V1)
 
+    # Obatin the pair existed in both tree.
     a <- intersect(df_1, df_2)
     b <- intersect(df_1, df_3)
     c <- rbind(a, b)
 
+    # The numerator is the number of the pair that only exists in one tree
+    # times d0 distance, where d0 distance can be regarded as a weight.
     numerator <- dim(df_1)[1] + dim(df_2)[1] - 2 * dim(c)[1]
     numerator <- numerator * obtain_d0_distance(tree1, tree2, data)
+
+    # The denominator is the number of the combination
+    # among all included samples in both trees.
     denominator <- choose(length(ovlap_subj), 2)
 
     return(numerator/denominator)
@@ -239,7 +274,7 @@ get_reprtree <- function(forestfile, trainingset, n, distance_type = "d1") {
                     next
                 } else {
                     tmp_tree <- grf::get_tree(tau.forest, j)
-                    dt_ij <- obtain_d2_distance_mc(mount_tree, 
+                    dt_ij <- obtain_d2_distance_mc(mount_tree,
                                                    tmp_tree, kirc_data)
                     d_matrix[i, j] <- dt_ij
                 }
@@ -248,49 +283,48 @@ get_reprtree <- function(forestfile, trainingset, n, distance_type = "d1") {
     } else if (distance_type == "d1") {
         for (i in 1:tree_num) {
             mount_tree <- grf::get_tree(tau.forest, i)
-            a <- foreach(j = 1:tree_num) %dopar% {
-                if (i >= j) { # Same tree will be omitted.
-                    0
-                } else {
-                    tmp_tree <- grf::get_tree(tau.forest, j)
-                    dt_ij <- obtain_d1_distance(mount_tree, tmp_tree)
-                }
+
+            # Calculate the distance between tree i and j
+            a <- foreach(j = i:tree_num) %dopar% {
+                tmp_tree <- grf::get_tree(tau.forest, j)
+                dt_ij <- obtain_d1_distance(mount_tree, tmp_tree)
             }
 
-            for (m in 1:tree_num) {
-                d_matrix[i, m] <- a[[m]]
+            # A list will be returned by last step, assign value to matrix
+            for (m in i:tree_num) {
+                d_matrix[i, m] <- a[[m - i + 1]]
             }
         }
     } else if (distance_type == "d1star") {
         for (i in 1:tree_num) {
             mount_tree <- grf::get_tree(tau.forest, i)
-            a <- foreach(j = 1:tree_num) %dopar% {
-                if (i >= j) { # Same tree will be omitted.
-                    0
-                } else {
-                    tmp_tree <- grf::get_tree(tau.forest, j)
-                    dt_ij <- obtain_d1_distance(mount_tree, tmp_tree)
-                }
+
+            # Calculate the distance between tree i and j
+            a <- foreach(j = i:tree_num) %dopar% {
+                tmp_tree <- grf::get_tree(tau.forest, j)
+                dt_ij <- obtain_d1_star_distance(mount_tree,
+                                                 tmp_tree, kirc_data)
             }
 
-            for (m in 1:tree_num) {
-                d_matrix[i, m] <- a[[m]]
+            # A list will be returned by last step, assign value to matrix
+            for (m in i:tree_num) {
+                d_matrix[i, m] <- a[[m - i + 1]]
             }
         }
     } else if (distance_type == "d0") {
         for (i in 1:tree_num) {
             mount_tree <- grf::get_tree(tau.forest, i)
-            a <- foreach(j = 1:tree_num) %dopar% {
-                if (i >= j) { # Same tree will be omitted.
-                    0
-                } else {
-                    tmp_tree <- grf::get_tree(tau.forest, j)
-                    dt_ij <- obtain_d1_distance(mount_tree, tmp_tree)
-                }
+
+            # Calculate the distance between tree i and j
+            a <- foreach(j = i:tree_num) %dopar% {
+                tmp_tree <- grf::get_tree(tau.forest, j)
+                dt_ij <- obtain_d0_distance(mount_tree,
+                                            tmp_tree, kirc_data)
             }
 
-            for (m in 1:tree_num) {
-                d_matrix[i, m] <- a[[m]]
+            # A list will be returned by last step, assign value to matrix
+            for (m in i:tree_num) {
+                d_matrix[i, m] <- a[[m - i + 1]]
             }
         }
     }
@@ -298,10 +332,8 @@ get_reprtree <- function(forestfile, trainingset, n, distance_type = "d1") {
     # fill the matrix
     for (i in 1:tree_num) {
         for (j in 1:tree_num) {
-            if (i == j) {
-                d_matrix[i, j] <- 0.0 # Distance between same tree should be 0.
-            } else if (i < j) {
-                next
+            if (i < j) {
+                next # Distance between same tree should be 0.
             } else {
                 d_matrix[i, j] <- d_matrix[j, i]
             }
