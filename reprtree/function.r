@@ -227,8 +227,8 @@ predict_tree <- function(node, sample, tree) {
 #' "KIRC_ENSG00000162975_forest.RData".
 #' @trainingset file name of the training data.
 #' @n number of thread used.
-#' @distance_type d0, d1, d1star, d2
-get_reprtree <- function(forestfile, trainingset, n, distance_type = "d1") {
+#' @distance_type d0, d1, d1star (default), d2
+get_reprtree <- function(forestfile, trainingset, n, distance_type = "d1star") {
     # Load required packages.
     library(grf)
     library(randomForest)
