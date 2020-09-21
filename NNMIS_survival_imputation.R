@@ -1,5 +1,5 @@
 # Function for imputin survival time with NNMIS on TCGA patients
-# For TCGA clinical dataset, input dataframe with: patient barcode, OS time, OS status, ajcc stage and tumor status
+# For TCGA clinical dataset, input must be a dataframe with: "bcr_patient_barcode", "age_at_initial_pathologic_diagnosis", "gender", "OS.time", "OS", "ajcc_pathologic_tumor_stage", "tumor_status" columns
 
 library(NNMIS)
 library(dplyr)
@@ -22,8 +22,7 @@ impute_with_NNMIS <- function(clin_df, type = "TCGA") {
         if(all(is.na(clin_df$ajcc_pathologic_tumor_stage))) {
             message("All AJCC stage entries are NA.")
             clin_df$ajcc_pathologic_tumor_stage = NULL
-            clin_df$tumor_status = as.numeric(as.factor(clin_df$tumor_status))
-            clin_df$tumor_status[dim(clin_df)[1]/2] = NA # manually removing one data point or else NNMIS will not permit using this as the auxillary variable
+            clin_df$tumor_status[floor(dim(clin_df)[1]/2)] = NA # manually removing one data point or else NNMIS will not permit using this as the auxillary variable
             tcga_imp = NNMIS(clin_df$tumor_status, 
                             xa = clin_df$age_at_initial_pathologic_diagnosis, 
                             xb = clin_df$age_at_initial_pathologic_diagnosis, 
