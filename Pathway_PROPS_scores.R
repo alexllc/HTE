@@ -30,6 +30,14 @@ cancer_list = c(
                 'ESCA')
 
 source("./PROPs_score_obtain_func.r")
+
+format_tcga_patient <- function(pat_ls) {
+    tmp = strsplit(pat_ls, "-")
+    tmp = unlist(lapply(tmp, function(x) paste(x[[1]], x[[2]], x[[3]], sep = "-")))
+    return(unlist(tmp))
+}
+
+
 for (cancer in cancer_list) {
     g_query_tumor <- GDCquery(project = paste0("TCGA-", cancer),
                                 data.category = "Transcriptome Profiling",
@@ -178,10 +186,12 @@ for (cancer in cancer_list) {
   
   # Remove row contains inifity.
   props_features_tumor_rminf <- props_features_tumor[!is.infinite(rowSums(props_features_tumor)),]
+  props_features_tumor_rminf <- t(props_features_tumor_rminf)
+  rownames(props_features_tumor_rminf) <- format_tcga_patient(rownames(props_features_tumor_rminf))
   
   # Step 3
   # Write the file to a single file.
-  write.csv(props_features_tumor_rminf, file = paste0("/exeh_4/alex_lau/proj/HTE/wd/pathways/path_scores/", "props_pathway_score_", cancer, ".csv"), row.names = F)
+  write.csv(props_features_tumor_rminf, file = paste0("/exeh_4/alex_lau/proj/HTE/wd/pathways/path_scores/", "props_pathway_score_", cancer, ".csv"), row.names = T)
 
 
 } # end tumor loop
