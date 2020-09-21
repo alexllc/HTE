@@ -1,4 +1,3 @@
-library(optparse)
 library(readr)
 library(dplyr)
 library(clusterProfiler)
@@ -30,7 +29,7 @@ cancer_list = c(
                 'UCEC',
                 'ESCA')
 
-setwd("/exeh_4/alex_lau/proj/HTE/wd")
+source("./PROPs_score_obtain_func.r")
 for (cancer in cancer_list) {
     g_query_tumor <- GDCquery(project = paste0("TCGA-", cancer),
                                 data.category = "Transcriptome Profiling",
