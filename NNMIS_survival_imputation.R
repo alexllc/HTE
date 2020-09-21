@@ -48,4 +48,5 @@ impute_with_NNMIS <- function(clin_df, type = "TCGA") {
             clin_df$ajcc_pathologic_tumor_stage = tcga_imp_covar$mean
         }
     return(clin_df)
+    }
 }
