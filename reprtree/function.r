@@ -11,7 +11,7 @@ obtain_bs <- function(tree, data) {
     node_split_set <- unlist(node_split_set[ind_leaf])
     variable_label[node_split_set] <- 1
 
-    return(variable_label)
+    return(which(variable_label == 1))
 }
 
 #' Obtain Hamming distance between two trees. (d0)
