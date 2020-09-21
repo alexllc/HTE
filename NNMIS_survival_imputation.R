@@ -1,6 +1,9 @@
 # Function for imputin survival time with NNMIS on TCGA patients
 # For TCGA clinical dataset, input dataframe with: patient barcode, OS time, OS status, ajcc stage and tumor status
 
+library(NNMIS)
+library(dplyr)
+
 impute_with_NNMIS <- function(clin_df, type = "TCGA") {
     if (type == "TCGA") {
         labels = c("[Discrepancy]","[Not Applicable]","[Not Available]","[Unknown]")
