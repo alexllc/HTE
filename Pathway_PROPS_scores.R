@@ -29,6 +29,7 @@ cancer_list = c(
                 'UCEC',
                 'ESCA')
 
+setwd("/exeh_4/alex_lau/proj/HTE/wd/pathways")
 source("./PROPs_score_obtain_func.r")
 
 format_tcga_patient <- function(pat_ls) {
