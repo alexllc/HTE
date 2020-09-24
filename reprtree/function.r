@@ -37,11 +37,11 @@ obtain_d1_distance <- function(tree1, tree2) {
 
     # Obtain the subjects that are included in both trees
     ovlap_subj <- sort(intersect(tree1$drawn_samples, tree2$drawn_samples))
-    total_pair <- as.data.frame(t(combn(ovlap_subj, 2)))
+    # total_pair <- as.data.frame(t(combn(ovlap_subj, 2)))
 
-    # Obtain the subject selected by both trees during construction
-    tree1_sample <- sort(intersect(tree1$drawn_samples, ovlap_subj))
-    tree2_sample <- sort(intersect(tree2$drawn_samples, ovlap_subj))
+    # Obtain the subject selected by both trees during construction (Deprecated)
+    # tree1_sample <- sort(intersect(tree1$drawn_samples, ovlap_subj))
+    # tree2_sample <- sort(intersect(tree2$drawn_samples, ovlap_subj))
 
     # Obtain the pair subject not located in the same node in both tree
     # This is the numerator
@@ -111,11 +111,11 @@ obtain_d1_star_distance <- function(tree1, tree2, data) {
 
     # Obtain the subjects that are included in both trees
     ovlap_subj <- sort(intersect(tree1$drawn_samples, tree2$drawn_samples))
-    total_pair <- as.data.frame(t(combn(ovlap_subj, 2)))
+    # total_pair <- as.data.frame(t(combn(ovlap_subj, 2)))
 
-    # Obtain the subject selected by both trees during construction
-    tree1_sample <- sort(intersect(tree1$drawn_samples, ovlap_subj))
-    tree2_sample <- sort(intersect(tree2$drawn_samples, ovlap_subj))
+    # Obtain the subject selected by both trees during construction (Deprecated)
+    # tree1_sample <- sort(intersect(tree1$drawn_samples, ovlap_subj))
+    # tree2_sample <- sort(intersect(tree2$drawn_samples, ovlap_subj))
 
     # Obtain the pair subject not located in the same node in both tree
     # This is the numerator
