@@ -56,12 +56,13 @@ obtain_d1_distance <- function(tree1, tree2) {
 
     # Need to remove the list element that contains zero subjects
     ind_not_zero <- which(unlist(sapply(cluster_samp,
-                                        function(x) length(x))) != 0)
+                                        function(x) length(x))) > 1)
     cluster_samp <- cluster_samp[ind_not_zero]
 
     # Obtain all "within nodes" combination in tree 1
     cluster_samp_unique <- lapply(cluster_samp, function(x) t(combn(x, 2)))
-    df_1 <- dplyr::distinct(as.data.frame(do.call("rbind", cluster_samp_unique)))
+    df_1 <- dplyr::distinct(as.data.frame(do.call("rbind",
+                                                    cluster_samp_unique)))
 
     # Tree 2
     # Obtain the elements that occured in both trees in each leaf node
@@ -73,12 +74,13 @@ obtain_d1_distance <- function(tree1, tree2) {
 
     # Need to remove the list element that contains zero subjects
     ind_not_zero <- which(unlist(sapply(cluster_samp,
-                                        function(x) length(x))) != 0)
+                                        function(x) length(x))) > 1)
     cluster_samp <- cluster_samp[ind_not_zero]
 
     # Obtain all "within nodes" combination in tree 2
     cluster_samp_unique <- lapply(cluster_samp, function(x) t(combn(x, 2)))
-    df_2 <- dplyr::distinct(as.data.frame(do.call("rbind", cluster_samp_unique)))
+    df_2 <- dplyr::distinct(as.data.frame(do.call("rbind",
+                                                    cluster_samp_unique)))
 
     # Need to add a new data frame with opposite order. (V1, V2) -> (V2, V1)
     # dplyr intersecrion cannot handle this.
@@ -128,12 +130,13 @@ obtain_d1_star_distance <- function(tree1, tree2, data) {
 
     # Need to remove the list element that contains zero subjects
     ind_not_zero <- which(unlist(sapply(cluster_samp,
-                                        function(x) length(x))) != 0)
+                                        function(x) length(x))) > 1)
     cluster_samp <- cluster_samp[ind_not_zero]
 
     # Obtain all "within nodes" combination in tree 1
     cluster_samp_unique <- lapply(cluster_samp, function(x) t(combn(x, 2)))
-    df_1 <- dplyr::distinct(as.data.frame(do.call("rbind", cluster_samp_unique)))
+    df_1 <- dplyr::distinct(as.data.frame(do.call("rbind",
+                                                    cluster_samp_unique)))
 
     # Tree 2
     # Obtain the elements that occured in both trees in each leaf node
@@ -145,12 +148,13 @@ obtain_d1_star_distance <- function(tree1, tree2, data) {
 
     # Need to remove the list element that contains zero subjects
     ind_not_zero <- which(unlist(sapply(cluster_samp,
-                                        function(x) length(x))) != 0)
+                                        function(x) length(x))) > 1)
     cluster_samp <- cluster_samp[ind_not_zero]
 
     # Obtain all "within nodes" combination in tree 2
     cluster_samp_unique <- lapply(cluster_samp, function(x) t(combn(x, 2)))
-    df_2 <- dplyr::distinct(as.data.frame(do.call("rbind", cluster_samp_unique)))
+    df_2 <- dplyr::distinct(as.data.frame(do.call("rbind",
+                                                    cluster_samp_unique)))
 
     # Need to add a new data frame with opposite order. (V1, V2) -> (V2, V1)
     # dplyr intersecrion cannot handle this.
