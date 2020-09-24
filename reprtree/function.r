@@ -61,7 +61,7 @@ obtain_d1_distance <- function(tree1, tree2) {
 
     # Obtain all "within nodes" combination in tree 1
     cluster_samp_unique <- lapply(cluster_samp, function(x) t(combn(x, 2)))
-    df_1 <- distinct(as.data.frame(do.call("rbind", cluster_samp_unique)))
+    df_1 <- dplyr::distinct(as.data.frame(do.call("rbind", cluster_samp_unique)))
 
     # Tree 2
     # Obtain the elements that occured in both trees in each leaf node
@@ -78,7 +78,7 @@ obtain_d1_distance <- function(tree1, tree2) {
 
     # Obtain all "within nodes" combination in tree 2
     cluster_samp_unique <- lapply(cluster_samp, function(x) t(combn(x, 2)))
-    df_2 <- distinct(as.data.frame(do.call("rbind", cluster_samp_unique)))
+    df_2 <- dplyr::distinct(as.data.frame(do.call("rbind", cluster_samp_unique)))
 
     # Need to add a new data frame with opposite order. (V1, V2) -> (V2, V1)
     # dplyr intersecrion cannot handle this.
@@ -133,7 +133,7 @@ obtain_d1_star_distance <- function(tree1, tree2, data) {
 
     # Obtain all "within nodes" combination in tree 1
     cluster_samp_unique <- lapply(cluster_samp, function(x) t(combn(x, 2)))
-    df_1 <- distinct(as.data.frame(do.call("rbind", cluster_samp_unique)))
+    df_1 <- dplyr::distinct(as.data.frame(do.call("rbind", cluster_samp_unique)))
 
     # Tree 2
     # Obtain the elements that occured in both trees in each leaf node
@@ -150,7 +150,7 @@ obtain_d1_star_distance <- function(tree1, tree2, data) {
 
     # Obtain all "within nodes" combination in tree 2
     cluster_samp_unique <- lapply(cluster_samp, function(x) t(combn(x, 2)))
-    df_2 <- distinct(as.data.frame(do.call("rbind", cluster_samp_unique)))
+    df_2 <- dplyr::distinct(as.data.frame(do.call("rbind", cluster_samp_unique)))
 
     # Need to add a new data frame with opposite order. (V1, V2) -> (V2, V1)
     # dplyr intersecrion cannot handle this.
