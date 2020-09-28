@@ -249,9 +249,10 @@ TCGA_genes = colnames(exp_matrix)[5:ncol(exp_matrix)]
 whole_dataset = inner_join(ss_patient, exp_matrix , by = "donorId")
 whole_dataset = whole_dataset[complete.cases(whole_dataset),]
 # whole_dataset = dplyr::select(whole_dataset, all_of(c("donorId","outcome", "TSS", "portion", "plate", "center", TCGA_genes)))
-covar_mat= dplyr::select(whole_dataset, -c("donorId", "outcome"))
 
 write.csv(whole_dataset, paste0("./wds_backup/", project, "_wds.csv"), row.names=F)
+
+covar_mat= dplyr::select(whole_dataset, -c("donorId", "outcome"))
 # We need to remove genes with uniformly 0 eexpression as treatments!!!
 
 
