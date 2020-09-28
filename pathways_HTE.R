@@ -51,17 +51,10 @@ cancer_list = c(
                 'UCEC',
                 'ESCA')
 
-<<<<<<< HEAD
-cdr = read.csv("/exeh_4/alex_lau/proj/HTE/wd/TCGA_CDR_clean.csv")
-cdr = dplyr::filter(cdr, type == "BRCA")
-labels = c("[Discrepancy]","[Not Applicable]","[Not Available]","[Unknown]")
-cdr$ajcc_pathologic_tumor_stage[which(cdr$ajcc_pathologic_tumor_stage %in% labels)] = NA
-=======
 source("./NNMIS_survival_imputation.R")
 setwd("/exeh_4/alex_lau/proj/HTE/wd/pathways")
 
 for (c in cancer_list) {
->>>>>>> 5a6e12054ee249612e1710ca0b15987bb9228c15
 
     props = read.csv(paste0("/exeh_4/alex_lau/proj/HTE/wd/pathways/path_scores/props_pathway_score_", c, ".csv"))
     colnames(props)[colnames(props) == "X"] = "donorId"
@@ -77,19 +70,11 @@ for (c in cancer_list) {
     whole_dat = whole_dat[complete.cases(whole_dat),]
     covar_mat = dplyr::select(whole_dat, -c(donorId, outcome))
 
-<<<<<<< HEAD
-obsNumber <- dim(covar_mat)[1]
-trainId <- sample(1: obsNumber, floor(obsNumber/2), replace = FALSE)
-registerDoParallel(10)
-output_file = "/exeh_4/alex_lau/proj/HTE/wd/pathways/LQ_results/PROPS_"
-project = "BRCA"
-=======
 
     obsNumber <- dim(covar_mat)[1]
     trainId <- sample(1: obsNumber, floor(obsNumber/2), replace = FALSE)
     registerDoParallel(10)
     output_file = paste0("/exeh_4/alex_lau/proj/HTE/wd/pathways/pancan_results/LQ_tx/", c, "/PROPS_")
->>>>>>> 5a6e12054ee249612e1710ca0b15987bb9228c15
 
     result <- run.hte(covar_mat, tx_vector, whole_dat, c, covar_type = "LQ", txdirct = NULL, trainId, seed = 111, is.binary = F, is_save = T, save_split = T, is.tuned = F, thres = 0.75, n_core = 8, output_directory = output_file)
     write.csv(result[[1]], paste0(output_file, project, '_expression_correlation_test_result.csv'), quote = F, row.names = F)
