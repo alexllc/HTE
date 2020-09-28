@@ -1,0 +1,69 @@
+# Sep 24, 2020
+
+Objective: perform mutation analysis on non-sparse patient data (BRCA-KR and BRCA-FR) patients
+
+===============================================================================
+
+Steps:
+
+(1) Download patient data from ICGC portal (do not use the Xenatool R package because the data there is incomplete)
+
+
+ICGC advanced search:
+ Primary Site IS
+
+    Breast 
+
+AND Project IN (
+
+    BRCA-EU ,  BRCA-FR ,  BRCA-KR ... 
+
+) AND Vital Status IN (
+
+    Alive ,  No Data 
+
+) AND Available Data Type IS
+
+    SSM 
+
+https://dcc.icgc.org/search?files=%7B%22from%22:1,%22size%22:25%7D&filters=%7B%22donor%22:%7B%22primarySite%22:%7B%22is%22:%5B%22Breast%22%5D%7D,%22projectId%22:%7B%22is%22:%5B%22BRCA-EU%22,%22BRCA-FR%22,%22BRCA-KR%22,%22BRCA-UK%22%5D%7D,%22vitalStatus%22:%7B%22is%22:%5B%22alive%22,%22_missing%22%5D%7D,%22availableDataTypes%22:%7B%22is%22:%5B%22ssm%22%5D%7D%7D%7D&donors=%7B%22from%22:1%7D
+
+Click "Download Donor Data"
+
+Select:
+    Clinical Data 	538.44 KB 	
+    Simple Somatic Mutation 	210.02 MB 
+
+on the pop-up menu -> download
+
+Cannot be done on the server, so download to local first then copy the .tar file to the server
+
+icgc-dataset-1600934425881.tar
+
+decompress:
+
+    tar -xvf icgc-dataset-1600934425881.tar
+    gunzip simple_somatic_mutation.open.tsv.gz
+    gunzip donor.tsv.gz
+
+===============================================================================
+
+(2) Data exploration
+
+Turns out all patients are censored in this cohort... Imputing survival time would not be desirable because they are most likely not dead here. That's why we should seek alternative outcome measures, and I think disease status (complete remission/relapse) is a good alternative. But we have 65/107 missing data, so we would need to seek ways to impute this missing data.
+
+
+[2020-09-25]
+
+Exploring other outcome measures:
+    - tumor status
+    - disease status (on ICGC)
+
+    event/failure/outcome = relapse
+    time to event = relapse time interval
+    predictor = stage at diagnosis
+    (unify to AJCC number staging system)
+
+    Building a Cox proportional harzard model on time to relapse
+
+    Complete remission =/= entirely cured, it's just that the presence of cancer cells does not 

@@ -1,0 +1,21 @@
+# Files to be ignored from pushing to github repository
+
+# Logs and output files #
+######################
+**/logs
+*.log
+
+
+# Imported datasets #
+######################
+**/GDCdata
+*.csv
+*.xlsx
+**/data
+
+
+# R workspace history #
+######################
+*.RData
+*.Rhistory
+*.radian_history

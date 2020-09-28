@@ -37,7 +37,6 @@ colnames(props) = tmp
 tx_vector = tmp
 props$donorId = format_tcga_patient(rownames(props))
 
-
 cdr = read.csv("/exeh_4/alex_lau/proj/HTE/wd/TCGA_CDR_clean.csv")
 cdr = dplyr::filter(cdr, type == "BRCA")
 labels = c("[Discrepancy]","[Not Applicable]","[Not Available]","[Unknown]")
@@ -60,7 +59,6 @@ cdr$outcome = tcga_imp_surv$mean
 whole_dat = left_join(cdr, props, by = "donorId") %>% dplyr::select(-c(type, OS, OS.time))
 whole_dat = whole_dat[complete.cases(whole_dat),]
 covar_mat = dplyr::select(whole_dat, -c(donorId, outcome))
-
 
 obsNumber <- dim(covar_mat)[1]
 trainId <- sample(1: obsNumber, floor(obsNumber/2), replace = FALSE)
