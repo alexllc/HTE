@@ -1,0 +1,86 @@
+Job: 62669
+
+    Error in NNMIS(ajcc_pathologic_tumor_stage, xa = age_at_initial_pathologic_diagnosis,  : 
+    No missing values found.
+    Execution halted
+
+Using standardized NNMIS script for this test as well
+
+====================================================================
+
+Warning messages when estimating from cox proportional harzard model:
+    Warning messages:
+    1: In fitter(X, Y, istrat, offset, init, control, weights = weights,  :
+
+=====================================================================
+2020-09-29
+
+NAs found in clinical data set with enough stage information but some missing tumor status entries. We don't really need tumor status if we already have stage information in later HTE analysis, since the importance of having enough cases >>> having an extra covariate.
+
+46749
+
+=====================================================================
+Stuck at PRAD files, because of naming issue?
+
+    Error in coxph.pool(obj = impute_obj, time = outcome.x, status = OS, Z = dplyr::select(combined_os_exp,  : 
+    object 'outcome.x' not found
+    Calls: coxph.pool ... <Anonymous> -> model.frame.default -> eval -> eval -> <Anonymous>
+    In addition: There were 50 or more warnings (use warnings() to see the first 50)
+    Execution halted
+
+We might have to separate BRCA and PRAD inputs.
+
+=====================================================================
+PRAD has naming issues with computing cox PH at line 97, because of column namings, so we will be running this line instead of that line 97 on the script:
+
+            coxest = coxph.pool(obj = impute_obj, time = outcome, status = OS.x, Z = dplyr::select(combined_os_exp, all_of(sub_test_ensembl)), forceNumeric = FALSE, setRef = NULL)
+
+Resolved by removing first few columns in the wds
+
+=====================================================================
+We shouldn't really use the scale by file method to deal with expression data for survival analysis.
+
+
+=====================================================================
+Batch effect may potentially affect your survival analysis, so we should do the correction. But we don't know if this is so important, we will try this on one cancer type and compare effects first.
+
+Using lines 67-164 in the /home/alex/project/HTE/wd/HTE/Pathway_Score/Pathway_PROPS_scores.R script (by Larry), we obtained the batch effect corrected expression matrix with both normal sample and tumor samples. This is saved under the current directry as:
+
+    "ComBat_corrected_FPKM_UQ_NT_and_TP.csv"
+
+
+=====================================================================
+2020-10-05
+
+Using the resulting exp_matrix as the dataset for Cox PH model's covariates.
+
+Using ComBat processed matrix resulted in very little significant covaraite gene, from 0.69 to 0.01 genes. Perhaps ComBat made tumor expression levels too similar, leading to such lost of information. We will proceed without using batch effect corrected expression data, while bearing in mind that there could be potential batch effects.
+
+
+
+Removing line 81-88:
+
+        wds = fread("ComBat_corrected_FPKM_UQ_NT_and_TP.csv")
+        wds = as.data.frame(wds)
+        wds = wds[grepl("-01[[:upper:]]-", wds$V1),] # select primary tumors
+        # Separate samples into aliquotes and plates so that we can just pick one of those
+        samples_barcode = separate(as.data.frame(wds$V1), "wds$V1", c(NA, "TSS", "patient", NA, "portion", "plate", "center"), sep = "-") # use NAs to skip variables you want to remove
+        wds = cbind(samples_barcdoe, wds)
+        wds = as.data.frame(wds %>% group_by(patient) %>% dplyr::slice(1)) # 11 out of 1100 samples were aliquot repeats for BRCA
+        wds$donorId = format_tcga_patient(wds$V1)
+
+
+Running script for univaraite gene results:
+
+line 23, 27:
+
+    test_files change to -> univaraite_test_files
+
+line 28; 
+    test_ensembl = test_genes$V1 change to -> test_ensembl = test_genes$Genes
+
+
+
+=====================================================================
+
+Completed both analysis and BN_valid.R is reverted to original script.

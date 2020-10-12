@@ -4,8 +4,7 @@
 library(NNMIS)
 library(dplyr)
 
-impute_with_NNMIS <- function(clin_df, type = "TCGA") {
-    if (type == "TCGA") {
+impute_with_NNMIS <- function(clin_df, type = "TCGA", only_export_obj = FALSE) {
         labels = c("[Discrepancy]","[Not Applicable]","[Not Available]","[Unknown]")
         clin_df$ajcc_pathologic_tumor_stage[which(clin_df$ajcc_pathologic_tumor_stage %in% labels)] = NA
         clin_df$type = NULL
@@ -36,6 +35,11 @@ impute_with_NNMIS <- function(clin_df, type = "TCGA") {
             clin_df$outcome = tcga_imp_surv$mean
             clin_df$tumor_status = tcga_imp_covar$mean
         } else {
+            # Removing tumor status as an additional covariate to keep as many complete cases as possible
+
+            # Incase there are tumor types with full records we manually remove one data point or NNMIS WILL NOT RUN
+            clin_df$ajcc_pathologic_tumor_stage[floor(dim(clin_df)[1]/2)] = NA
+
             tcga_imp = NNMIS(clin_df$ajcc_pathologic_tumor_stage, 
                             xa = clin_df$age_at_initial_pathologic_diagnosis, 
                             xb = clin_df$age_at_initial_pathologic_diagnosis, 
@@ -49,6 +53,10 @@ impute_with_NNMIS <- function(clin_df, type = "TCGA") {
             clin_df$outcome = tcga_imp_surv$mean
             clin_df$ajcc_pathologic_tumor_stage = tcga_imp_covar$mean
         }
-    return(clin_df)
+    
+    if (only_export_obj) {
+        return(tcga_imp)
+    } else {
+        return(clin_df)
     }
 }

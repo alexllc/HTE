@@ -1,0 +1,150 @@
+makeCluster              package:parallel              R Documentation
+
+_C_r_e_a_t_e _a _P_a_r_a_l_l_e_l _S_o_c_k_e_t _C_l_u_s_t_e_r
+
+_D_e_s_c_r_i_p_t_i_o_n:
+
+     Creates a set of copies of R running in parallel and communicating
+     over sockets.
+
+_U_s_a_g_e:
+
+     makeCluster(spec, type, ...)
+     makePSOCKcluster(names, ...)
+     makeForkCluster(nnodes = getOption("mc.cores", 2L), ...)
+     
+     stopCluster(cl = NULL)
+     
+     setDefaultCluster(cl = NULL)
+     getDefaultCluster()
+     
+_A_r_g_u_m_e_n_t_s:
+
+    spec: A specification appropriate to the type of cluster.
+
+   names: Either a character vector of host names on which to run the
+          worker copies of R, or a positive integer (in which case that
+          number of copies is run on ‘localhost’).
+
+  nnodes: The number of nodes to be forked.
+
+    type: One of the supported types: see ‘Details’.
+
+     ...: Options to be passed to the function spawning the workers.
+          See ‘Details’.
+
+      cl: an object of class ‘"cluster"’.
+
+_D_e_t_a_i_l_s:
+
+     ‘makeCluster’ creates a cluster of one of the supported types.
+     The default type, ‘"PSOCK"’, calls ‘makePSOCKcluster’.  Type
+     ‘"FORK"’ calls ‘makeForkCluster’.  Other types are passed to
+     package ‘snow’.
+
+     ‘makePSOCKcluster’ is an enhanced version of ‘makeSOCKcluster’ in
+     package ‘snow’.  It runs ‘Rscript’ on the specified host(s) to set
+     up a worker process which listens on a socket for expressions to
+     evaluate, and returns the results (as serialized objects).
+
+     ‘makeForkCluster’ is merely a stub on Windows.  On Unix-alike
+     platforms it creates the worker process by forking.
+
+     The workers are most often running on the same host as the master,
+     when no options need be set.
+
+     Several options are supported (mainly for ‘makePSOCKcluster’):
+
+     ‘master’ The host name of the master, as known to the workers.
+          This may not be the same as it is known to the master, and on
+          private subnets it may be necessary to specify this as a
+          numeric IP address.  For example, macOS is likely to detect a
+          machine as ‘somename.local’, a name known only to itself.
+
+     ‘port’ The port number for the socket connection, default taken
+          from the environment variable ‘R_PARALLEL_PORT’, then a
+          randomly chosen port in the range ‘11000:11999’.
+
+     ‘setup_timeout’ The maximum number of seconds a worker attempts to
+          connect to master before failing.  Default is 2 minutes.  The
+          waiting time before the next attempt starts at 0.1 seconds
+          and is incremented 50% after each retry.
+
+     ‘timeout’ The timeout in seconds for that port.  This is the
+          maximum time of zero communication between master and worker
+          before failing. Default is 30 days (and the POSIX standard
+          only requires values up to 31 days to be supported).
+
+     ‘outfile’ Where to direct the ‘stdout’ and ‘stderr’ connection
+          output from the workers.  ‘""’ indicates no redirection
+          (which may only be useful for workers on the local machine).
+          Defaults to ‘/dev/null’ (‘nul:’ on Windows).  The other
+          possibility is a file path on the worker's host.  Files will
+          be opened in append mode, as all workers log to the same
+          file.
+
+     ‘homogeneous’ Logical.  Are all the hosts running identical
+          setups, so ‘Rscript’ can be launched using the same path on
+          each?  Otherwise ‘Rscript’ has to be in the default path on
+          the workers.
+
+     ‘rscript’ The path to ‘Rscript’ on the workers, used if
+          ‘homogeneous’ is true. Defaults to the full path on the
+          master.
+
+     ‘rscript_args’ Character vector of additional arguments for
+          ‘Rscript’ such as ‘--no-environ’.
+
+     ‘renice’ A numerical ‘niceness’ to set for the worker processes,
+          e.g. ‘15’ for a low priority.  OS-dependent: see ‘psnice’ for
+          details.
+
+     ‘rshcmd’ The command to be run on the master to launch a process
+          on another host.  Defaults to ‘ssh’.
+
+     ‘user’ The user name to be used when communicating with another
+          host.
+
+     ‘manual’ Logical.  If true the workers will need to be run
+          manually.
+
+     ‘methods’ Logical.  If true (default) the workers will load the
+          ‘methods’ package: not loading it saves ca 30% of the startup
+          CPU time of the cluster.
+
+     ‘useXDR’ Logical. If true (default) serialization will use XDR:
+          where large amounts of data are to be transferred and all the
+          nodes are little-endian, communication may be substantially
+          faster if this is set to false.
+
+     Function ‘makeForkCluster’ creates a socket cluster by forking
+     (and hence is not available on Windows).  It supports options
+     ‘port’, ‘timeout’ and ‘outfile’, and always uses ‘useXDR = FALSE’.
+     It is _strongly discouraged_ to use the ‘"FORK"’ cluster with GUI
+     front-ends or multi-threaded libraries.  See ‘mcfork’ for details.
+
+     It is good practice to shut down the workers by calling
+     ‘stopCluster’: however the workers will terminate themselves once
+     the socket on which they are listening for commands becomes
+     unavailable, which it should if the master R session is completed
+     (or its process dies).
+
+     Function ‘setDefaultCluster’ registers a cluster as the default
+     one for the current session.  Using ‘setDefaultCluster(NULL)’
+     removes the registered cluster, as does stopping that cluster.
+
+_V_a_l_u_e:
+
+     For the cluster creators, an object of class ‘c("SOCKcluster",
+     "cluster")’.
+
+     For the default cluster setter and getter, the registered default
+     cluster or ‘NULL’ if there is no such cluster.
+
+_A_u_t_h_o_r(_s):
+
+     Luke Tierney and R Core.
+
+     Derived from the ‘snow’ package.
+
+
