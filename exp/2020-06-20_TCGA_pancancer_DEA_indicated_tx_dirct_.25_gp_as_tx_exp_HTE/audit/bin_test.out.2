@@ -1,0 +1,800 @@
+Loading required package: foreach
+Loading required package: iterators
+Loading required package: parallel
+Loading required package: ggplot2
+Loading required package: ggpubr
+Loading required package: magrittr
+Loading required package: nlme
+Loading required package: nnet
+Loading required package: survival
+
+ randomForestSRC 2.9.1 
+ 
+ Type rfsrc.news() to see new features, changes, and bug fixes. 
+ 
+
+randomForest 4.6-14
+Type rfNews() to see new features/changes/bug fixes.
+
+Attaching package: ‘randomForest’
+
+The following object is masked from ‘package:ranger’:
+
+    importance
+
+The following object is masked from ‘package:ggplot2’:
+
+    margin
+
+Registered S3 method overwritten by 'R.oo':
+  method        from       
+  throw.default R.methodsS3
+Loading required package: GenomicRanges
+Loading required package: stats4
+Loading required package: BiocGenerics
+
+Attaching package: ‘BiocGenerics’
+
+The following object is masked from ‘package:randomForest’:
+
+    combine
+
+The following objects are masked from ‘package:parallel’:
+
+    clusterApply, clusterApplyLB, clusterCall, clusterEvalQ,
+    clusterExport, clusterMap, parApply, parCapply, parLapply,
+    parLapplyLB, parRapply, parSapply, parSapplyLB
+
+The following objects are masked from ‘package:stats’:
+
+    IQR, mad, sd, var, xtabs
+
+The following objects are masked from ‘package:base’:
+
+    anyDuplicated, append, as.data.frame, basename, cbind, colnames,
+    dirname, do.call, duplicated, eval, evalq, Filter, Find, get, grep,
+    grepl, intersect, is.unsorted, lapply, Map, mapply, match, mget,
+    order, paste, pmax, pmax.int, pmin, pmin.int, Position, rank,
+    rbind, Reduce, rownames, sapply, setdiff, sort, table, tapply,
+    union, unique, unsplit, which, which.max, which.min
+
+Loading required package: S4Vectors
+
+Attaching package: ‘S4Vectors’
+
+The following objects are masked from ‘package:data.table’:
+
+    first, second
+
+The following object is masked from ‘package:base’:
+
+    expand.grid
+
+Loading required package: IRanges
+
+Attaching package: ‘IRanges’
+
+The following object is masked from ‘package:nlme’:
+
+    collapse
+
+The following object is masked from ‘package:data.table’:
+
+    shift
+
+Loading required package: GenomeInfoDb
+Loading required package: Biobase
+Welcome to Bioconductor
+
+    Vignettes contain introductory material; view with
+    'browseVignettes()'. To cite Bioconductor, see
+    'citation("Biobase")', and for packages 'citation("pkgname")'.
+
+Loading required package: DelayedArray
+Loading required package: matrixStats
+
+Attaching package: ‘matrixStats’
+
+The following objects are masked from ‘package:Biobase’:
+
+    anyMissing, rowMedians
+
+Loading required package: BiocParallel
+
+Attaching package: ‘DelayedArray’
+
+The following objects are masked from ‘package:matrixStats’:
+
+    colMaxs, colMins, colRanges, rowMaxs, rowMins, rowRanges
+
+The following objects are masked from ‘package:base’:
+
+    aperm, apply, rowsum
+
+
+Attaching package: ‘plyr’
+
+The following object is masked from ‘package:matrixStats’:
+
+    count
+
+The following object is masked from ‘package:IRanges’:
+
+    desc
+
+The following object is masked from ‘package:S4Vectors’:
+
+    rename
+
+The following object is masked from ‘package:ggpubr’:
+
+    mutate
+
+
+Attaching package: ‘dplyr’
+
+The following objects are masked from ‘package:plyr’:
+
+    arrange, count, desc, failwith, id, mutate, rename, summarise,
+    summarize
+
+The following object is masked from ‘package:matrixStats’:
+
+    count
+
+The following object is masked from ‘package:Biobase’:
+
+    combine
+
+The following objects are masked from ‘package:GenomicRanges’:
+
+    intersect, setdiff, union
+
+The following object is masked from ‘package:GenomeInfoDb’:
+
+    intersect
+
+The following objects are masked from ‘package:IRanges’:
+
+    collapse, desc, intersect, setdiff, slice, union
+
+The following objects are masked from ‘package:S4Vectors’:
+
+    first, intersect, rename, setdiff, setequal, union
+
+The following objects are masked from ‘package:BiocGenerics’:
+
+    combine, intersect, setdiff, union
+
+The following object is masked from ‘package:randomForest’:
+
+    combine
+
+The following object is masked from ‘package:nlme’:
+
+    collapse
+
+The following objects are masked from ‘package:data.table’:
+
+    between, first, last
+
+The following object is masked from ‘package:MASS’:
+
+    select
+
+The following objects are masked from ‘package:stats’:
+
+    filter, lag
+
+The following objects are masked from ‘package:base’:
+
+    intersect, setdiff, setequal, union
+
+
+Attaching package: ‘tidyr’
+
+The following object is masked from ‘package:S4Vectors’:
+
+    expand
+
+The following object is masked from ‘package:magrittr’:
+
+    extract
+
+
+Attaching package: ‘RTCGAToolbox’
+
+The following object is masked from ‘package:nlme’:
+
+    getData
+
+
+Attaching package: ‘DescTools’
+
+The following object is masked from ‘package:data.table’:
+
+    %like%
+
+[1] "running HNSC"
+New names:
+* `` -> ...1
+[1] "type is altered"
+[1] "gender is altered"
+[1] "ajcc_pathologic_tumor_stage is altered"
+[1] "Processed patient dataframe: "
+[1] "TSS is altered"
+[1] "patient is altered"
+[1] "portion is altered"
+[1] "plate is altered"
+[1] "center is altered"
+There were 50 or more warnings (use warnings() to see the first 50)
+[1] "treatment: ENSG00000138379"
+[1] "quantile: 0"
+[1] "Gene expression distribution too sparse, skipping."
+[1] "quantile: 0.25"
+[1] "#---------------------------------------- begin a new treatment ----------------------------------------"
+[1] "Processing 1 of 1 genes."
+[1] "./result/HNSC/alt_dirt/bin_test/0.25_HNSC_ENSG00000138379"
+[1] "Performing split half."
+Treatment name: ENSG00000138379
+Fisher extact test pval in trainset: 0.674296
+pearson correlation pval in trainset: 0.00584325
+kedall correlation pval in trainset: 0.01558913
+spearman correlation pval in trainset: 0.01031492
+[1] "Fitting CF on the whole dataset."
+[1] "Skipping permutation."
+[1] "quantile: 0.5"
+[1] "#---------------------------------------- begin a new treatment ----------------------------------------"
+[1] "Processing 1 of 1 genes."
+[1] "./result/HNSC/alt_dirt/bin_test/0.5_HNSC_ENSG00000138379"
+[1] "Performing split half."
+Treatment name: ENSG00000138379
+Fisher extact test pval in trainset: 0.9292607
+pearson correlation pval in trainset: 0.003175923
+kedall correlation pval in trainset: 0.002555212
+spearman correlation pval in trainset: 0.003452708
+[1] "Fitting CF on the whole dataset."
+[1] "Skipping permutation."
+[1] "quantile: 0.75"
+[1] "#---------------------------------------- begin a new treatment ----------------------------------------"
+[1] "Processing 1 of 1 genes."
+[1] "./result/HNSC/alt_dirt/bin_test/0.75_HNSC_ENSG00000138379"
+[1] "Performing split half."
+Treatment name: ENSG00000138379
+Fisher extact test pval in trainset: 0.684695
+pearson correlation pval in trainset: 6.936424e-24
+kedall correlation pval in trainset: 1.464927e-21
+spearman correlation pval in trainset: 0
+[1] "Fitting CF on the whole dataset."
+[1] "Performing permutation."
+[1] "p.val by permutating (Y - Y.hat) or (W - W.hat)*tau for ENSG00000138379:0.0415"
+[1] "mean.pred.estimate of test_calibration:1.01697578282755; its pval:0.0352006612954888"
+[1] "differential.pred.estimate of test_calibration:0.0459663134836691; its pval:0.492528339243213"
+[1] "pval of variance by permutation covariates:0.026"
+[1] "pval of tau.risk (fixed YW) by permutation covariates:0.01"
+[1] "treatment: ENSG00000186204"
+[1] "quantile: 0"
+[1] "#---------------------------------------- begin a new treatment ----------------------------------------"
+[1] "Processing 1 of 1 genes."
+[1] "./result/HNSC/alt_dirt/bin_test/0_HNSC_ENSG00000186204"
+[1] "Performing split half."
+Treatment name: ENSG00000186204
+Fisher extact test pval in trainset: 0.9630522
+pearson correlation pval in trainset: 0.01660481
+kedall correlation pval in trainset: 0.009617277
+spearman correlation pval in trainset: 0.01345434
+[1] "Fitting CF on the whole dataset."
+[1] "Performing permutation."
+[1] "p.val by permutating (Y - Y.hat) or (W - W.hat)*tau for ENSG00000186204:0.0764"
+[1] "mean.pred.estimate of test_calibration:0.512192662030318; its pval:0.136668742793922"
+[1] "differential.pred.estimate of test_calibration:-18.8584450773116; its pval:0.999997967794355"
+[1] "pval of variance by permutation covariates:0.8"
+[1] "pval of tau.risk (fixed YW) by permutation covariates:0.5"
+[1] "quantile: 0.25"
+[1] "#---------------------------------------- begin a new treatment ----------------------------------------"
+[1] "Processing 1 of 1 genes."
+[1] "./result/HNSC/alt_dirt/bin_test/0.25_HNSC_ENSG00000186204"
+[1] "Performing split half."
+Treatment name: ENSG00000186204
+Fisher extact test pval in trainset: 1
+pearson correlation pval in trainset: 1.466917e-07
+kedall correlation pval in trainset: 4.542542e-07
+spearman correlation pval in trainset: 5.47536e-07
+[1] "Fitting CF on the whole dataset."
+[1] "Skipping permutation."
+[1] "quantile: 0.5"
+[1] "#---------------------------------------- begin a new treatment ----------------------------------------"
+[1] "Processing 1 of 1 genes."
+[1] "./result/HNSC/alt_dirt/bin_test/0.5_HNSC_ENSG00000186204"
+[1] "Performing split half."
+Treatment name: ENSG00000186204
+Fisher extact test pval in trainset: 1
+pearson correlation pval in trainset: 0.1703917
+kedall correlation pval in trainset: 0.2107775
+spearman correlation pval in trainset: 0.216923
+[1] "Fitting CF on the whole dataset."
+[1] "Performing permutation."
+[1] "p.val by permutating (Y - Y.hat) or (W - W.hat)*tau for ENSG00000186204:0.2456"
+[1] "mean.pred.estimate of test_calibration:0.884347962550514; its pval:0.0815464391972014"
+[1] "differential.pred.estimate of test_calibration:-26.5148045783501; its pval:0.99999985696729"
+[1] "pval of variance by permutation covariates:1"
+[1] "pval of tau.risk (fixed YW) by permutation covariates:0.6"
+[1] "quantile: 0.75"
+[1] "#---------------------------------------- begin a new treatment ----------------------------------------"
+[1] "Processing 1 of 1 genes."
+[1] "./result/HNSC/alt_dirt/bin_test/0.75_HNSC_ENSG00000186204"
+[1] "Performing split half."
+Treatment name: ENSG00000186204
+Fisher extact test pval in trainset: 0.988
+pearson correlation pval in trainset: 5.080999e-11
+kedall correlation pval in trainset: 1.353908e-10
+spearman correlation pval in trainset: 1.271733e-10
+[1] "Fitting CF on the whole dataset."
+[1] "Performing permutation."
+[1] "p.val by permutating (Y - Y.hat) or (W - W.hat)*tau for ENSG00000186204:0.0759"
+[1] "mean.pred.estimate of test_calibration:1.02724830706313; its pval:0.0487508453416256"
+[1] "differential.pred.estimate of test_calibration:-1.95464134537496; its pval:0.760524740698224"
+[1] "pval of variance by permutation covariates:0.15"
+[1] "pval of tau.risk (fixed YW) by permutation covariates:0.026"
+[1] "treatment: ENSG00000105278"
+[1] "quantile: 0"
+[1] "#---------------------------------------- begin a new treatment ----------------------------------------"
+[1] "Processing 1 of 1 genes."
+[1] "./result/HNSC/alt_dirt/bin_test/0_HNSC_ENSG00000105278"
+[1] "Performing split half."
+Treatment name: ENSG00000105278
+Fisher extact test pval in trainset: NA
+pearson correlation pval in trainset: 2.003847e-09
+kedall correlation pval in trainset: 1.561073e-09
+spearman correlation pval in trainset: 4.948393e-10
+[1] "Fitting CF on the whole dataset."
+[1] "Performing permutation."
+[1] "p.val by permutating (Y - Y.hat) or (W - W.hat)*tau for ENSG00000105278:0.0869"
+[1] "mean.pred.estimate of test_calibration:0.802919129871381; its pval:0.0707226842483392"
+[1] "differential.pred.estimate of test_calibration:-10.8122746004215; its pval:0.986035485559952"
+[1] "pval of variance by permutation covariates:0.022"
+[1] "pval of tau.risk (fixed YW) by permutation covariates:0.038"
+[1] "quantile: 0.25"
+[1] "#---------------------------------------- begin a new treatment ----------------------------------------"
+[1] "Processing 1 of 1 genes."
+[1] "./result/HNSC/alt_dirt/bin_test/0.25_HNSC_ENSG00000105278"
+[1] "Performing split half."
+Treatment name: ENSG00000105278
+Fisher extact test pval in trainset: 1
+pearson correlation pval in trainset: 3.780657e-23
+kedall correlation pval in trainset: 6.674509e-22
+spearman correlation pval in trainset: 0
+[1] "Fitting CF on the whole dataset."
+[1] "Skipping permutation."
+[1] "quantile: 0.5"
+[1] "#---------------------------------------- begin a new treatment ----------------------------------------"
+[1] "Processing 1 of 1 genes."
+[1] "./result/HNSC/alt_dirt/bin_test/0.5_HNSC_ENSG00000105278"
+[1] "Performing split half."
+Treatment name: ENSG00000105278
+Fisher extact test pval in trainset: 0.7039477
+pearson correlation pval in trainset: 0.0005612719
+kedall correlation pval in trainset: 0.0002373236
+spearman correlation pval in trainset: 0.0003078164
+[1] "Fitting CF on the whole dataset."
+[1] "Skipping permutation."
+[1] "quantile: 0.75"
+[1] "#---------------------------------------- begin a new treatment ----------------------------------------"
+[1] "Processing 1 of 1 genes."
+[1] "./result/HNSC/alt_dirt/bin_test/0.75_HNSC_ENSG00000105278"
+[1] "Performing split half."
+Treatment name: ENSG00000105278
+Fisher extact test pval in trainset: 0.857083
+pearson correlation pval in trainset: 1.598645e-14
+kedall correlation pval in trainset: 9.849201e-14
+spearman correlation pval in trainset: 0
+[1] "Fitting CF on the whole dataset."
+[1] "Performing permutation."
+[1] "p.val by permutating (Y - Y.hat) or (W - W.hat)*tau for ENSG00000105278:0.0685"
+[1] "mean.pred.estimate of test_calibration:1.06122580831304; its pval:0.0302042594329883"
+[1] "differential.pred.estimate of test_calibration:-3.70546032103762; its pval:0.85676815196691"
+[1] "pval of variance by permutation covariates:0.15"
+[1] "pval of tau.risk (fixed YW) by permutation covariates:0.038"
+[1] "treatment: ENSG00000117148"
+[1] "quantile: 0"
+[1] "#---------------------------------------- begin a new treatment ----------------------------------------"
+[1] "Processing 1 of 1 genes."
+[1] "./result/HNSC/alt_dirt/bin_test/0_HNSC_ENSG00000117148"
+[1] "Performing split half."
+Treatment name: ENSG00000117148
+Fisher extact test pval in trainset: 0.9854771
+pearson correlation pval in trainset: 0.3327375
+kedall correlation pval in trainset: 0.5232873
+spearman correlation pval in trainset: 0.5253642
+[1] "Fitting CF on the whole dataset."
+[1] "Performing permutation."
+[1] "p.val by permutating (Y - Y.hat) or (W - W.hat)*tau for ENSG00000117148:0.0878"
+[1] "mean.pred.estimate of test_calibration:0.956691065635681; its pval:0.00128167003394311"
+[1] "differential.pred.estimate of test_calibration:-36.372875175822; its pval:1"
+[1] "pval of variance by permutation covariates:1"
+[1] "pval of tau.risk (fixed YW) by permutation covariates:0.8"
+[1] "quantile: 0.25"
+[1] "#---------------------------------------- begin a new treatment ----------------------------------------"
+[1] "Processing 1 of 1 genes."
+[1] "./result/HNSC/alt_dirt/bin_test/0.25_HNSC_ENSG00000117148"
+[1] "Performing split half."
+Treatment name: ENSG00000117148
+Fisher extact test pval in trainset: 1
+pearson correlation pval in trainset: 3.891132e-10
+kedall correlation pval in trainset: 4.282997e-10
+spearman correlation pval in trainset: 1.37877e-10
+[1] "Fitting CF on the whole dataset."
+[1] "Skipping permutation."
+[1] "quantile: 0.5"
+[1] "#---------------------------------------- begin a new treatment ----------------------------------------"
+[1] "Processing 1 of 1 genes."
+[1] "./result/HNSC/alt_dirt/bin_test/0.5_HNSC_ENSG00000117148"
+[1] "Performing split half."
+Treatment name: ENSG00000117148
+Fisher extact test pval in trainset: 0.9991224
+pearson correlation pval in trainset: 0.03648431
+kedall correlation pval in trainset: 0.1106627
+spearman correlation pval in trainset: 0.1158852
+[1] "Fitting CF on the whole dataset."
+[1] "Skipping permutation."
+[1] "quantile: 0.75"
+[1] "#---------------------------------------- begin a new treatment ----------------------------------------"
+[1] "Processing 1 of 1 genes."
+[1] "./result/HNSC/alt_dirt/bin_test/0.75_HNSC_ENSG00000117148"
+[1] "Performing split half."
+Treatment name: ENSG00000117148
+Fisher extact test pval in trainset: 0.9737563
+pearson correlation pval in trainset: 1
+kedall correlation pval in trainset: 1
+spearman correlation pval in trainset: 1
+[1] "Fitting CF on the whole dataset."
+[1] "Performing permutation."
+[1] "p.val by permutating (Y - Y.hat) or (W - W.hat)*tau for ENSG00000117148:0.0672"
+[1] "mean.pred.estimate of test_calibration:1.04334869499323; its pval:0.0114692582277397"
+[1] "differential.pred.estimate of test_calibration:-29.4907300372637; its pval:0.999999992638411"
+[1] "pval of variance by permutation covariates:1"
+[1] "pval of tau.risk (fixed YW) by permutation covariates:0.5"
+[1] "treatment: ENSG00000188176"
+[1] "quantile: 0"
+[1] "#---------------------------------------- begin a new treatment ----------------------------------------"
+[1] "Processing 1 of 1 genes."
+[1] "./result/HNSC/alt_dirt/bin_test/0_HNSC_ENSG00000188176"
+[1] "Performing split half."
+Treatment name: ENSG00000188176
+Fisher extact test pval in trainset: 1
+pearson correlation pval in trainset: 2.004776e-09
+kedall correlation pval in trainset: 3.948764e-09
+spearman correlation pval in trainset: 1.688057e-09
+[1] "Fitting CF on the whole dataset."
+[1] "Skipping permutation."
+[1] "quantile: 0.25"
+[1] "#---------------------------------------- begin a new treatment ----------------------------------------"
+[1] "Processing 1 of 1 genes."
+[1] "./result/HNSC/alt_dirt/bin_test/0.25_HNSC_ENSG00000188176"
+[1] "Performing split half."
+Treatment name: ENSG00000188176
+Fisher extact test pval in trainset: 1
+pearson correlation pval in trainset: 0.005105029
+kedall correlation pval in trainset: 0.002540222
+spearman correlation pval in trainset: 0.002780858
+[1] "Fitting CF on the whole dataset."
+[1] "Performing permutation."
+[1] "p.val by permutating (Y - Y.hat) or (W - W.hat)*tau for ENSG00000188176:0.2013"
+[1] "mean.pred.estimate of test_calibration:0.997908099202253; its pval:0.046642617519553"
+[1] "differential.pred.estimate of test_calibration:-17.2114394479145; its pval:0.999986587596121"
+[1] "pval of variance by permutation covariates:0.9"
+[1] "pval of tau.risk (fixed YW) by permutation covariates:0.3"
+[1] "quantile: 0.5"
+[1] "#---------------------------------------- begin a new treatment ----------------------------------------"
+[1] "Processing 1 of 1 genes."
+[1] "./result/HNSC/alt_dirt/bin_test/0.5_HNSC_ENSG00000188176"
+[1] "Performing split half."
+Treatment name: ENSG00000188176
+Fisher extact test pval in trainset: 1
+pearson correlation pval in trainset: 1.314015e-10
+kedall correlation pval in trainset: 7.653707e-11
+spearman correlation pval in trainset: 3.44462e-11
+[1] "Fitting CF on the whole dataset."
+[1] "Skipping permutation."
+[1] "quantile: 0.75"
+[1] "#---------------------------------------- begin a new treatment ----------------------------------------"
+[1] "Processing 1 of 1 genes."
+[1] "./result/HNSC/alt_dirt/bin_test/0.75_HNSC_ENSG00000188176"
+[1] "Performing split half."
+Treatment name: ENSG00000188176
+Fisher extact test pval in trainset: 1
+pearson correlation pval in trainset: 1.99136e-24
+kedall correlation pval in trainset: 6.674509e-22
+spearman correlation pval in trainset: 0
+[1] "Fitting CF on the whole dataset."
+[1] "Performing permutation."
+[1] "p.val by permutating (Y - Y.hat) or (W - W.hat)*tau for ENSG00000188176:0.0657"
+[1] "mean.pred.estimate of test_calibration:0.931145594680833; its pval:0.102658111660006"
+[1] "differential.pred.estimate of test_calibration:-0.178833279966774; its pval:0.532966768685913"
+[1] "pval of variance by permutation covariates:0.032"
+[1] "pval of tau.risk (fixed YW) by permutation covariates:0.008"
+[1] "treatment: ENSG00000112214"
+[1] "quantile: 0"
+[1] "#---------------------------------------- begin a new treatment ----------------------------------------"
+[1] "Processing 1 of 1 genes."
+[1] "./result/HNSC/alt_dirt/bin_test/0_HNSC_ENSG00000112214"
+[1] "Performing split half."
+Treatment name: ENSG00000112214
+Fisher extact test pval in trainset: 1
+pearson correlation pval in trainset: 1
+kedall correlation pval in trainset: 0.4348055
+spearman correlation pval in trainset: 0.4052146
+[1] "Fitting CF on the whole dataset."
+[1] "Performing permutation."
+[1] "p.val by permutating (Y - Y.hat) or (W - W.hat)*tau for ENSG00000112214:0.1976"
+[1] "mean.pred.estimate of test_calibration:1.36071296995399; its pval:0.0221147838535966"
+[1] "differential.pred.estimate of test_calibration:-19.2108310861331; its pval:0.999946393606293"
+[1] "pval of variance by permutation covariates:0.7"
+[1] "pval of tau.risk (fixed YW) by permutation covariates:0.4"
+[1] "quantile: 0.25"
+[1] "#---------------------------------------- begin a new treatment ----------------------------------------"
+[1] "Processing 1 of 1 genes."
+[1] "./result/HNSC/alt_dirt/bin_test/0.25_HNSC_ENSG00000112214"
+[1] "Performing split half."
+Treatment name: ENSG00000112214
+Fisher extact test pval in trainset: 1
+pearson correlation pval in trainset: 7.367036e-05
+kedall correlation pval in trainset: 1.750265e-05
+spearman correlation pval in trainset: 9.198635e-06
+[1] "Fitting CF on the whole dataset."
+[1] "Skipping permutation."
+[1] "quantile: 0.5"
+[1] "#---------------------------------------- begin a new treatment ----------------------------------------"
+[1] "Processing 1 of 1 genes."
+[1] "./result/HNSC/alt_dirt/bin_test/0.5_HNSC_ENSG00000112214"
+[1] "Performing split half."
+Treatment name: ENSG00000112214
+Fisher extact test pval in trainset: 1
+pearson correlation pval in trainset: 0.005778973
+kedall correlation pval in trainset: 0.002511677
+spearman correlation pval in trainset: 0.0023838
+[1] "Fitting CF on the whole dataset."
+[1] "Skipping permutation."
+[1] "quantile: 0.75"
+[1] "#---------------------------------------- begin a new treatment ----------------------------------------"
+[1] "Processing 1 of 1 genes."
+[1] "./result/HNSC/alt_dirt/bin_test/0.75_HNSC_ENSG00000112214"
+[1] "Performing split half."
+Treatment name: ENSG00000112214
+Fisher extact test pval in trainset: NA
+pearson correlation pval in trainset: 9.813046e-21
+kedall correlation pval in trainset: 1.405243e-19
+spearman correlation pval in trainset: 0
+[1] "Fitting CF on the whole dataset."
+[1] "Skipping permutation."
+[1] "treatment: ENSG00000116544"
+[1] "quantile: 0"
+[1] "#---------------------------------------- begin a new treatment ----------------------------------------"
+[1] "Processing 1 of 1 genes."
+[1] "./result/HNSC/alt_dirt/bin_test/0_HNSC_ENSG00000116544"
+[1] "Performing split half."
+Treatment name: ENSG00000116544
+Fisher extact test pval in trainset: 0.952
+pearson correlation pval in trainset: 1.086912e-17
+kedall correlation pval in trainset: 5.261408e-17
+spearman correlation pval in trainset: 0
+[1] "Fitting CF on the whole dataset."
+[1] "Performing permutation."
+[1] "p.val by permutating (Y - Y.hat) or (W - W.hat)*tau for ENSG00000116544:0.0047"
+[1] "mean.pred.estimate of test_calibration:0.938571791577226; its pval:0.0109883121732426"
+[1] "differential.pred.estimate of test_calibration:-2.33245452259764; its pval:0.808237464402292"
+[1] "pval of variance by permutation covariates:0.086"
+[1] "pval of tau.risk (fixed YW) by permutation covariates:0.026"
+[1] "quantile: 0.25"
+[1] "#---------------------------------------- begin a new treatment ----------------------------------------"
+[1] "Processing 1 of 1 genes."
+[1] "./result/HNSC/alt_dirt/bin_test/0.25_HNSC_ENSG00000116544"
+[1] "Performing split half."
+Treatment name: ENSG00000116544
+Fisher extact test pval in trainset: 0.4140524
+pearson correlation pval in trainset: 0.0002029856
+kedall correlation pval in trainset: 0.0003175016
+spearman correlation pval in trainset: 0.0004758772
+[1] "Fitting CF on the whole dataset."
+[1] "Skipping permutation."
+[1] "quantile: 0.5"
+[1] "#---------------------------------------- begin a new treatment ----------------------------------------"
+[1] "Processing 1 of 1 genes."
+[1] "./result/HNSC/alt_dirt/bin_test/0.5_HNSC_ENSG00000116544"
+[1] "Performing split half."
+Treatment name: ENSG00000116544
+Fisher extact test pval in trainset: 1
+pearson correlation pval in trainset: 4.028616e-06
+kedall correlation pval in trainset: 5.934783e-06
+spearman correlation pval in trainset: 4.593572e-06
+[1] "Fitting CF on the whole dataset."
+[1] "Skipping permutation."
+[1] "quantile: 0.75"
+[1] "#---------------------------------------- begin a new treatment ----------------------------------------"
+[1] "Processing 1 of 1 genes."
+[1] "./result/HNSC/alt_dirt/bin_test/0.75_HNSC_ENSG00000116544"
+[1] "Performing split half."
+Treatment name: ENSG00000116544
+Fisher extact test pval in trainset: 1
+pearson correlation pval in trainset: 1
+kedall correlation pval in trainset: 1
+spearman correlation pval in trainset: 1
+[1] "Fitting CF on the whole dataset."
+[1] "Performing permutation."
+[1] "p.val by permutating (Y - Y.hat) or (W - W.hat)*tau for ENSG00000116544:0.1152"
+[1] "mean.pred.estimate of test_calibration:0.652204204545648; its pval:0.0790467899223266"
+[1] "differential.pred.estimate of test_calibration:-38.7604914056023; its pval:0.999999999998303"
+[1] "pval of variance by permutation covariates:1"
+[1] "pval of tau.risk (fixed YW) by permutation covariates:0.8"
+[1] "treatment: ENSG00000120049"
+[1] "quantile: 0"
+[1] "#---------------------------------------- begin a new treatment ----------------------------------------"
+[1] "Processing 1 of 1 genes."
+[1] "./result/HNSC/alt_dirt/bin_test/0_HNSC_ENSG00000120049"
+[1] "Performing split half."
+Treatment name: ENSG00000120049
+Fisher extact test pval in trainset: NA
+pearson correlation pval in trainset: 7.26371e-07
+kedall correlation pval in trainset: 1.53557e-07
+spearman correlation pval in trainset: 1.064141e-07
+[1] "Fitting CF on the whole dataset."
+[1] "Performing permutation."
+[1] "p.val by permutating (Y - Y.hat) or (W - W.hat)*tau for ENSG00000120049:4e-04"
+[1] "mean.pred.estimate of test_calibration:0.821053567531371; its pval:0.00169997376670454"
+[1] "differential.pred.estimate of test_calibration:-17.9417757965786; its pval:0.999979756329186"
+[1] "pval of variance by permutation covariates:0.85"
+[1] "pval of tau.risk (fixed YW) by permutation covariates:0.2"
+[1] "quantile: 0.25"
+[1] "#---------------------------------------- begin a new treatment ----------------------------------------"
+[1] "Processing 1 of 1 genes."
+[1] "./result/HNSC/alt_dirt/bin_test/0.25_HNSC_ENSG00000120049"
+[1] "Performing split half."
+Treatment name: ENSG00000120049
+Fisher extact test pval in trainset: 0.780409
+pearson correlation pval in trainset: 0.00540459
+kedall correlation pval in trainset: 0.001620333
+spearman correlation pval in trainset: 0.001569493
+[1] "Fitting CF on the whole dataset."
+[1] "Skipping permutation."
+[1] "quantile: 0.5"
+[1] "#---------------------------------------- begin a new treatment ----------------------------------------"
+[1] "Processing 1 of 1 genes."
+[1] "./result/HNSC/alt_dirt/bin_test/0.5_HNSC_ENSG00000120049"
+[1] "Performing split half."
+Treatment name: ENSG00000120049
+Fisher extact test pval in trainset: 1
+pearson correlation pval in trainset: 0.000639157
+kedall correlation pval in trainset: 0.0002797318
+spearman correlation pval in trainset: 0.0002741006
+[1] "Fitting CF on the whole dataset."
+[1] "Skipping permutation."
+[1] "quantile: 0.75"
+[1] "#---------------------------------------- begin a new treatment ----------------------------------------"
+[1] "Processing 1 of 1 genes."
+[1] "./result/HNSC/alt_dirt/bin_test/0.75_HNSC_ENSG00000120049"
+[1] "Performing split half."
+Treatment name: ENSG00000120049
+Fisher extact test pval in trainset: 0.04208439
+pearson correlation pval in trainset: 5.091246e-31
+kedall correlation pval in trainset: 4.624016e-29
+spearman correlation pval in trainset: 0
+[1] "Fitting CF on the whole dataset."
+[1] "Performing permutation."
+[1] "p.val by permutating (Y - Y.hat) or (W - W.hat)*tau for ENSG00000120049:0.0062"
+[1] "mean.pred.estimate of test_calibration:1.02945956474623; its pval:0.00350528953284175"
+[1] "differential.pred.estimate of test_calibration:-1.07920884157023; its pval:0.617809417756036"
+[1] "pval of variance by permutation covariates:0.03"
+[1] "pval of tau.risk (fixed YW) by permutation covariates:0.018"
+[1] "treatment: ENSG00000267365"
+[1] "quantile: 0"
+[1] "#---------------------------------------- begin a new treatment ----------------------------------------"
+[1] "Processing 1 of 1 genes."
+[1] "./result/HNSC/alt_dirt/bin_test/0_HNSC_ENSG00000267365"
+[1] "Performing split half."
+Treatment name: ENSG00000267365
+Fisher extact test pval in trainset: 0.9448271
+pearson correlation pval in trainset: 3.205296e-06
+kedall correlation pval in trainset: 1.534466e-06
+spearman correlation pval in trainset: 1.822262e-06
+[1] "Fitting CF on the whole dataset."
+[1] "Skipping permutation."
+[1] "quantile: 0.25"
+[1] "#---------------------------------------- begin a new treatment ----------------------------------------"
+[1] "Processing 1 of 1 genes."
+[1] "./result/HNSC/alt_dirt/bin_test/0.25_HNSC_ENSG00000267365"
+[1] "Performing split half."
+Treatment name: ENSG00000267365
+Fisher extact test pval in trainset: 1
+pearson correlation pval in trainset: 8.846518e-05
+kedall correlation pval in trainset: 8.019002e-05
+spearman correlation pval in trainset: 6.448296e-05
+[1] "Fitting CF on the whole dataset."
+[1] "Skipping permutation."
+[1] "quantile: 0.5"
+[1] "#---------------------------------------- begin a new treatment ----------------------------------------"
+[1] "Processing 1 of 1 genes."
+[1] "./result/HNSC/alt_dirt/bin_test/0.5_HNSC_ENSG00000267365"
+[1] "Performing split half."
+Treatment name: ENSG00000267365
+Fisher extact test pval in trainset: 0.9855473
+pearson correlation pval in trainset: 0.01873941
+kedall correlation pval in trainset: 0.02401598
+spearman correlation pval in trainset: 0.02084899
+[1] "Fitting CF on the whole dataset."
+[1] "Skipping permutation."
+[1] "quantile: 0.75"
+[1] "#---------------------------------------- begin a new treatment ----------------------------------------"
+[1] "Processing 1 of 1 genes."
+[1] "./result/HNSC/alt_dirt/bin_test/0.75_HNSC_ENSG00000267365"
+[1] "Performing split half."
+Treatment name: ENSG00000267365
+Fisher extact test pval in trainset: 0.8184805
+pearson correlation pval in trainset: 9.383778e-26
+kedall correlation pval in trainset: 4.402175e-24
+spearman correlation pval in trainset: 0
+[1] "Fitting CF on the whole dataset."
+[1] "Performing permutation."
+[1] "p.val by permutating (Y - Y.hat) or (W - W.hat)*tau for ENSG00000267365:0.0609"
+[1] "mean.pred.estimate of test_calibration:1.09947658664359; its pval:0.0353292555591267"
+[1] "differential.pred.estimate of test_calibration:-1.9816380762152; its pval:0.808460810426185"
+[1] "pval of variance by permutation covariates:0.004"
+[1] "pval of tau.risk (fixed YW) by permutation covariates:0.04"
+[1] "treatment: ENSG00000129749"
+[1] "quantile: 0"
+[1] "#---------------------------------------- begin a new treatment ----------------------------------------"
+[1] "Processing 1 of 1 genes."
+[1] "./result/HNSC/alt_dirt/bin_test/0_HNSC_ENSG00000129749"
+[1] "Performing split half."
+Treatment name: ENSG00000129749
+Fisher extact test pval in trainset: 0.9218639
+pearson correlation pval in trainset: 0.4212126
+kedall correlation pval in trainset: 0.4858109
+spearman correlation pval in trainset: 0.3536649
+[1] "Fitting CF on the whole dataset."
+[1] "Performing permutation."
+[1] "p.val by permutating (Y - Y.hat) or (W - W.hat)*tau for ENSG00000129749:0.0328"
+[1] "mean.pred.estimate of test_calibration:1.15753871133113; its pval:0.00450436632478108"
+[1] "differential.pred.estimate of test_calibration:-20.515071971036; its pval:0.999999903948946"
+[1] "pval of variance by permutation covariates:1"
+[1] "pval of tau.risk (fixed YW) by permutation covariates:0.18"
+[1] "quantile: 0.25"
+[1] "#---------------------------------------- begin a new treatment ----------------------------------------"
+[1] "Processing 1 of 1 genes."
+[1] "./result/HNSC/alt_dirt/bin_test/0.25_HNSC_ENSG00000129749"
+[1] "Performing split half."
+Treatment name: ENSG00000129749
+Fisher extact test pval in trainset: NA
+pearson correlation pval in trainset: 0.0002318932
+kedall correlation pval in trainset: 8.807389e-05
+spearman correlation pval in trainset: 4.374941e-05
+[1] "Fitting CF on the whole dataset."
+[1] "Skipping permutation."
+[1] "quantile: 0.5"
+[1] "#---------------------------------------- begin a new treatment ----------------------------------------"
+[1] "Processing 1 of 1 genes."
+[1] "./result/HNSC/alt_dirt/bin_test/0.5_HNSC_ENSG00000129749"
+[1] "Performing split half."
+Treatment name: ENSG00000129749
+Fisher extact test pval in trainset: NA
+pearson correlation pval in trainset: 1.033113e-08
+kedall correlation pval in trainset: 2.955763e-08
+spearman correlation pval in trainset: 2.057843e-08
+[1] "Fitting CF on the whole dataset."
+[1] "Skipping permutation."
+[1] "quantile: 0.75"
+[1] "#---------------------------------------- begin a new treatment ----------------------------------------"
+[1] "Processing 1 of 1 genes."
+[1] "./result/HNSC/alt_dirt/bin_test/0.75_HNSC_ENSG00000129749"
+[1] "Performing split half."
+Treatment name: ENSG00000129749
+Fisher extact test pval in trainset: 0.826079
+pearson correlation pval in trainset: 9.668737e-19
+kedall correlation pval in trainset: 2.726206e-18
+spearman correlation pval in trainset: 0
+[1] "Fitting CF on the whole dataset."
+[1] "Performing permutation."
+[1] "p.val by permutating (Y - Y.hat) or (W - W.hat)*tau for ENSG00000129749:0.053"
+[1] "mean.pred.estimate of test_calibration:1.01066602386631; its pval:0.0435907319230918"
+[1] "differential.pred.estimate of test_calibration:0.0543633428032131; its pval:0.491520959829742"
+[1] "pval of variance by permutation covariates:0.076"
+[1] "pval of tau.risk (fixed YW) by permutation covariates:0.006"
