@@ -1,12 +1,15 @@
 # Functions for retreiving TCGA data in HTE analysis
 ## These functions requires relative path access to donwloaded files and GDCdata, therefore this script should be run under the outermost home directory.
 
-library(TCGAbiolinks)
-library(dplyr)
-library(tidyr)
-library(NNMIS)
 
-impute_with_NNMIS <- function(clin_df, type = "TCGA", only_export_obj = FALSE) {
+#' Function to use an axullary variable to impute time to failture wtih a Cox PH model, must be used in conjunction with fetch_clinical_data function or the column names will not match.
+#' 
+#' @param clin_df [data frame] data frame with at least ("type", "age_at_initial_pathologic_diagnosis",  "gender", "ajcc_pathologic_tumor_stage", "tumor_status", outParam, paste0(outParam, ".time"), "tumor_status") as colnames, which are the defaults in the fetch_clincal_data function.
+#' @param type [string] cancer type in TCGA project code
+#' @param outParam [string] outcome measure to be imputed
+#' @param onlyExportObj [logical] whether to return the Surv obj or the imputed dataframe. If you want both the DF and the obj, call this function twice, keep the seed the same.
+
+impute_with_NNMIS <- function(clin_df, type = "TCGA", outParam = "OS", onlyExportObj = FALSE) {
         labels = c("[Discrepancy]","[Not Applicable]","[Not Available]","[Unknown]")
         clin_df$ajcc_pathologic_tumor_stage[which(clin_df$ajcc_pathologic_tumor_stage %in% labels)] = NA
         clin_df$type = NULL
@@ -27,8 +30,8 @@ impute_with_NNMIS <- function(clin_df, type = "TCGA", only_export_obj = FALSE) {
             tcga_imp = NNMIS(clin_df$tumor_status, 
                             xa = clin_df$age_at_initial_pathologic_diagnosis, 
                             xb = clin_df$age_at_initial_pathologic_diagnosis, 
-                            time = clin_df$OS.time, 
-                            event = clin_df$OS, 
+                            time = clin_df$out_param_time, 
+                            event = clin_df$out_param, 
                             imputeCT = T, 
                             Seed = 2020, 
                             mc.cores = 60)
@@ -45,8 +48,8 @@ impute_with_NNMIS <- function(clin_df, type = "TCGA", only_export_obj = FALSE) {
             tcga_imp = NNMIS(clin_df$ajcc_pathologic_tumor_stage, 
                             xa = clin_df$age_at_initial_pathologic_diagnosis, 
                             xb = clin_df$age_at_initial_pathologic_diagnosis, 
-                            time = clin_df$OS.time, 
-                            event = clin_df$OS, 
+                            time = clin_df$out_param_time, 
+                            event = clin_df$out_param, 
                             imputeCT = T, 
                             Seed = 2020, 
                             mc.cores = 60)
@@ -56,7 +59,7 @@ impute_with_NNMIS <- function(clin_df, type = "TCGA", only_export_obj = FALSE) {
             clin_df$ajcc_pathologic_tumor_stage = tcga_imp_covar$mean
         }
     
-    if (only_export_obj) {
+    if (onlyExportObj) {
         return(tcga_imp)
     } else {
         return(clin_df)
@@ -67,10 +70,13 @@ impute_with_NNMIS <- function(clin_df, type = "TCGA", only_export_obj = FALSE) {
 #' 
 #' Fetching from (https://gdc.cancer.gov/about-data/publications/PanCan-Clinical-2018). Use this fuction in conjunction with the NNMIS_survival_imputation.R script
 #'
-#' @param cancer_type [string] TCGA cancer cancer_type code
+#' @param cancer_type 
+#' 
+#' [string] TCGA cancer cancer_type code
+#' @param outcome [string] outcome parameter to be examined, default is OS, but you can select from OS, PFI, DFI or DSS.
 #' @param col_vec [vector] of columns that need to be retreived from the TCGA-CDR, the basic requirements for NNMIS imputation is provided as default.
 #' @return [dataframe] clinical info with the "donorId" column as patient code and other selected clinical columns converted to numeric
-fetch_clinical_data <- function(cancer_type, col_vec =  c("bcr_patient_barcode", "type", "age_at_initial_pathologic_diagnosis",  "gender", "ajcc_pathologic_tumor_stage", "tumor_status", "OS", "OS.time", "tumor_status")) {
+fetch_clinical_data <- function(cancer_type, outParam = "OS", col_vec =  c("bcr_patient_barcode", "type", "age_at_initial_pathologic_diagnosis",  "gender", "ajcc_pathologic_tumor_stage", "tumor_status", outParam, paste0(outParam, ".time"), "tumor_status")) {
     if (!file.exists("./dat/TCGA-CDR-SupplementalTableS1.xlsx")) {
         download.file("https://ars.els-cdn.com/content/image/1-s2.0-S0092867418302290-mmc1.xlsx", "./dat/TCGA-CDR-SupplementalTableS1.xlsx") }
 
@@ -78,14 +84,15 @@ fetch_clinical_data <- function(cancer_type, col_vec =  c("bcr_patient_barcode",
         clinical_dat = dplyr::select(cdr, col_vec)
 
         clinical_dat[clinical_dat == "#N/A"] <- NA # sometimes missing entries are not well formatted
-        clinical_dat <- subset(clinical_dat, !is.na(OS.time) & !is.na(OS) & !is.na(age_at_initial_pathologic_diagnosis))
+        clinical_dat <- subset(clinical_dat, !is.na(get(paste0(outParam, ".time"))) & !is.na(get(outParam)) & !is.na(age_at_initial_pathologic_diagnosis))
         colnames(clinical_dat)[colnames(clinical_dat)=="bcr_patient_barcode"] = "donorId"
+        colnames(clinical_dat)[colnames(clinical_dat) == outParam | colnames(clinical_dat) == paste0(outParam, ".time")] = c("out_param", "out_param_time")
         clinical_dat = as.data.frame(clinical_dat)
 
     # specify cancer type here
     clinical_dat <- dplyr::filter(clinical_dat, type == cancer_type)
     clinical_dat = impute_with_NNMIS(clinical_dat)
-    clinical_dat = dplyr::select(clinical_dat, -c(OS, OS.time))
+    clinical_dat = dplyr::select(clinical_dat, -c(out_param, out_param_time))
     clinical_dat = clinical_dat[complete.cases(clinical_dat),]
     print("Processed patient dataframe: ")
 

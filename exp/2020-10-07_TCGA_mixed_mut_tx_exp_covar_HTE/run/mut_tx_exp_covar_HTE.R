@@ -1,28 +1,6 @@
 #' Script to run an HTE with mutation as treatment variable and expression as running covariates
 # Run from base directory
 
-# For data cleaning and processing
-library(readxl)
-
-# For main function
-library(grf)
-library(MASS)
-library(doMC)
-library(data.table)
-library(survminer)
-library(doParallel)
-library(methods)
-
-# For causal forest
-library(grf)
-library(BART)
-library(ranger)
-library(randomForestSRC)
-library(randomForest)
-
-# For survival imputation
-library(survival)
-
 
 # source bin scripts
 bin_ls = list.files("./bin")

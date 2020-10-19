@@ -1,9 +1,4 @@
-library(grf)
-# library(BART)
-# library(ranger)
-# library(randomForestSRC)
-# library(randomForest)
-
+# Script with causal forest functions and parameter settings
 
 cf <- function(covarites, Y, W, Y.hat = NULL, W.hat = NULL, num_trees = 2000, node.size = 5, cluster_id = NULL, frac_selected = 0.01, seed = NULL){
     # for permutation test, Y.hat and W.hat should be provided in order to fix Y and W.

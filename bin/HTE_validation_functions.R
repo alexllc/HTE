@@ -3,8 +3,6 @@
 # permutate.covariates.testing is to test whether covariates contribute to variation in heterogeneous treatment effect.
 # for permutated.pval ref. equation 9 to the paper above, we permute y_i - m_hat(x_i) to check our fitting
 
-library(DescTools)
-
 
 early.stop <- function(pvals){
     is_stop <- (sum(pvals > 0.05) == length(pvals))
