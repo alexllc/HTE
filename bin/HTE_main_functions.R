@@ -34,7 +34,7 @@ setMethod("append", signature(x = "data.frame", values = "vector"),
     }
 )
 
-run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = NULL, txdirct = NULL, trainId, seed = NULL, is.binary = TRUE, is_save = T, save_split = T, is.tuned = F, thres = 0.75, n_core = 8, output_directory = NULL, skip_perm = FALSE){
+run.hte <- function(covar_mat, tx_vector, whole_dataset, project, diffCovarTxTypes = FALSE, txdirct = NULL, trainId, seed = NULL, is.binary = TRUE, is_save = T, save_split = T, is.tuned = F, thres = 0.75, n_core = 8, output_directory = NULL, skip_perm = FALSE){
     # @covar_mat: covariates matrix (with treatment assignments as well if each of the covariates are taking turns to be analyzed as treatments). Treatment assignments can be binary or continuous.
     # @tx_vector: a vector of variables that will each be used as treatments
     # @whole_dataset: dataframe with outcome, covariates and treatment assignments
@@ -97,36 +97,21 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
 
         treatment <- covar_mat[, tx] # it has been confirmed that grf can deal with continuous treatment variable
 
+        treatment = assign_tx(binary = is.binary, upperQ = txdirct[tx], thres = thres, treatment = treatment) # Use the assign_tx function to convert treatment vector
+        
+        # Check if we have enough tx observations
+        if( (length(unique(treatment)) == 1 | sum(treatment) < length(treatment)*0.1) & datType != "mutation") {
+            print("Not enough obseravtaions for this treatment, skipping.")
+            next
+        }  
 
-        X.covariates <- as.matrix(dplyr::select(covar_mat, -tx))
+        if (!diffCovarTxTypes) X.covariates <- as.matrix(dplyr::select(covar_mat, -tx))
         
         print(paste0(c('#', rep('-', 40), ' begin a new treatment ', rep('-', 40)), collapse = ''))
         
         print(paste0("Processing ", i, " of ", length(tx_vector), " genes."))
         i = i+1
         
-        if(is.binary){
-            if (covar_type == "mutation") {
-                treatment <- as.numeric(treatment != 0) # only for mutation
-                
-            } else if (covar_type == "expression") {
-                # extrating DEG information in main script instead of run.hte @alex: Jul5, 2020
-                if(txdirct[tx] > 0) {treatment = as.numeric(treatment > quantile(treatment, thres))
-                } else {treatment  = as.numeric(treatment < quantile(treatment, 1- thres))}
-            } else if (covar_type=="UQ"){
-                treatment = as.numeric(treatment > quantile(treatment, thres))
-            } else if (covar_type == "LQ") {
-                treatment = as.numeric(treatment < quantile(treatment, 1 - thres))
-            }
-            # Check if we have enough tx observations
-            if( (length(unique(treatment)) == 1 | sum(treatment) < length(treatment)*0.1) & covar_type != "mutation") {
-                print("Gene expression distribution too sparse, skipping.")
-                next
-            }  
-            
-        } else {
-            treatment <- as.numeric(treatment)
-            }
         # split whole dataset into two parts, and the idea of validation is similar to prediction strength.
         
         col_names <- c('simes.pval', 'partial.simes.pval', 'pearson.estimate','pearson.pvalue', 'kendall.estimate','kendall.pvalue', 'spearman.estimate','spearman.pvalue', 'fisher.pval', 't.test.a.pval', 't.test.b.pval')
@@ -137,8 +122,6 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, covar_type = N
         print(file_prefix)
         
         print("Performing split half.")
-        
-
         pvalues <- try(split_half_testing(X.covariates, Y, 
                                 treatment, 
                                 binary = is.binary, 
