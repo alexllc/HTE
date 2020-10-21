@@ -16,7 +16,7 @@
 
    NLP is useful for validating models, could pair with LASSO, but Larry's current NLP doesn't have a weighting or score yet.
 
-   The weight can be calculated simply by formula $\gamma_j = \frac{1}{\# \text{cite } g_j + 1}$. $g_j$ means gene $j$.
+   The weight can be calculated simply by formula $\gamma_j = \frac{1}{\text{cite-count } g_j + 1}$. $g_j$ means gene $j$.
    Noticed that a pseudo-count is added here.  
    Therefore, we have the lasso in **lagrangian form**,  
    $$\min_{\beta\in\mathbb{R}^P}\{\frac{1}{N} \lVert y-X\beta\lVert^2_2\} + \lambda\lVert \gamma\beta \lVert_1$$
