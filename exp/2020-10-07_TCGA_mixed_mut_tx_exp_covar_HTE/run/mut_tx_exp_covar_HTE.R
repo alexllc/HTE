@@ -2,6 +2,8 @@
 # Run from base directory
 setwd("~/project/HTE/")
 
+library(metap)
+
 # source bin scripts
 bin_ls = list.files("./bin")
 for (bin in bin_ls){
@@ -19,9 +21,9 @@ head(exp)[,1:10]
 
 endpt_ls = c("OS", "DSS", "DFI", "PFI")
 
-if(!file.exist(paste0("./dat/mutation_frequencies/MAF_wide_", cancer_type, ".csv.gz"))) {
+if(!file.exists(paste0("./dat/mutation_frequencies/MAF_wide_", cancer_type, ".csv.gz"))) {
     mut = as.data.frame(fetch_mut_data(cancer_type)) # will take a long time, you'd want to save it
-    write.csv(mut, file = gzfile(paste0("./dat/mutation_frequencies/MAF_wide_", cancer_type, ".csv.gz"), row.names = FALSE)
+    write.csv(mut, file = gzfile(paste0("./dat/mutation_frequencies/MAF_wide_", cancer_type, ".csv.gz"), row.names = FALSE))
 } else {
     mut = as.data.frame(fread(paste0("./dat/mutation_frequencies/MAF_wide_", cancer_type, ".csv.gz")))
 }

@@ -32,6 +32,7 @@
 
    1. all `./bin/*` files are automatically loaded in a loop
    2. 4 types of endpoints are processed for comparison
+   3. 15256
 
 
 ### 3. Endpoint comparison 

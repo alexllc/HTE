@@ -29,6 +29,6 @@
 
 - [x] Assess the amount of censoring across cancer types 
    See `exp/2020-10-07_TCGA_mixed_mut_tx_exp_covar_HTE/dat/proportion_of_censoring.csv`, script under `exp/2020-10-07_TCGA_mixed_mut_tx_exp_covar_HTE/run/pancancer_censoring.R`
-- [ ] retreive alternative outcome measures & establish appropriate time to failure function
-- [ ] Perform combined mutation/expression HTE using the three mentioned outcome for further comparison
+- [x] retreive alternative outcome measures & establish appropriate time to failure function
+- [x] Perform combined mutation/expression HTE using the three mentioned outcome for further comparison
 - [ ] Re-do external validation with mut/exp combination HTE
