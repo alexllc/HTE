@@ -453,5 +453,6 @@ compute_stats <- function(tau.pred){
     tau.pval <- pnorm(abs(tau.zval), lower.tail = FALSE) * 2
     tau.p.adjust <- p.adjust(tau.pval, method = 'BH')
     stats <- cbind(tau.pred$predictions, tau.zval, tau.pval, tau.p.adjust)
+    colnames(stats) = c("tau", "tau.zval", "tau.pval", "tau.p.adjust")
     return(as.data.frame(stats))
 }

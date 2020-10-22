@@ -1,6 +1,7 @@
 ## Script to load all libraries in one place
 
 # For TCGA_data_functions
+library(readxl)
 library(TCGAbiolinks)
 library(dplyr)
 library(tidyr)

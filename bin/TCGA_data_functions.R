@@ -1,5 +1,5 @@
 # Functions for retreiving TCGA data in HTE analysis
-## These functions requires relative path access to donwloaded files and GDCdata, therefore this script should be run under the outermost home directory.
+## These functions requires relative path access to donwloaded files and GDCdata, therefore this script ***MUST*** be run under the outermost home directory.
 
 
 #' Function to use an axullary variable to impute time to failture wtih a Cox PH model, must be used in conjunction with fetch_clinical_data function or the column names will not match.
@@ -40,11 +40,9 @@ impute_with_NNMIS <- function(clin_df, type = "TCGA", outParam = "OS", onlyExpor
             clin_df$outcome = tcga_imp_surv$mean
             clin_df$tumor_status = tcga_imp_covar$mean
         } else {
-            # Removing tumor status as an additional covariate to keep as many complete cases as possible
 
-            # Incase there are tumor types with full records we manually remove one data point or NNMIS WILL NOT RUN
-            clin_df$ajcc_pathologic_tumor_stage[floor(dim(clin_df)[1]/2)] = NA
-
+            clin_df$ajcc_pathologic_tumor_stage[floor(dim(clin_df)[1]/2)] = NA # Incase there are tumor types with full records we manually remove one data point or NNMIS WILL NOT RUN
+            clin_df$tumor_status = NULL # Removing tumor status as an additional covariate to keep as many complete cases as possible
             tcga_imp = NNMIS(clin_df$ajcc_pathologic_tumor_stage, 
                             xa = clin_df$age_at_initial_pathologic_diagnosis, 
                             xb = clin_df$age_at_initial_pathologic_diagnosis, 
@@ -114,7 +112,7 @@ fetch_mut_data <- function(cancer_type) {
                 data.type = "Masked Somatic Mutation"
             )
     setwd("./raw/")
-    GDCdownload(m_query)
+    GDCdownload(m_query)  # can't explicitly set directory, requires setwd
     maf = GDCprepare(m_query)
     setwd("../")
 
@@ -179,7 +177,7 @@ fetch_exp_data <- function(cancer_type, addBatch = TRUE, scale = FLASE) {
     exp_matrix <- t(exp_matrix)
 
     # Address batch effects by extending tissue source, aliquot, plate and sequencing center as additional covariates
-    if (add_batch) {
+    if (addBatch) {
     exp_matrix <- cbind(separate(as.data.frame(rownames(exp_matrix)), 
                                 "rownames(exp_matrix)", 
                                 c(NA, "TSS", "patient", NA, "portion", "plate", "center"),  # skip var with NAs
@@ -210,4 +208,10 @@ fetch_exp_data <- function(cancer_type, addBatch = TRUE, scale = FLASE) {
     exp_matrix <- dplyr::select(exp_matrix, -c(bcr, patient))
 
     return(exp_matrix)
+}
+
+mk_id_rownames <- function(df) {
+    rownames(df) = df$donorId
+    df$donorId = NULL
+    return(df)
 }
