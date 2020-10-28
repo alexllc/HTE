@@ -23,7 +23,7 @@ endpt_ls = c("OS", "DSS", "DFI", "PFI")
 
 if(!file.exists(paste0("./dat/mutation_frequencies/MAF_wide_", cancer_type, ".csv.gz"))) {
     mut = as.data.frame(fetch_mut_data(cancer_type)) # will take a long time, you'd want to save it
-    write.csv(mut, file = gzfile(paste0("./dat/mutation_frequencies/MAF_wide_", cancer_type, ".csv.gz"), row.names = FALSE))
+    write.csv(mut, file = gzfile(paste0("./dat/mutation_frequencies/MAF_wide_", cancer_type, ".csv.gz")), row.names = FALSE)
 } else {
     mut = as.data.frame(fread(paste0("./dat/mutation_frequencies/MAF_wide_", cancer_type, ".csv.gz")))
 }
@@ -34,14 +34,14 @@ head(mut)[,1:10]
 set.seed(2020)
 
 for (endpt in endpt_ls) {
-    message(paste0("Using ", endpt, " as endpoint measurement.")
+    message(paste0("Using ", endpt, " as endpoint measurement."))
     clinical = fetch_clinical_data(cancer_type, outParam = endpt)
     clinical = mk_id_rownames(clinical)
-    head(clinical)[,1:10]
+    head(clinical)
     assign(paste0("clinical_", endpt), clinical) # saving clinical df for each endpoint types rather than a vector, might change to numeric vectors later
     
     # Check the list of common patients across three data frames
-    common_pat = clinical$donorId[clinical$donorId %in% exp$donorId]
+    common_pat = rownames(clinical)[rownames(clinical) %in% rownames(exp)]
     common_pat = common_pat[common_pat %in% rownames(mut)]
 
     # Outcome vector for causal forest
@@ -61,7 +61,7 @@ for (endpt in endpt_ls) {
         message(paste0("The combined p values for ", colnames(mut)[tx], " is: "))
         combined_p = allmetap(cf_tau$tau.pval, method = "all") # combine tau pvalues using the metap package
         print(combined_p)
-        tau_p_df = rbind(tau_p_df, c(summary(cf_tau$tau), unlist(combined_p$p) )
+        tau_p_df = rbind(tau_p_df, c(summary(cf_tau$tau), unlist(combined_p$p) ))
     }
     rownames(tau_p_df) = colnames(mut)[mut_selection]
     colnames(tau_p_df) = c(names(summary(cf_tau$tau.pval)), names(unlist(combined_p$p)))

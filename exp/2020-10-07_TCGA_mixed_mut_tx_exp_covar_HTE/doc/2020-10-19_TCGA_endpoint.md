@@ -32,7 +32,9 @@
 
    1. all `./bin/*` files are automatically loaded in a loop
    2. 4 types of endpoints are processed for comparison
-   3. 15256
+   3. 71110
+   
+output log available in `exp/2020-10-07_TCGA_mixed_mut_tx_exp_covar_HTE/log/mut_tx_exp_covar_HTE.log`
 
 
 ### 3. Endpoint comparison 
