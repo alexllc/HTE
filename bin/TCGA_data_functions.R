@@ -14,15 +14,7 @@ impute_with_NNMIS <- function(clin_df, type = "TCGA", outParam = "OS", onlyExpor
         clin_df$ajcc_pathologic_tumor_stage[which(clin_df$ajcc_pathologic_tumor_stage %in% labels)] = NA
         clin_df$type = NULL
         # Conver all variables into numeric
-        for (c in colnames(clin_df)) {
-            if (!is.numeric(clin_df[,c]) && c != "donorId") {
-                # Convert empty strings into NAs first
-                which.one <- which( levels(clin_df[,c]) == "")
-                levels(clin_df[,c])[which.one] <- NA
-                clin_df[,c] = sapply(sapply(clin_df[,c], as.factor), as.numeric) 
-                print(paste0(c, " is converted to numeric.")) 
-            }
-        }
+        clin_df = convert_col_to_numeric(clin_df)
         if(all(is.na(clin_df$ajcc_pathologic_tumor_stage))) {
             message("All AJCC stage entries are NA.")
             clin_df$ajcc_pathologic_tumor_stage = NULL
@@ -74,7 +66,7 @@ impute_with_NNMIS <- function(clin_df, type = "TCGA", outParam = "OS", onlyExpor
 #' @param outcome [string] outcome parameter to be examined, default is OS, but you can select from OS, PFI, DFI or DSS.
 #' @param col_vec [vector] of columns that need to be retreived from the TCGA-CDR, the basic requirements for NNMIS imputation is provided as default.
 #' @return [dataframe] clinical info with the "donorId" column as patient code and other selected clinical columns converted to numeric
-fetch_clinical_data <- function(cancer_type, outParam = "OS", col_vec =  c("bcr_patient_barcode", "type", "age_at_initial_pathologic_diagnosis",  "gender", "ajcc_pathologic_tumor_stage", "tumor_status", outParam, paste0(outParam, ".time"), "tumor_status")) {
+fetch_clinical_data <- function(cancer_type, outParam = "OS", imputeMethod = "simple", col_vec =  c("bcr_patient_barcode", "type", "age_at_initial_pathologic_diagnosis",  "gender", "ajcc_pathologic_tumor_stage", "tumor_status", outParam, paste0(outParam, ".time"), "tumor_status")) {
     if (!file.exists("./dat/TCGA-CDR-SupplementalTableS1.xlsx")) {
         download.file("https://ars.els-cdn.com/content/image/1-s2.0-S0092867418302290-mmc1.xlsx", "./dat/TCGA-CDR-SupplementalTableS1.xlsx") }
 
@@ -89,7 +81,15 @@ fetch_clinical_data <- function(cancer_type, outParam = "OS", col_vec =  c("bcr_
 
     # specify cancer type here
     clinical_dat <- dplyr::filter(clinical_dat, type == cancer_type)
-    clinical_dat = impute_with_NNMIS(clinical_dat)
+    
+    if (imputeMethod == "simple") {
+        imput_surv = exp(impute.survival(clinical_dat$out_param_time, clinical_dat$out_param)) / 30.417 # reverse log and convert days to months for better interpretation. Converting ratio 30.417 is an approximate value used by Google.
+        clinical_dat$outcome = imput_surv
+        # Variable type conversion is not intrinsically implemented in the impute.survival function, so it must implemented here.
+        clinical_dat = convert_col_to_numeric(clinical_dat)
+    } else {
+        clinical_dat = impute_with_NNMIS(clinical_dat)
+    }
     clinical_dat = dplyr::select(clinical_dat, -c(out_param, out_param_time))
     clinical_dat = clinical_dat[complete.cases(clinical_dat),]
     print("Processed patient dataframe: ")
@@ -214,4 +214,17 @@ mk_id_rownames <- function(df) {
     rownames(df) = df$donorId
     df$donorId = NULL
     return(df)
+}
+
+convert_col_to_numeric <- function(clin_df) {
+    for (c in colnames(clin_df)) {
+        if (!is.numeric(clin_df[,c]) && c != "donorId") {
+            # Convert empty strings into NAs first
+            which.one <- which( levels(clin_df[,c]) == "")
+            levels(clin_df[,c])[which.one] <- NA
+            clin_df[,c] = sapply(sapply(clin_df[,c], as.factor), as.numeric) 
+            print(paste0(c, " is converted to numeric.")) 
+        }
+    }
+    return(clin_df)
 }
