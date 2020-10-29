@@ -29,5 +29,6 @@
     Already uploaded:
     * Server 234: `/home/yujia/Project/Immune_Deconvolution/HNSC_ref.txt`
     * Issue: Less cell types compared with LM22.
-- [ ] Run CIBERSORTx using docker
+- [x] Run CIBERSORTx using docker
   - [x] Apply token. 
+  - [x] Use results from paper "The Immune Landscape of Cancer"
