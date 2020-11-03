@@ -51,5 +51,7 @@ fetch_mrna_z_score <- function(data = NULL, save = FALSE) {
     } else {
         mrna_z = as.data.frame(fread(paste0("./dat/METABRIC-TCGA_external_validation/exp_median_z/", data, "_mRNA_med_z_scores_transposed.csv.gz")))
     }
+    z_not_na = sapply(mrna_z, function(x)all(!is.na(x))) # many genes are fully NA
+    mrna_z = mrna_z[,z_not_na]
     return(mrna_z)
 }

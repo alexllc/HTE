@@ -32,8 +32,12 @@ common_mut = intersect(colnames(metab_mut), colnames(tcga_mut))
 # Fetch expresion median data
 metab_z = fetch_mrna_z_score("metab", save = TRUE)
 tcga_z = fetch_mrna_z_score("tcga", save = TRUE)
+tcga_z$donorId = format_tcga_patient(tcga_z$donorId)
+common_z = intersect(colnames(metab_z), colnames(tcga_z))
+common_z = common_z[-which(common_z == "donorId")]
 
-# Common entries in all three dataframes
+# Assign variables and 
 
-
-# Perform 
+for(tx in common_mut) {
+    
+}

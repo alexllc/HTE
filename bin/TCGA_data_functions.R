@@ -228,3 +228,9 @@ convert_col_to_numeric <- function(clin_df) {
     }
     return(clin_df)
 }
+
+format_tcga_patient <- function(pat_ls) {
+    tmp = strsplit(pat_ls, "-")
+    tmp = unlist(lapply(tmp, function(x) paste(x[[1]], x[[2]], x[[3]], sep = "-")))
+    return(unlist(tmp))
+}
