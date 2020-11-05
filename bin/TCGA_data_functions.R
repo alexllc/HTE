@@ -63,10 +63,12 @@ impute_with_NNMIS <- function(clin_df, type = "TCGA", outParam = "OS", onlyExpor
 #' @param cancer_type 
 #' 
 #' [string] TCGA cancer cancer_type code
-#' @param outcome [string] outcome parameter to be examined, default is OS, but you can select from OS, PFI, DFI or DSS.
+#' @param outParam [string] outcome parameter to be examined, default is OS, but you can select from OS, PFI, DFI or DSS.
+#' @param imputeMethod [string] ways to impute outcome length missing due to censoring issues, default is a simple KM plot.
+#' @param onlyCompleteCases [bool] whether to return complete cases only, not recommended for prognostic models in general
 #' @param col_vec [vector] of columns that need to be retreived from the TCGA-CDR, the basic requirements for NNMIS imputation is provided as default.
 #' @return [dataframe] clinical info with the "donorId" column as patient code and other selected clinical columns converted to numeric
-fetch_clinical_data <- function(cancer_type, outParam = "OS", imputeMethod = "simple", col_vec =  c("bcr_patient_barcode", "type", "age_at_initial_pathologic_diagnosis",  "gender", "ajcc_pathologic_tumor_stage", "tumor_status", outParam, paste0(outParam, ".time"), "tumor_status")) {
+fetch_clinical_data <- function(cancer_type, outParam = "OS", imputeMethod = "simple", onlyCompleteCases = FALSE, col_vec =  c("bcr_patient_barcode", "type", "age_at_initial_pathologic_diagnosis",  "gender", "ajcc_pathologic_tumor_stage", "tumor_status", outParam, paste0(outParam, ".time"))) {
     if (!file.exists("./dat/TCGA-CDR-SupplementalTableS1.xlsx")) {
         download.file("https://ars.els-cdn.com/content/image/1-s2.0-S0092867418302290-mmc1.xlsx", "./dat/TCGA-CDR-SupplementalTableS1.xlsx") }
 
@@ -91,7 +93,7 @@ fetch_clinical_data <- function(cancer_type, outParam = "OS", imputeMethod = "si
         clinical_dat = impute_with_NNMIS(clinical_dat)
     }
     clinical_dat = dplyr::select(clinical_dat, -c(out_param, out_param_time))
-    clinical_dat = clinical_dat[complete.cases(clinical_dat),]
+    if (onlyCompleteCases) clinical_dat = clinical_dat[complete.cases(clinical_dat),]
     print("Processed patient dataframe: ")
 
     print(head(clinical_dat))
@@ -140,12 +142,14 @@ fetch_mut_data <- function(cancer_type) {
 #' Fetch RNASeq expression data from TCGAbiolinks
 #' 
 #' @param cancer_type [string] TCGA cancer cancer_type code
-#' @param addBatch [logical] whether to return extra batch variables (they will be converted to numeric)
-#' @param scale [logical] whether to scale by file maximum or not, not recommended if you are trying to plot trees
+#' @param addBatch [bool] whether to return extra batch variables (they will be converted to numeric)
+#' @param numericBatch [bool] convert batch factor levels into numeric. Useful for using these variables as 
+#' @param scale [bool] whether to scale by file maximum or not, not recommended if you are trying to plot trees
+#' @param primaryTumorOnly [bool] option to select whether to output a dataframe with other non-primary tissue expression entries. By default you should not format the tissue ID to avoid duplicates.
 #' @return [matrix] with a "donorId" column for patient id, optionally with batch variables and ~50k genes as columns. The entries are 
 #' 
 
-fetch_exp_data <- function(cancer_type, addBatch = TRUE, scale = FLASE) {
+fetch_exp_data <- function(cancer_type, addBatch = TRUE, numericBatch = TRUE, scale = FALSE, primaryTumorOnly = FALSE, formatPatient = FALSE) {
     if (!file.exists(paste0("./dat/HTSeqData/", cancer_type, "_exp.rda")) ) {
     
     # Fetch expression data from GDC
@@ -169,8 +173,7 @@ fetch_exp_data <- function(cancer_type, addBatch = TRUE, scale = FLASE) {
     exp_matrix <- SummarizedExperiment::assay(prep, "HTSeq - FPKM-UQ")
 
     # Only select primary tumor samples
-    # Somehow this line removed so many patients
-    exp_matrix <- exp_matrix[,grep("-01.-", colnames(exp_matrix))]
+    if (primaryTumorOnly) exp_matrix <- exp_matrix[,grep("-01.-", colnames(exp_matrix))]
 
     #Scale FPKM value by patients
     if (scale) exp_matrix <- exp_matrix/apply(exp_matrix,2,max)
@@ -178,34 +181,38 @@ fetch_exp_data <- function(cancer_type, addBatch = TRUE, scale = FLASE) {
 
     # Address batch effects by extending tissue source, aliquot, plate and sequencing center as additional covariates
     if (addBatch) {
-    exp_matrix <- cbind(separate(as.data.frame(rownames(exp_matrix)), 
-                                "rownames(exp_matrix)", 
-                                c(NA, "TSS", "patient", NA, "portion", "plate", "center"),  # skip var with NAs
-                                sep = "-"), 
-                        exp_matrix)
+        exp_matrix <- cbind(separate(as.data.frame(rownames(exp_matrix)), 
+                                    "rownames(exp_matrix)", 
+                                    c(NA, "TSS", "patient", NA, "portion", "plate", "center"),  # skip var with NAs
+                                    sep = "-"), 
+                            exp_matrix)
     }
-    exp_matrix$bcr <- rownames(exp_matrix)
+    # exp_matrix$bcr <- rownames(exp_matrix)
 
     # Select only one aliquot
-    exp_matrix <- as.data.frame(exp_matrix %>% group_by(patient) %>% dplyr::slice(1))
-    rownames(exp_matrix) <- exp_matrix$bcr
-
+    if (primaryTumorOnly) exp_matrix <- as.data.frame(exp_matrix %>% group_by(patient) %>% dplyr::slice(1))
+    # rownames(exp_matrix) <- exp_matrix$bcr
 
     batches = c("TSS", "patient", "portion", "plate", "center")
-    for (name in batches) {
-        c = grep(name, colnames(exp_matrix))
-        which.one <- which( levels(exp_matrix[,c]) == "")
-        levels(exp_matrix[,c])[which.one] <- NA
-        print(paste0(colnames(exp_matrix)[c], " is altered"))
-        exp_matrix[,c] = sapply(sapply(exp_matrix[,c], as.factor), as.numeric) 
-    }
 
-    #Format patient
-    tmp = strsplit(rownames(exp_matrix), "-")
-    tmp = unlist(lapply(tmp, function(x) paste(x[[1]], x[[2]], x[[3]], sep = "-")))
-    rownames(exp_matrix) <- unlist(tmp)
-    exp_matrix$donorId <- rownames(exp_matrix)
-    exp_matrix <- dplyr::select(exp_matrix, -c(bcr, patient))
+    # Convert all batch covaraites into numeric
+    if (addBatch & numericBatch) {
+        for (name in batches) {
+            c = grep(name, colnames(exp_matrix))
+            which.one <- which( levels(exp_matrix[,c]) == "")
+            levels(exp_matrix[,c])[which.one] <- NA
+            print(paste0(colnames(exp_matrix)[c], " is converted to numeric"))
+            exp_matrix[,c] = sapply(sapply(exp_matrix[,c], as.factor), as.numeric) 
+        } 
+    } else if(!addBatch & numericBatch) {
+            warning("No batch varaible added, not converted to numeric.")
+        }
+
+    if(primaryTumorOnly & formatPatient) {
+        rownames(exp_matrix) = format_tcga_patient(rownames(exp_matrix))
+    } else if (!primaryTumorOnly & formatPatient) {
+       warning("Formatting tumor barcode without first selecting for primary tumor will result in duplicated entries, not formatting patient barcode.")
+    }
 
     return(exp_matrix)
 }
@@ -228,6 +235,11 @@ convert_col_to_numeric <- function(clin_df) {
     }
     return(clin_df)
 }
+
+
+#' Only keep the first three TCGA barcode item: project, TSS and participants. This is useful for merging with clinical data frames, but not for tissue-based data.
+#' 
+#' @param pat_ls [string vector] list with strings of TCGA barcode
 
 format_tcga_patient <- function(pat_ls) {
     tmp = strsplit(pat_ls, "-")
