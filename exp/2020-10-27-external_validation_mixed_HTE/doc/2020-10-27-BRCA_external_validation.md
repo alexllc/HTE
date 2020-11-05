@@ -76,3 +76,5 @@ According to [collins2014](https://doi.org/10.1186/1471-2288-14-40), you should 
     - Vales of R-loss criterion ("debiased.error" column)
     - Calibration with built in `test_calibration` function
     
+#### Considerations
+- Perhaps we should not perform prediction on datasets other than

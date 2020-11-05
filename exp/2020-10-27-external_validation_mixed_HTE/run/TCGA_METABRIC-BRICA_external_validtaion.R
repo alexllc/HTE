@@ -10,8 +10,8 @@ for (bin in bin_ls){
 
 # Download METABRIC and TCGA files from cBioportal if not already done so, these two conditions prevents script progression if raw files not available, you will need to extract 
 if( !file.exists("./raw/cbioportal_METABRIC/")) {
-    download.file("http://download.cbioportal.org/brca_metabric.tar.gz", "~/raw/")
-    untar("./raw/brca_metabric.tar.gz", exdir = )
+    download.file("http://download.cbioportal.org/brca_metabric.tar.gz", "./raw/")
+    untar("./raw/brca_metabric.tar.gz", exdir = "./dat/METABRIC-TCGA_external_validation/")
 }
 
 if (!file.exists("./dat/METABRIC-TCGA_external_validation/")){
