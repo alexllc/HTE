@@ -1,7 +1,7 @@
 # Functions for running HTE
 
 
-extract.freq.mutation <- function(dataset, pos, threshold, is.binary = TRUE){
+extract.freq.mutation <- function(dataset, pos, threshold, is.binary = TRUE) {
     # @dataset mutation dataset
     # @pos the position where mutation variables start
     # @threshold threshold for frequent mutation
@@ -34,12 +34,15 @@ setMethod("append", signature(x = "data.frame", values = "vector"),
     }
 )
 
-run.hte <- function(covar_mat, tx_vector, whole_dataset, project, diffCovarTxTypes = FALSE, txdirct = NULL, trainId, seed = NULL, is.binary = TRUE, is_save = T, save_split = T, is.tuned = F, thres = 0.75, n_core = 8, output_directory = NULL, skip_perm = FALSE){
+run.hte <- function(covar_mat, tx_vector, whole_dataset, project, 
+                    diffCovarTxTypes = FALSE, txdirct = NULL, trainId, seed = NULL,
+                    is.binary = TRUE, is_save = T, save_split = T, is.tuned = F, thres = 0.75,
+                    n_core = 8, output_directory = NULL, skip_perm = FALSE, datType = "UQ") {
     # @covar_mat: covariates matrix (with treatment assignments as well if each of the covariates are taking turns to be analyzed as treatments). Treatment assignments can be binary or continuous.
     # @tx_vector: a vector of variables that will each be used as treatments
     # @whole_dataset: dataframe with outcome, covariates and treatment assignments
     # @is.tuned is consistent within the scope of function, thus it only needs to be set once here.
-    
+
     correlation.test.ret <- data.frame(gene = character(),
                                        simes.pval = double(),
                                        partial.simes.pval = double(),
@@ -69,18 +72,18 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, diffCovarTxTyp
                                   diff.pred.pval = double(),
                                   stringsAsFactors = FALSE)
 
-    permutate.testing.ret <- data.frame(gene = character(),                                       
+    permutate.testing.ret <- data.frame(gene = character(),
                                         var.pval = double(),
                                         fixed.YW.risk.pval = double(),
                                         stringsAsFactors = FALSE)
 
-    observed.tau.risk.var.ret <- data.frame(gene = character(),                                       
+    observed.tau.risk.var.ret <- data.frame(gene = character(),
                                             var = double(),
                                             fixed.YW.risk = double(),
                                             stringsAsFactors = FALSE)
-    
-    
-    
+
+
+
     no.obs <- dim(covar_mat)[1]
     no.obs.train <- length(trainId)
     no.obs.test <- no.obs - no.obs.train
@@ -88,52 +91,54 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, diffCovarTxTyp
     Y <- whole_dataset$outcome
 
     cf.estimator <- ifelse(is.tuned, cf.tuned, cf)
-    
-    i = 1
-    for(tx in tx_vector){
-        
+
+    i <- 1
+    for (tx in tx_vector) {
+
+        print(paste0(c('#', rep('-', 40), ' begin a new treatment ', rep('-', 40)), collapse = ''))
+
         # since treatment variable is 0 or 1, if the feature considered is binary, then no transformation is neeeded;
         # otherwise, we set values of the feature greater than specific quantile, say 0.75, to 1
 
         treatment <- covar_mat[, tx] # it has been confirmed that grf can deal with continuous treatment variable
 
-        treatment = assign_tx(binary = is.binary, upperQ = txdirct[tx], thres = thres, treatment = treatment) # Use the assign_tx function to convert treatment vector
-        
+        treatment <- assign_tx(binary = is.binary, upperQ = txdirct[tx], thres = thres, treatment = treatment) # Use the assign_tx function to convert treatment vector
+
         # Check if we have enough tx observations
-        if( (length(unique(treatment)) == 1 | sum(treatment) < length(treatment)*0.1) & datType != "mutation") {
+        if ((length(unique(treatment)) == 1 | sum(treatment) < length(treatment)*0.1) & datType != "mutation") {
             print("Not enough obseravtaions for this treatment, skipping.")
             next
-        }  
+        }
 
         if (!diffCovarTxTypes) X.covariates <- as.matrix(dplyr::select(covar_mat, -tx))
-        
-        print(paste0(c('#', rep('-', 40), ' begin a new treatment ', rep('-', 40)), collapse = ''))
-        
+
+        # print(paste0(c('#', rep('-', 40), ' begin a new treatment ', rep('-', 40)), collapse = ''))
+
         print(paste0("Processing ", i, " of ", length(tx_vector), " genes."))
-        i = i+1
-        
+        i <- i+1
+
         # split whole dataset into two parts, and the idea of validation is similar to prediction strength.
-        
+
         col_names <- c('simes.pval', 'partial.simes.pval', 'pearson.estimate','pearson.pvalue', 'kendall.estimate','kendall.pvalue', 'spearman.estimate','spearman.pvalue', 'fisher.pval', 't.test.a.pval', 't.test.b.pval')
 
         #test
         file_prefix = paste0(output_directory, project, "_", tx)
 
         print(file_prefix)
-        
+
         print("Performing split half.")
-        pvalues <- try(split_half_testing(X.covariates, Y, 
-                                treatment, 
-                                binary = is.binary, 
-                                is_save = is_save, 
-                                save_split = save_split, 
+        pvalues <- try(split_half_testing(X.covariates, Y,
+                                treatment,
+                                binary = is.binary,
+                                is_save = is_save,
+                                save_split = save_split,
                                 varimp_names = colnames(X.covariates),
                                 is_tuned = is.tuned,
                                 file_prefix = file_prefix,
-                                col_names = col_names, 
+                                col_names = col_names,
                                 seed = seed)
             )
-        if(class(pvalues) == "try-error") next
+        if (class(pvalues) == "try-error") next
 
 
         cat('Treatment name:', tx, fill = T)
@@ -141,18 +146,18 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, diffCovarTxTyp
         cat('pearson correlation pval in trainset:', pvalues[4], fill = T)
         cat('kedall correlation pval in trainset:', pvalues[6], fill = T)
         cat('spearman correlation pval in trainset:', pvalues[8], fill = T)
-        
+
         # append results to correspoding dataframes
         current_ret <- do.call('c', list(list(tx), as.list(pvalues[1: 8])))
         correlation.test.ret <- append(correlation.test.ret, current_ret)
         two_sample_test_ret <- do.call('c', list(list(tx), pvalues[9: 11]))
         double.dataset.test.ret <- append(double.dataset.test.ret, two_sample_test_ret)
-                                                                                         
+
         # *****************************************************************************************
         # fit causal forest on the whole dataset
         # validate fitting with permutating covariates
         # *****************************************************************************************
-        print("Fitting CF on the whole dataset.")        
+        print("Fitting CF on the whole dataset.")
         tau.forest <- cf.estimator(X.covariates, Y, treatment)   # run causal forests by default
         tau.prediction <- predict(tau.forest, newdata = NULL, estimate.variance = TRUE, num.threads = n_core)
         tau.var <- var(tau.prediction$predictions)
@@ -162,10 +167,12 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, diffCovarTxTyp
         simes.pval <- simes.test(tau_stats[, 3])
         partial.simes.pval <- simes.partial(floor(no.obs * 0.05), tau_stats[, 3])
 
-        if(simes.pval <= 0.05 & skip_perm == FALSE) { 
+        print(paste0("simes.pval is ", simes.pval))
+
+        if(simes.pval <= 0.05 & skip_perm == FALSE) {
             print("Performing permutation.")
-            cor.overall <- cor.test(covar_mat[, tx], Y, method = 'pearson', alternative = 'greater', use="na.or.complete")
-            
+            cor.overall <- cor.test(covar_mat[, tx], Y, method = 'pearson', alternative = 'greater', use = "na.or.complete")
+
             # save the result
             pred.ret <- cbind(whole_dataset$donorId, tau_stats) 
             colnames(pred.ret) <- c('donorId', 'tau.val', 'tau.zval', 'tau.pval', 'tau.p.adjust')
@@ -199,23 +206,23 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, diffCovarTxTyp
             # observed is more likey to be smaller tau risk from permutation.
             fixed.YW.tau.risk <- assess.explained.tau.fixed.YW.risk(tau.forest, Y, Y.hat, treatment, W.hat)
 
-            perm.pvals <- adaptive.permutate.covariates.testing(X.covariates, 
-                                                                Y, Y.hat, 
-                                                                treatment, 
-                                                                W.hat, 
+            perm.pvals <- adaptive.permutate.covariates.testing(X.covariates,
+                                                                Y, Y.hat,
+                                                                treatment,
+                                                                W.hat,
                                                                 fixed.YW.tau.risk,
-                                                                tau.var,  
+                                                                tau.var,
                                                                 is_tuned = is.tuned,
-                                                                is_save = is_save, 
-                                                                file_prefix = file_prefix, 
-                                                                num_trees = 1000, 
+                                                                is_save = is_save,
+                                                                file_prefix = file_prefix,
+                                                                num_trees = 1000,
                                                                 num.strap = 500)
-            
+
             perm_pval_record <- do.call('c', list(list(tx), as.list(perm.pvals)))
             perm_var_risk_record <- do.call('c', list(list(tx), as.list(c(tau.var, fixed.YW.tau.risk))))
 
-            permutate.testing.ret <- append(permutate.testing.ret, perm_pval_record)    
-            observed.tau.risk.var.ret <- append(observed.tau.risk.var.ret, perm_var_risk_record)    
+            permutate.testing.ret <- append(permutate.testing.ret, perm_pval_record)
+            observed.tau.risk.var.ret <- append(observed.tau.risk.var.ret, perm_var_risk_record)
 
             print(paste0('pval of variance by permutation covariates:', perm.pvals[1]))
             print(paste0('pval of tau.risk (fixed YW) by permutation covariates:', perm.pvals[2]))
@@ -227,8 +234,8 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project, diffCovarTxTyp
         } else {
             print("Skipping permutation.")
         }
-        
-        
+
+
     }
     return(list(correlation.test.ret, calibration.ret, double.dataset.test.ret, permutate.testing.ret, observed.tau.risk.var.ret))
 }
