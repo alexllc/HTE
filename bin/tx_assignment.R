@@ -10,7 +10,7 @@
 
 assign_tx <- function(binary = TRUE, upperQ = NULL, thres = 0.75, treatment = NULL) {
     if(binary){
-        if (upperQ != NULL) {
+        if (!is.null(upperQ) ) {
             if(upperQ) {
                 treatment = as.numeric(treatment > quantile(treatment, thres))
             } else {

@@ -170,11 +170,11 @@ split_half_testing <- function(covariates, Y,
         tau.b.stats <- compute_stats(tau.pred.test.b)
 
         if(save_split){
-            observation_result.a[trainId,] <- tau.a.train.stats
-            observation_result.a[-trainId,] <- tau.a.stats
+            observation_result.a[trainId,] <- as.matrix(tau.a.train.stats)
+            observation_result.a[-trainId,] <- as.matrix(tau.a.stats)
             write.csv(observation_result.a, file = paste0(file_prefix,   '_observation_', i, '_result_a.csv'))
-            observation_result.b[-trainId,] <- tau.b.train.stats 
-            observation_result.b[trainId,] <- tau.b.stats
+            observation_result.b[-trainId,] <- as.matrix(tau.b.train.stats )
+            observation_result.b[trainId,] <- as.matrix(tau.b.stats)
             write.csv(observation_result.b, file = paste0(file_prefix,  '_observation_', i,'_result_b.csv'))
             
             # Extract varimp from each of the split half forest (Jun 13, 2020 @alex)
