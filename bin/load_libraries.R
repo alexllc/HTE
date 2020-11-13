@@ -5,6 +5,7 @@ library(readxl)
 library(TCGAbiolinks)
 library(dplyr)
 library(tidyr)
+library(tibble)
 library(NNMIS)
 
 # For survival_imputation, not necessary if you use NNMIS, NNMIS will load this package on its own

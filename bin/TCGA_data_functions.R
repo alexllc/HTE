@@ -64,11 +64,12 @@ impute_with_NNMIS <- function(clin_df, type = "TCGA", outParam = "OS", onlyExpor
 #' 
 #' [string] TCGA cancer cancer_type code
 #' @param outParam [string] outcome parameter to be examined, default is OS, but you can select from OS, PFI, DFI or DSS.
+#' @param outUnitDays2Month whether to convert outcome unit from days to months
 #' @param imputeMethod [string] ways to impute outcome length missing due to censoring issues, default is a simple KM plot.
 #' @param onlyCompleteCases [bool] whether to return complete cases only, not recommended for prognostic models in general
 #' @param col_vec [vector] of columns that need to be retreived from the TCGA-CDR, the basic requirements for NNMIS imputation is provided as default.
 #' @return [dataframe] clinical info with the "donorId" column as patient code and other selected clinical columns converted to numeric
-fetch_clinical_data <- function(cancer_type, outParam = "OS", imputeMethod = "simple", onlyCompleteCases = FALSE, col_vec =  c("bcr_patient_barcode", "type", "age_at_initial_pathologic_diagnosis",  "gender", "ajcc_pathologic_tumor_stage", "tumor_status", outParam, paste0(outParam, ".time"))) {
+fetch_clinical_data <- function(cancer_type, outParam = "OS", outUnitDays2Month = FALSE, imputeMethod = "simple", onlyCompleteCases = FALSE, col_vec =  c("bcr_patient_barcode", "type", "age_at_initial_pathologic_diagnosis",  "gender", "ajcc_pathologic_tumor_stage", "tumor_status", outParam, paste0(outParam, ".time"))) {
     if (!file.exists("./dat/TCGA-CDR-SupplementalTableS1.xlsx")) {
         download.file("https://ars.els-cdn.com/content/image/1-s2.0-S0092867418302290-mmc1.xlsx", "./dat/TCGA-CDR-SupplementalTableS1.xlsx") }
 
@@ -85,7 +86,8 @@ fetch_clinical_data <- function(cancer_type, outParam = "OS", imputeMethod = "si
     clinical_dat <- dplyr::filter(clinical_dat, type == cancer_type)
     
     if (imputeMethod == "simple") {
-        imput_surv = exp(impute.survival(clinical_dat$out_param_time, clinical_dat$out_param)) / 30.417 # reverse log and convert days to months for better interpretation. Converting ratio 30.417 is an approximate value used by Google.
+        imput_surv = exp(impute.survival(clinical_dat$out_param_time, clinical_dat$out_param))
+        if (outUnitDays2Month) imput_surv = imput_surv / 30.417 # reverse log and convert days to months for better interpretation. Converting ratio 30.417 is an approximate value used by Google.
         clinical_dat$outcome = imput_surv
         # Variable type conversion is not intrinsically implemented in the impute.survival function, so it must implemented here.
         clinical_dat = convert_col_to_numeric(clinical_dat)
@@ -181,17 +183,26 @@ fetch_exp_data <- function(cancer_type, addBatch = TRUE, numericBatch = TRUE, sc
 
     # Address batch effects by extending tissue source, aliquot, plate and sequencing center as additional covariates
     if (addBatch) {
-        exp_matrix <- cbind(separate(as.data.frame(rownames(exp_matrix)), 
+        exp_matrix = cbind(separate(as.data.frame(rownames(exp_matrix)), 
                                     "rownames(exp_matrix)", 
                                     c(NA, "TSS", "patient", NA, "portion", "plate", "center"),  # skip var with NAs
                                     sep = "-"), 
                             exp_matrix)
     }
-    # exp_matrix$bcr <- rownames(exp_matrix)
 
     # Select only one aliquot
-    if (primaryTumorOnly) exp_matrix <- as.data.frame(exp_matrix %>% group_by(patient) %>% dplyr::slice(1))
-    # rownames(exp_matrix) <- exp_matrix$bcr
+    message(paste0("Expression matrix size went from :", dim(exp_matrix)[1], " * ", dim(exp_matrix)[2]))
+    prev_sample = rownames(exp_matrix)
+    if (primaryTumorOnly) exp_matrix <- as.data.frame(exp_matrix %>% rownames_to_column("donorId") %>%group_by(patient) %>% dplyr::slice(1) %>% column_to_rownames("donorId"))
+    message(paste0("to :", dim(exp_matrix)[1], " * ", dim(exp_matrix)[2]))
+    # Report duplicate
+    miss_sample = prev_sample[!(prev_sample %in% rownames(exp_matrix))]
+    for (sample in miss_sample){
+        matches = strsplit(sample, "-")[[1]][3]
+        prev_match = prev_sample[grep(matches, prev_sample)]
+        selected_match = rownames(exp_matrix)[grep(matches, rownames(exp_matrix))]
+        prev_match = prev_match 
+    }
 
     batches = c("TSS", "patient", "portion", "plate", "center")
 
@@ -245,4 +256,44 @@ format_tcga_patient <- function(pat_ls) {
     tmp = strsplit(pat_ls, "-")
     tmp = unlist(lapply(tmp, function(x) paste(x[[1]], x[[2]], x[[3]], sep = "-")))
     return(unlist(tmp))
+}
+
+
+#' Function to filter technical replicates in TCGA samples
+#' Doc: exp/2020-10-07_TCGA_mixed_mut_tx_exp_covar_HTE/doc/2020-11-12_technical_replicates_in_TCGA.md
+#' 
+#' @source \url{http://gdac.broadinstitute.org/runs/stddata__2014_01_15/samples_report/READ_Replicate_Samples.html}
+#' @param bcr list of barcodes
+#' 
+#' @return subset of the list of barcodes
+#' 
+filter_replicate_samples <- function(bcr) {
+    if ( all(grepl(".{19}[RHT]", bcr)) ) { 
+        type = "RNA"
+    } else if (all (grepl(".{19}[DGWX]"))) {
+       type = "DNA"
+    } else {
+        stop("Mixing RNA and DNA samples not allowed.")
+    }
+    bcr_df = cbind(separate(as.data.frame(bcr), 
+                                    "bcr", 
+                                    c("project", "TSS", "patient", "sample,vial", "portion,analyte", "plate", "center"),  # skip var with NAs
+                                    sep = "-"), 
+                                    bcr)
+    bcr_df = separate(bcr_df, col = "sample,vial", into = c("sample", "vial"), sep = 2)
+    bcr_df = separate(bcr_df, col = "portion,analyte", into = c("portion", "analyte"), sep = 2)
+    bcr_df = bcr_df %>% arrange(analyte, desc(plate), desc(portion)) %>% group_by(TSS, patient, sample) %>% slice(1)
+    
+    out_tbl = data.frame()
+    dup_samples = unique(substr(bcr[!(bcr %in% bcr_df$bcr)], 1, 15))
+    for (dupbcr in dup_samples) {
+        kept = as.character(bcr_df[grep(dupbcr, bcr_df$bcr),10])
+        removed = bcr[grep(dupbcr, bcr)]
+        removed = paste(removed[!(removed %in% kept)], collapse = ", ")
+        out_tbl = rbind(out_tbl, c(kept, removed))
+    }
+    colnames(out_tbl) = c("chosen", "removed")
+    print(paste0("removed the following samples: ", )
+    out_tbl
+    return(bcr_df$bcr)
 }
