@@ -70,6 +70,8 @@ If there are still replicate left, use
 | chosen  | `TCGA-A6-6650-01B-02D-A274-01` |
 | removed | `TCGA-06-0138-01A-01D-0236-01` |
 | chosen  | `TCGA-06-0138-01A-02D-0236-01` |
+| removed | `TCGA-06-0211-01A-01R-1849-01`  |
+| chosen  | `TCGA-06-0211-01B-01R-1849-01` |
 
 The whole list of replicate filtering example can be found in http://gdac.broadinstitute.org/runs/stddata__2014_01_15/samples_report/filteredSamples.2014_01_15__00_00_11.txt
 

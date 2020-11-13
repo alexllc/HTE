@@ -151,7 +151,7 @@ fetch_mut_data <- function(cancer_type) {
 #' @return [matrix] with a "donorId" column for patient id, optionally with batch variables and ~50k genes as columns. The entries are 
 #' 
 
-fetch_exp_data <- function(cancer_type, addBatch = TRUE, numericBatch = TRUE, scale = FALSE, primaryTumorOnly = FALSE, formatPatient = FALSE) {
+fetch_exp_data <- function(cancer_type, addBatch = TRUE, numericBatch = TRUE, scale = FALSE, primaryTumorOnly = FALSE, keepAllAliquot = TRUE, formatPatient = FALSE) {
     if (!file.exists(paste0("./dat/HTSeqData/", cancer_type, "_exp.rda")) ) {
     
     # Fetch expression data from GDC
@@ -190,23 +190,14 @@ fetch_exp_data <- function(cancer_type, addBatch = TRUE, numericBatch = TRUE, sc
                             exp_matrix)
     }
 
-    # Select only one aliquot
+    # Select the best aliquot
     message(paste0("Expression matrix size went from :", dim(exp_matrix)[1], " * ", dim(exp_matrix)[2]))
-    prev_sample = rownames(exp_matrix)
-    if (primaryTumorOnly) exp_matrix <- as.data.frame(exp_matrix %>% rownames_to_column("donorId") %>%group_by(patient) %>% dplyr::slice(1) %>% column_to_rownames("donorId"))
+    subset_bcr = filter_replicate_samples(rownames(exp_matrix))
+    exp_matrix = exp_matrix[subset_bcr,]
     message(paste0("to :", dim(exp_matrix)[1], " * ", dim(exp_matrix)[2]))
-    # Report duplicate
-    miss_sample = prev_sample[!(prev_sample %in% rownames(exp_matrix))]
-    for (sample in miss_sample){
-        matches = strsplit(sample, "-")[[1]][3]
-        prev_match = prev_sample[grep(matches, prev_sample)]
-        selected_match = rownames(exp_matrix)[grep(matches, rownames(exp_matrix))]
-        prev_match = prev_match 
-    }
-
-    batches = c("TSS", "patient", "portion", "plate", "center")
-
+    
     # Convert all batch covaraites into numeric
+    batches = c("TSS", "patient", "portion", "plate", "center")
     if (addBatch & numericBatch) {
         for (name in batches) {
             c = grep(name, colnames(exp_matrix))
@@ -219,6 +210,7 @@ fetch_exp_data <- function(cancer_type, addBatch = TRUE, numericBatch = TRUE, sc
             warning("No batch varaible added, not converted to numeric.")
         }
 
+    # Remove extra barcode entries for clinical data merge
     if(primaryTumorOnly & formatPatient) {
         rownames(exp_matrix) = format_tcga_patient(rownames(exp_matrix))
     } else if (!primaryTumorOnly & formatPatient) {
@@ -264,13 +256,27 @@ format_tcga_patient <- function(pat_ls) {
 #' 
 #' @source \url{http://gdac.broadinstitute.org/runs/stddata__2014_01_15/samples_report/READ_Replicate_Samples.html}
 #' @param bcr list of barcodes
+#' @param verbose print out which barcodes are kept and which ones are filtered
 #' 
 #' @return subset of the list of barcodes
 #' 
-filter_replicate_samples <- function(bcr) {
+#' @examples 
+#' download.file("http://gdac.broadinstitute.org/runs/stddata__2014_01_15/samples_report/filteredSamples.2014_01_15__00_00_11.txt", "samples_filter.txt")
+#'
+#' test = read.table("samples_filter.txt", sep = "\t", header = T)
+#' commas_bcr = unlist(strsplit(test_bcr[grepl(",", test_bcr)], ","))
+#' test_bcr = c(test_bcr[!grepl(",", test_bcr)], commas_bcr, test$Chosen.Sample)
+#' test_dna = test_bcr[grepl(".{19}[RHT]", test_bcr)]
+#' test_rna = test_bcr[grepl(".{19}[DGWX]", test_bcr)]
+#' filter_test_dna = filter_replicate_samples(test_dna, verbose = F)
+#' filter_test_rna = filter_replicate_samples(test_rna, verbose = F)
+#' if (all(filter_test_dna %in% test$Chosen.Sample) & all(filter_test_rna %in% test$Chosen.Sample)) { message("Filter passed.")
+#' } else {message("Filter failed.")}
+#' 
+filter_replicate_samples <- function(bcr, verbose = TRUE) {
     if ( all(grepl(".{19}[RHT]", bcr)) ) { 
         type = "RNA"
-    } else if (all (grepl(".{19}[DGWX]"))) {
+    } else if (all (grepl(".{19}[DGWX]", bcr))) {
        type = "DNA"
     } else {
         stop("Mixing RNA and DNA samples not allowed.")
@@ -282,18 +288,21 @@ filter_replicate_samples <- function(bcr) {
                                     bcr)
     bcr_df = separate(bcr_df, col = "sample,vial", into = c("sample", "vial"), sep = 2)
     bcr_df = separate(bcr_df, col = "portion,analyte", into = c("portion", "analyte"), sep = 2)
-    bcr_df = bcr_df %>% arrange(analyte, desc(plate), desc(portion)) %>% group_by(TSS, patient, sample) %>% slice(1)
+
+    # Selecting one aliquot based on GDC's Analyte Replicate Filter and Sort Replicate Filter rules
+    bcr_df = bcr_df %>% arrange(analyte, desc(plate), desc(bcr)) %>% group_by(TSS, patient, sample) %>% slice(1)
     
     out_tbl = data.frame()
     dup_samples = unique(substr(bcr[!(bcr %in% bcr_df$bcr)], 1, 15))
     for (dupbcr in dup_samples) {
         kept = as.character(bcr_df[grep(dupbcr, bcr_df$bcr),10])
         removed = bcr[grep(dupbcr, bcr)]
-        removed = paste(removed[!(removed %in% kept)], collapse = ", ")
+        removed = paste(removed[!(removed %in% kept)], collapse = ",")
         out_tbl = rbind(out_tbl, c(kept, removed))
     }
     colnames(out_tbl) = c("chosen", "removed")
-    print(paste0("removed the following samples: ", )
-    out_tbl
+    print("The following changes are made: " )
+    if (verbose) print(out_tbl)
+
     return(bcr_df$bcr)
 }
