@@ -276,6 +276,7 @@ format_tcga_patient <- function(pat_ls) {
 filter_replicate_samples <- function(bcr, verbose = TRUE) {
     if ( all(grepl(".{19}[RHT]", bcr)) ) { 
 <<<<<<< HEAD
+<<<<<<< HEAD
         type = "RNA"
     } else if (all (grepl(".{19}[DGWX]", bcr))) {
        type = "DNA"
@@ -284,6 +285,11 @@ filter_replicate_samples <- function(bcr, verbose = TRUE) {
     } else if (all (grepl(".{19}[DGWX]"))) {
        type <- "DNA"
 >>>>>>> a7e66f5c0cc07d7a82b42093f15098e8f4007723
+=======
+        type <- "RNA"
+    } else if (all (grepl(".{19}[DGWX]"))) {
+       type <- "DNA"
+>>>>>>> 747b536... Fix a bug in filter_replicate_samples, if no sample needs to be removed, will raise an error
     } else {
         stop("Mixing RNA and DNA samples not allowed.")
     }
@@ -295,6 +301,7 @@ filter_replicate_samples <- function(bcr, verbose = TRUE) {
                                     c("project", "TSS", "patient", "sample,vial", "portion,analyte", "plate", "center"),  # skip var with NAs
                                     sep = "-"),
                                     bcr)
+<<<<<<< HEAD
 <<<<<<< HEAD
     bcr_df = separate(bcr_df, col = "sample,vial", into = c("sample", "vial"), sep = 2)
     bcr_df = separate(bcr_df, col = "portion,analyte", into = c("portion", "analyte"), sep = 2)
@@ -344,3 +351,29 @@ filter_replicate_samples <- function(bcr, verbose = TRUE) {
     }
 }
 >>>>>>> a7e66f5c0cc07d7a82b42093f15098e8f4007723
+=======
+    bcr_df <- separate(bcr_df, col = "sample,vial", into = c("sample", "vial"), sep = 2)
+    bcr_df <- separate(bcr_df, col = "portion,analyte", into = c("portion", "analyte"), sep = 2)
+    bcr_df <- bcr_df %>% arrange(analyte, desc(plate), desc(portion)) %>% group_by(TSS, patient, sample) %>% slice(1)
+
+    new_len <- length(bcr_df$bcr)
+
+    if (new_len == old_len) {
+        print("No sample needs to be removed.")
+        return(bcr_df$bcr)
+    } else {
+        out_tbl <- data.frame()
+        dup_samples <- unique(substr(bcr[!(bcr %in% bcr_df$bcr)], 1, 15))
+        for (dupbcr in dup_samples) {
+            kept <- as.character(bcr_df[grep(dupbcr, bcr_df$bcr), 10])
+            removed <- bcr[grep(dupbcr, bcr)]
+            removed <- paste(removed[!(removed %in% kept)], collapse = ", ")
+            out_tbl <- rbind(out_tbl, c(kept, removed))
+        }
+        colnames(out_tbl) <- c("chosen", "removed")
+        print(paste0("removed the following samples: ", out_tbl$removed))
+        # out_tbl
+        return(bcr_df$bcr)
+    }
+}
+>>>>>>> 747b536... Fix a bug in filter_replicate_samples, if no sample needs to be removed, will raise an error
