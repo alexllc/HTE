@@ -269,31 +269,41 @@ format_tcga_patient <- function(pat_ls) {
 #' 
 filter_replicate_samples <- function(bcr) {
     if ( all(grepl(".{19}[RHT]", bcr)) ) { 
-        type = "RNA"
+        type <- "RNA"
     } else if (all (grepl(".{19}[DGWX]"))) {
-       type = "DNA"
+       type <- "DNA"
     } else {
         stop("Mixing RNA and DNA samples not allowed.")
     }
-    bcr_df = cbind(separate(as.data.frame(bcr), 
-                                    "bcr", 
+
+    old_len <- length(bcr)
+
+    bcr_df <- cbind(separate(as.data.frame(bcr),
+                                    "bcr",
                                     c("project", "TSS", "patient", "sample,vial", "portion,analyte", "plate", "center"),  # skip var with NAs
-                                    sep = "-"), 
+                                    sep = "-"),
                                     bcr)
-    bcr_df = separate(bcr_df, col = "sample,vial", into = c("sample", "vial"), sep = 2)
-    bcr_df = separate(bcr_df, col = "portion,analyte", into = c("portion", "analyte"), sep = 2)
-    bcr_df = bcr_df %>% arrange(analyte, desc(plate), desc(portion)) %>% group_by(TSS, patient, sample) %>% slice(1)
-    
-    out_tbl = data.frame()
-    dup_samples = unique(substr(bcr[!(bcr %in% bcr_df$bcr)], 1, 15))
-    for (dupbcr in dup_samples) {
-        kept = as.character(bcr_df[grep(dupbcr, bcr_df$bcr),10])
-        removed = bcr[grep(dupbcr, bcr)]
-        removed = paste(removed[!(removed %in% kept)], collapse = ", ")
-        out_tbl = rbind(out_tbl, c(kept, removed))
+    bcr_df <- separate(bcr_df, col = "sample,vial", into = c("sample", "vial"), sep = 2)
+    bcr_df <- separate(bcr_df, col = "portion,analyte", into = c("portion", "analyte"), sep = 2)
+    bcr_df <- bcr_df %>% arrange(analyte, desc(plate), desc(portion)) %>% group_by(TSS, patient, sample) %>% slice(1)
+
+    new_len <- length(bcr_df$bcr)
+
+    if (new_len == old_len) {
+        print("No sample needs to be removed.")
+        return(bcr_df$bcr)
+    } else {
+        out_tbl <- data.frame()
+        dup_samples <- unique(substr(bcr[!(bcr %in% bcr_df$bcr)], 1, 15))
+        for (dupbcr in dup_samples) {
+            kept <- as.character(bcr_df[grep(dupbcr, bcr_df$bcr), 10])
+            removed <- bcr[grep(dupbcr, bcr)]
+            removed <- paste(removed[!(removed %in% kept)], collapse = ", ")
+            out_tbl <- rbind(out_tbl, c(kept, removed))
+        }
+        colnames(out_tbl) <- c("chosen", "removed")
+        print(paste0("removed the following samples: ", out_tbl$removed))
+        # out_tbl
+        return(bcr_df$bcr)
     }
-    colnames(out_tbl) = c("chosen", "removed")
-    print(paste0("removed the following samples: ", )
-    out_tbl
-    return(bcr_df$bcr)
 }
