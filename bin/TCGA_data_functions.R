@@ -301,8 +301,10 @@ filter_replicate_samples <- function(bcr, verbose = TRUE) {
         out_tbl = rbind(out_tbl, c(kept, removed))
     }
     colnames(out_tbl) = c("chosen", "removed")
-    print("The following changes are made: " )
-    if (verbose) print(out_tbl)
+     if (verbose) {
+      print("The following changes are made: " )
+      print(out_tbl)
+    }
 
     return(bcr_df$bcr)
 }
