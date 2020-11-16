@@ -68,8 +68,15 @@ impute_with_NNMIS <- function(clin_df, type = "TCGA", outParam = "OS", onlyExpor
 #' @param imputeMethod [string] ways to impute outcome length missing due to censoring issues, default is a simple KM plot.
 #' @param onlyCompleteCases [bool] whether to return complete cases only, not recommended for prognostic models in general
 #' @param col_vec [vector] of columns that need to be retreived from the TCGA-CDR, the basic requirements for NNMIS imputation is provided as default.
+#' @param discard clinical columns to get rid of
 #' @return [dataframe] clinical info with the "donorId" column as patient code and other selected clinical columns converted to numeric
-fetch_clinical_data <- function(cancer_type, outParam = "OS", outUnitDays2Month = FALSE, imputeMethod = "simple", onlyCompleteCases = FALSE, col_vec =  c("bcr_patient_barcode", "type", "age_at_initial_pathologic_diagnosis",  "gender", "ajcc_pathologic_tumor_stage", "tumor_status", outParam, paste0(outParam, ".time"))) {
+fetch_clinical_data <- function(cancer_type, 
+                                outParam = "OS", 
+                                outUnitDays2Month = FALSE, 
+                                imputeMethod = "simple", 
+                                onlyCompleteCases = FALSE, 
+                                col_vec =  c("bcr_patient_barcode", "type", "age_at_initial_pathologic_diagnosis",  "gender", "ajcc_pathologic_tumor_stage", "tumor_status", outParam, paste0(outParam, ".time")), 
+                                discard = c("type")) {
     if (!file.exists("./dat/TCGA-CDR-SupplementalTableS1.xlsx")) {
         download.file("https://ars.els-cdn.com/content/image/1-s2.0-S0092867418302290-mmc1.xlsx", "./dat/TCGA-CDR-SupplementalTableS1.xlsx") }
 
@@ -94,7 +101,7 @@ fetch_clinical_data <- function(cancer_type, outParam = "OS", outUnitDays2Month 
     } else {
         clinical_dat = impute_with_NNMIS(clinical_dat)
     }
-    clinical_dat = dplyr::select(clinical_dat, -c(out_param, out_param_time))
+    clinical_dat = dplyr::select(clinical_dat, -c(out_param, out_param_time, discard))
     if (onlyCompleteCases) clinical_dat = clinical_dat[complete.cases(clinical_dat),]
     print("Processed patient dataframe: ")
 
@@ -151,7 +158,7 @@ fetch_mut_data <- function(cancer_type) {
 #' @return [matrix] with a "donorId" column for patient id, optionally with batch variables and ~50k genes as columns. The entries are 
 #' 
 
-fetch_exp_data <- function(cancer_type, addBatch = TRUE, numericBatch = TRUE, scale = FALSE, primaryTumorOnly = FALSE, keepAllAliquot = TRUE, formatPatient = FALSE) {
+fetch_exp_data <- function(cancer_type, addBatch = TRUE, numericBatch = TRUE, scale = FALSE, primaryTumorOnly = FALSE, keepAllAliquot = FALSE, formatPatient = FALSE) {
     if (!file.exists(paste0("./dat/HTSeqData/", cancer_type, "_exp.rda")) ) {
     
     # Fetch expression data from GDC
@@ -191,10 +198,12 @@ fetch_exp_data <- function(cancer_type, addBatch = TRUE, numericBatch = TRUE, sc
     }
 
     # Select the best aliquot
-    message(paste0("Expression matrix size went from :", dim(exp_matrix)[1], " * ", dim(exp_matrix)[2]))
-    subset_bcr = filter_replicate_samples(rownames(exp_matrix))
-    exp_matrix = exp_matrix[subset_bcr,]
-    message(paste0("to :", dim(exp_matrix)[1], " * ", dim(exp_matrix)[2]))
+    if (!keepAllAliquot) {
+        message(paste0("Expression matrix size went from :", dim(exp_matrix)[1], " * ", dim(exp_matrix)[2]))
+        subset_bcr = filter_replicate_samples(rownames(exp_matrix))
+        exp_matrix = exp_matrix[subset_bcr,]
+        message(paste0("to :", dim(exp_matrix)[1], " * ", dim(exp_matrix)[2]))
+    }
     
     # Convert all batch covaraites into numeric
     batches = c("TSS", "patient", "portion", "plate", "center")

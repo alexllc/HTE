@@ -37,7 +37,7 @@ setMethod("append", signature(x = "data.frame", values = "vector"),
 run.hte <- function(covar_mat, tx_vector, whole_dataset, project, 
                     diffCovarTxTypes = FALSE, txdirct = NULL, trainId, seed = NULL,
                     is.binary = TRUE, is_save = T, save_split = T, is.tuned = F, thres = 0.75,
-                    n_core = 8, output_directory = NULL, skip_perm = FALSE, datType = "UQ") {
+                    n_core = 8, output_directory = NULL, skip_perm = FALSE, skip_tx_thres = 0.1) {
     # @covar_mat: covariates matrix (with treatment assignments as well if each of the covariates are taking turns to be analyzed as treatments). Treatment assignments can be binary or continuous.
     # @tx_vector: a vector of variables that will each be used as treatments
     # @whole_dataset: dataframe with outcome, covariates and treatment assignments
@@ -107,7 +107,7 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project,
         treatment <- assign_tx(binary = is.binary, upperQ = txdirct[tx], thres = thres, treatment = treatment) # Use the assign_tx function to convert treatment vector
 
         # Check if we have enough tx observations
-        if ((length(unique(treatment)) == 1 | sum(treatment) < length(treatment)*0.1) & datType != "mutation") {
+        if ((length(unique(treatment)) == 1 | sum(treatment) < length(treatment)* skip_tx_thres)) {
             print("Not enough obseravtaions for this treatment, skipping.")
             next
         }

@@ -2,8 +2,8 @@
 #' Function for formatting treatment assignment
 #' Will require "./dat/tables" to be present
 #' 
-#' @param binary [logical] whether treatment group assignment should be made binary
-#' @param upperQ [logical] if binary = TRUE, whether set upper quantile as the treated W = 1 or untreated W = 0 group.
+#' @param binary [bool] whether treatment group assignment should be made binary
+#' @param upperQ [bool] if binary = TRUE, whether set upper quantile as the treated W = 1 or untreated W = 0 group.
 #' @param thres [numeric] where the cut-off for upperQ should be, default is 0.75.
 #' @param treatment [numeric vector] of original per patient entries, could be pharmacological, non-pharm, proxy (gene expression/mutations) etc.
 #' @return [numeric vector] formatted treatment vector
