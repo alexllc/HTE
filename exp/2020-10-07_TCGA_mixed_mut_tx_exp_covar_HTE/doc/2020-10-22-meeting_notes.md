@@ -19,13 +19,11 @@
 
 3. [Larry] LASSO / NLP (do we do this validation?)
 
-<<<<<<< HEAD
 ## To-do (for HNSC as a starter)
 
 - [ ] LM22 (from larry)
 - [ ] scRNASeq profile for tumor types (HNSC), this can be achieved by CIBERSORTx. CIBERSORTx provide a function to generate signature file based on single cell profile.
 - [ ] get DWLS (R pkg)
-=======
 ## To-do: (for HNSC as a starter)
 - [x] LM22 (from larry), LM22 is TPM based. 
     Already uploaded:
@@ -39,4 +37,3 @@
 - [x] Run CIBERSORTx using docker
   - [x] Apply token. 
   - [x] Use results from paper "The Immune Landscape of Cancer"
->>>>>>> f4f84b6cec0e4848ad8ba453c0b7f7651e44633d

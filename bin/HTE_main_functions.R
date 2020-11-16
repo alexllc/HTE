@@ -96,6 +96,8 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project,
     for (tx in tx_vector) {
 
         print(paste0(c('#', rep('-', 40), ' begin a new treatment ', rep('-', 40)), collapse = ''))
+        print(paste0("Processing ", i, " of ", length(tx_vector), " genes."))
+        i <- i+1
 
         # since treatment variable is 0 or 1, if the feature considered is binary, then no transformation is neeeded;
         # otherwise, we set values of the feature greater than specific quantile, say 0.75, to 1
@@ -113,9 +115,6 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project,
         if (!diffCovarTxTypes) X.covariates <- as.matrix(dplyr::select(covar_mat, -tx))
 
         # print(paste0(c('#', rep('-', 40), ' begin a new treatment ', rep('-', 40)), collapse = ''))
-
-        print(paste0("Processing ", i, " of ", length(tx_vector), " genes."))
-        i <- i+1
 
         # split whole dataset into two parts, and the idea of validation is similar to prediction strength.
 
