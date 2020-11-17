@@ -1,4 +1,4 @@
-# This scripte is used to process the COVID data of UKBB from kenneth
+# This script is used to process the COVID data of UKBB from kenneth
 # Created by Kai (Nov-15-2020)
 
 require(data.table)
