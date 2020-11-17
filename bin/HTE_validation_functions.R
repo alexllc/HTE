@@ -316,20 +316,20 @@ permutate.covariates.testing <- function(covariates, Y,
 }
 
 adaptive.permutate.covariates.testing <- function(X, Y, Y.hat, 
-                                                 W, W.hat, 
-                                                 fixed.YW.tau.risk, 
-                                                 tau.var, 
-                                                 is_tuned = FALSE, 
-                                                 cluster_id = NULL, 
-                                                 num_trees = 1000, 
-                                                 num.strap = 500, 
-                                                 min_perm = 10 ,
-                                                 perm_block = 5,
-                                                 conf.level = 0.99,
-                                                 BinomCI_method = "wilson",
-                                                 is_save = T, 
-                                                 file_prefix = NULL,
-                                                 seed = NULL){
+                                                  W, W.hat, 
+                                                  fixed.YW.tau.risk, 
+                                                  tau.var, 
+                                                  is_tuned = FALSE, 
+                                                  cluster_id = NULL, 
+                                                  num_trees = 1000, 
+                                                  num.strap = 500, 
+                                                  min_perm = 10 ,
+                                                  perm_block = 5,
+                                                  conf.level = 0.99,
+                                                  BinomCI_method = "wilson",
+                                                  is_save = T, 
+                                                  file_prefix = NULL,
+                                                  seed = NULL){
                                                                                                  
     # permute X to investigate whether X contribute to HTE
     # return tau.risk for each permutation
