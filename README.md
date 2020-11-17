@@ -1,9 +1,10 @@
-# Heterogeneous treatment effect
+# Using GRF to study HTE
 
-## All binaries must be run from the base directory
+## All project wide function scripts must be run from the base directory
 `setwd("~/project/HTE/")`
 
-## To source bin scripts
+To source these function scripts:
+
 ```
 bin_ls = list.files("./bin")
 for (bin in bin_ls){
