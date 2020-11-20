@@ -5,9 +5,9 @@ extract.freq.mutation <- function(dataset, pos, threshold, is_binary = TRUE) {
     # @dataset mutation dataset
     # @pos the position where mutation variables start
     # @threshold threshold for frequent mutation
-    if(is_binary == TRUE){
+    if (is_binary == TRUE) {
         mutation.count <- apply(dataset[, pos:ncol(dataset)], 2, function(x) sum(!x == 0))
-    }else{
+    } else {
         mutation.count <- apply(dataset[, pos:ncol(dataset)], 2, function(x) sum(x >= 0.75))
     }
 
@@ -52,21 +52,21 @@ setMethod("append", signature(x = "data.frame", values = "vector"),
 #' @param output_directory file paths of output files, should be created before HTE run.
 #' @param skip_perm option to override permutation requirement for quicker run.
 
-run.hte <- function(covar_mat, 
-                    tx_vector, 
-                    whole_dataset, 
+run.hte <- function(covar_mat,
+                    tx_vector,
+                    whole_dataset,
                     project,
-                    diffCovarTxTypes = FALSE, 
-                    txdirct = NULL, 
-                    trainId, 
+                    diffCovarTxTypes = FALSE,
+                    txdirct = NULL,
+                    trainId,
                     seed = NULL,
-                    is_binary = TRUE, 
-                    is_save = T, 
-                    save_split = T, 
-                    is_tuned = F, 
+                    is_binary = TRUE,
+                    is_save = T,
+                    save_split = T,
+                    is_tuned = F,
                     thres = 0.75,
-                    n_core = 8, 
-                    output_directory = NULL, 
+                    n_core = 8,
+                    output_directory = NULL,
                     skip_perm = FALSE) {
     # @covar_mat: covariates matrix (with treatment assignments as well if each of the covariates are taking turns to be analyzed as treatments). Treatment assignments can be binary or continuous.
     # @tx_vector: a vector of variables that will each be used as treatments
@@ -79,7 +79,7 @@ run.hte <- function(covar_mat,
                                        pearson.estimate = double(),
                                        pearson.pvalue = double(),
                                        kendall.estimate = double(),
-                                       kendall.pvalue = double(), 
+                                       kendall.pvalue = double(),
                                        spearman.estimate = double(),
                                        spearman.pvalue = double(),
                                        stringsAsFactors = FALSE)
@@ -138,7 +138,7 @@ run.hte <- function(covar_mat,
 
         # Check if we have enough tx observations
         if (!is_binary) {
-            if ((length(unique(treatment)) == 1 | sum(treatment == 0) < length(treatment) * skip_tx_thres)) {
+            if (length(unique(treatment)) == 1) {
                 print("Not enough obseravtaions for this treatment, skipping.")
                 next
             }
@@ -156,7 +156,7 @@ run.hte <- function(covar_mat,
                         "t.test.a.pval", "t.test.b.pval")
 
         #test
-        file_prefix = paste0(output_directory, project, "_", tx)
+        file_prefix <- paste0(output_directory, project, "_", tx)
 
         print(file_prefix)
 
@@ -172,8 +172,8 @@ run.hte <- function(covar_mat,
                                 col_names = col_names,
                                 seed = seed)
             )
-        if (class(pvalues) == "try-error") next
 
+        if (class(pvalues) == "try-error") next
 
         cat("Treatment name: ", tx, fill = T)
         cat("Fisher extact test pval in trainset: ", pvalues[9], fill = T)
@@ -203,12 +203,12 @@ run.hte <- function(covar_mat,
 
         print(paste0("simes.pval is ", simes.pval))
 
-        if(simes.pval <= 0.05 & skip_perm == FALSE) {
+        if (simes.pval <= 0.05 & skip_perm == FALSE) {
             print("Performing permutation.")
             cor.overall <- cor.test(covar_mat[, tx], Y, method = "pearson", alternative = "greater", use = "na.or.complete")
 
             # save the result
-            pred.ret <- cbind(whole_dataset$donorId, tau_stats) 
+            pred.ret <- cbind(whole_dataset$donorId, tau_stats)
             colnames(pred.ret) <- c("donorId", "tau.val", "tau.zval", "tau.pval", "tau.p.adjust")
             write.csv(pred.ret, paste0(output_directory, project, "_tau_", tx, ".csv"), quote = F, row.names = F)
 
@@ -222,8 +222,8 @@ run.hte <- function(covar_mat,
             permutated.p.val <- permutated.pval(tau.1, tau.2)
             print(paste0("p.val by permutating (Y - Y.hat) or (W - W.hat)*tau for ", tx, ":", permutated.p.val))
 
-            # test of the calibration with test_calibration from grf 
-            # as reported in Github, the pvalue from the method is not accurate. 
+            # test of the calibration with test_calibration from grf
+            # as reported in Github, the pvalue from the method is not accurate.
             calibration.fit <- test_calibration(tau.forest)
             print(paste0("mean.pred.estimate of test_calibration:", calibration.fit[1, 1], "; its pval:", calibration.fit[1, 4]))
             print(paste0("differential.pred.estimate of test_calibration:", calibration.fit[2, 1], "; its pval:", calibration.fit[2, 4]))
@@ -252,8 +252,8 @@ run.hte <- function(covar_mat,
                                                                 num_trees = 1000,
                                                                 num.strap = 500)
 
-            perm_pval_record <- do.call('c', list(list(tx), as.list(perm.pvals)))
-            perm_var_risk_record <- do.call('c', list(list(tx), as.list(c(tau.var, fixed.YW.tau.risk))))
+            perm_pval_record <- do.call("c", list(list(tx), as.list(perm.pvals)))
+            perm_var_risk_record <- do.call("c", list(list(tx), as.list(c(tau.var, fixed.YW.tau.risk))))
 
             permutate.testing.ret <- append(permutate.testing.ret, perm_pval_record)
             observed.tau.risk.var.ret <- append(observed.tau.risk.var.ret, perm_var_risk_record)
@@ -264,7 +264,7 @@ run.hte <- function(covar_mat,
             # extract feature importance and save
             varImp <- variable_importance(tau.forest,  max.depth = 4)
             varImp.ret <- data.frame(variable = colnames(X.covariates),  varImp)
-            write.csv(varImp.ret, paste0(output_directory, project, "_varimp_", tx, ".csv"), quote = F, row.names = F) 
+            write.csv(varImp.ret, paste0(output_directory, project, "_varimp_", tx, ".csv"), quote = F, row.names = F)
         } else {
             print("Skipping permutation.")
         }
