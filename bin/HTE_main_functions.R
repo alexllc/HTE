@@ -1,11 +1,11 @@
 # Functions for running HTE
 
 
-extract.freq.mutation <- function(dataset, pos, threshold, is.binary = TRUE) {
+extract.freq.mutation <- function(dataset, pos, threshold, is_binary = TRUE) {
     # @dataset mutation dataset
     # @pos the position where mutation variables start
     # @threshold threshold for frequent mutation
-    if(is.binary == TRUE){
+    if(is_binary == TRUE){
         mutation.count <- apply(dataset[, pos:ncol(dataset)], 2, function(x) sum(!x == 0))
     }else{
         mutation.count <- apply(dataset[, pos:ncol(dataset)], 2, function(x) sum(x >= 0.75))
@@ -34,14 +34,44 @@ setMethod("append", signature(x = "data.frame", values = "vector"),
     }
 )
 
-run.hte <- function(covar_mat, tx_vector, whole_dataset, project,
-                    diffCovarTxTypes = FALSE, txdirct = NULL, trainId, seed = NULL,
-                    is.binary = TRUE, is_save = T, save_split = T, is.tuned = F, thres = 0.75,
-                    n_core = 8, output_directory = NULL, skip_perm = FALSE, skip_tx_thres = 0.1) {
+#' Main function for initiating the HTE analysis with GRF, SHC and permutation
+#' 
+#' @param covar_mat n by p matrix (X) with n patients and p covariates. All covariates must be numeric, NAs are allowed as of grf (ver 1.2.0) https://grf-labs.github.io/grf/REFERENCE.html#missing-values
+#' @param tx_vector string vector of covariate names that will be taken in turns to be the treatment variable (W). All elements in the `tx_vector` should be a subset of the column names of the `covar_mat` unless `diffCovarTxTypes` is set to TRUE.
+#' @param whole_dataset n by (p + 2) matrix with n patients and the p covariates plus `donorId` and `outcome`. `whole_dataset` should be ordered the same way as the `covar_mat`
+#' @param project string varable to identify the current patient subgroup, e.g. TCGA cancer types or COVID. For naming output paths only.
+#' @param diffCovarTxTypes whether the treatment variabels are among the covaraites.
+#' @param txdirct binary vector with the same length as `tx_vector` to indicate whether to take the upper or lower quartile as the treatment group.
+#' @param trainId
+#' @param seed default set as 111.
+#' @param is_binary whether treatment vector W should be set to binary.
+#' @param is_save whether to save all the split observations in SHC.
+#' @param is_tuned whether to allow tree self-tuning.
+#' @param thres quartile threshold to select as treatment group if `is_binary` is set to TRUE.
+#' @param n_core number of cores to use in paralelle run.
+#' @param output_directory file paths of output files, should be created before HTE run.
+#' @param skip_perm option to override permutation requirement for quicker run.
+
+run.hte <- function(covar_mat, 
+                    tx_vector, 
+                    whole_dataset, 
+                    project,
+                    diffCovarTxTypes = FALSE, 
+                    txdirct = NULL, 
+                    trainId, 
+                    seed = NULL,
+                    is_binary = TRUE, 
+                    is_save = T, 
+                    save_split = T, 
+                    is_tuned = F, 
+                    thres = 0.75,
+                    n_core = 8, 
+                    output_directory = NULL, 
+                    skip_perm = FALSE) {
     # @covar_mat: covariates matrix (with treatment assignments as well if each of the covariates are taking turns to be analyzed as treatments). Treatment assignments can be binary or continuous.
     # @tx_vector: a vector of variables that will each be used as treatments
     # @whole_dataset: dataframe with outcome, covariates and treatment assignments
-    # @is.tuned is consistent within the scope of function, thus it only needs to be set once here.
+    # @is_tuned is consistent within the scope of function, thus it only needs to be set once here.
 
     correlation.test.ret <- data.frame(gene = character(),
                                        simes.pval = double(),
@@ -90,7 +120,7 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project,
 
     Y <- whole_dataset$outcome
 
-    cf.estimator <- ifelse(is.tuned, cf.tuned, cf)
+    cf.estimator <- ifelse(is_tuned, cf.tuned, cf)
 
     i <- 1
     for (tx in tx_vector) {
@@ -104,10 +134,10 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project,
 
         treatment <- covar_mat[, tx] # it has been confirmed that grf can deal with continuous treatment variable
 
-        treatment <- assign_tx(binary = is.binary, upperQ = txdirct[tx], thres = thres, treatment = treatment) # Use the assign_tx function to convert treatment vector
+        treatment <- assign_tx(binary = is_binary, upperQ = txdirct[tx], thres = thres, treatment = treatment) # Use the assign_tx function to convert treatment vector
 
         # Check if we have enough tx observations
-        if (!is.binary) {
+        if (!is_binary) {
             if ((length(unique(treatment)) == 1 | sum(treatment == 0) < length(treatment) * skip_tx_thres)) {
                 print("Not enough obseravtaions for this treatment, skipping.")
                 next
@@ -133,11 +163,11 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project,
         print("Performing split half.")
         pvalues <- try(split_half_testing(X.covariates, Y,
                                 treatment,
-                                binary = is.binary,
+                                binary = is_binary,
                                 is_save = is_save,
                                 save_split = save_split,
                                 varimp_names = colnames(X.covariates),
-                                is_tuned = is.tuned,
+                                is_tuned = is_tuned,
                                 file_prefix = file_prefix,
                                 col_names = col_names,
                                 seed = seed)
@@ -216,7 +246,7 @@ run.hte <- function(covar_mat, tx_vector, whole_dataset, project,
                                                                 W.hat,
                                                                 fixed.YW.tau.risk,
                                                                 tau.var,
-                                                                is_tuned = is.tuned,
+                                                                is_tuned = is_tuned,
                                                                 is_save = is_save,
                                                                 file_prefix = file_prefix,
                                                                 num_trees = 1000,
