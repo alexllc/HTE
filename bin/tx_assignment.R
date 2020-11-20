@@ -9,18 +9,18 @@
 #' @return [numeric vector] formatted treatment vector
 
 assign_tx <- function(binary = TRUE, upperQ = NULL, thres = 0.75, treatment = NULL) {
-    if(binary){
-        if (!is.null(upperQ) ) {
+    if (binary) {
+        if (!is.na(upperQ)) {
             if(upperQ) {
-                treatment = as.numeric(treatment > quantile(treatment, thres))
+                treatment <- as.numeric(treatment > quantile(treatment, thres))
             } else {
-                treatment  = as.numeric(treatment < quantile(treatment, 1- thres))
+                treatment <- as.numeric(treatment < quantile(treatment, 1 - thres))
             }
         } else {
-            treatment = as.numeric(treatment != 0)
+            treatment <- as.numeric(treatment != 0)
         } # only for mutation
     } else {
-        treatment = as.numeric(treatment)
+        treatment <- as.numeric(treatment)
     }
     return(treatment)
 }
