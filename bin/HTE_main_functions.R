@@ -134,7 +134,7 @@ run.hte <- function(covar_mat,
 
         treatment <- covar_mat[, tx] # it has been confirmed that grf can deal with continuous treatment variable
 
-        treatment <- assign_tx(binary = is_binary, upperQ = txdirct[tx], thres = thres, treatment = treatment) # Use the assign_tx function to convert treatment vector
+        treatment <- assign_tx(binary = is_binary, upperQ = txdirct[[tx]], thres = thres, treatment = treatment) # Use the assign_tx function to convert treatment vector
 
         # Check if we have enough tx observations
         if (!is_binary) {
