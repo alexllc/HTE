@@ -52,6 +52,15 @@ whole_dat = inner_join(rownames_to_column(clinical), X, by = "rowname", suffix =
 X$rowname = NULL
 colnames(whole_dat)[colnames(whole_dat) == "rowname"] = "donorId"
 
+# Assign treatment group
+W = create_tx_matrix(txVector = tx_list, 
+                    binaryVector = rep(TRUE, length(txVector)), 
+                    cutoffThreshDf = data.frame(
+                                        dirct = rep(">", length(txVector)), 
+                                        thresh = rep(0, length(txVector))
+                                        ), 
+                    covarMat = X)
+
 ## Run and save HTE
 obsNumber <- dim(X)[1]
 trainId <- sample(1: obsNumber, floor(obsNumber/2), replace = FALSE)
@@ -61,17 +70,17 @@ result <- run.hte(covar_mat = X,
                 tx_vector = tx_list, 
                 whole_dataset = whole_dat, 
                 project = cancer_type, 
-                txdirct = NULL, 
+                W_matrix = W, 
                 trainId = trainId, 
                 seed = 111, 
-                is.binary = T, 
+                is_binary = T, 
                 is_save = T, 
                 save_split = T, 
-                is.tuned = F, 
+                is_tuned = F, 
                 thres = 0.75, 
                 n_core = 6, 
                 output_directory = output_file, 
-                skip_tx_thres = mut_thres) # pre-filtered thres, should not have an effect here
+                perm_all = TRUE) # pre-filtered thres, should not have an effect here
 
 write.csv(result[[1]], paste0(output_file, cancer_type, '_mixed_HTE_correlation_test_result.csv'), quote = F, row.names = F)
 write.csv(result[[2]], paste0(output_file, cancer_type, '_mixed_HTE_calibration_result.csv'), quote = F, row.names = F)

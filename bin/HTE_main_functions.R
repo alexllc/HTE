@@ -41,7 +41,7 @@ setMethod("append", signature(x = "data.frame", values = "vector"),
 #' @param whole_dataset n by (p + 2) matrix with n patients and the p covariates plus `donorId` and `outcome`. `whole_dataset` should be ordered the same way as the `covar_mat`
 #' @param project string varable to identify the current patient subgroup, e.g. TCGA cancer types or COVID. For naming output paths only.
 #' @param diffCovarTxTypes whether the treatment variabels are among the covaraites.
-#' @param txdirct binary vector with the same length as `tx_vector` to indicate whether to take the upper or lower quartile as the treatment group.
+#' @param W_matrix matrix output from `create_tx_matrix` with rows as patient and columns as treatment variables, rows should be ordered the same way as `covar_mat` and `whole_dataset`.
 #' @param trainId
 #' @param seed default set as 111.
 #' @param is_binary whether treatment vector W should be set to binary.
@@ -51,13 +51,14 @@ setMethod("append", signature(x = "data.frame", values = "vector"),
 #' @param n_core number of cores to use in paralelle run.
 #' @param output_directory file paths of output files, should be created before HTE run.
 #' @param skip_perm option to override permutation requirement for quicker run.
+#' @param perm_all option to permute all treatment variables 
 
 run.hte <- function(covar_mat,
                     tx_vector,
                     whole_dataset,
                     project,
                     diffCovarTxTypes = FALSE,
-                    txdirct = NULL,
+                    W_matrix = NULL,
                     trainId,
                     seed = NULL,
                     is_binary = TRUE,
@@ -67,7 +68,8 @@ run.hte <- function(covar_mat,
                     thres = 0.75,
                     n_core = 8,
                     output_directory = NULL,
-                    skip_perm = FALSE) {
+                    skip_perm = FALSE,
+                    perm_all = FALSE) {
     # @covar_mat: covariates matrix (with treatment assignments as well if each of the covariates are taking turns to be analyzed as treatments). Treatment assignments can be binary or continuous.
     # @tx_vector: a vector of variables that will each be used as treatments
     # @whole_dataset: dataframe with outcome, covariates and treatment assignments
@@ -129,19 +131,13 @@ run.hte <- function(covar_mat,
         print(paste0("Processing ", i, " of ", length(tx_vector), " genes."))
         i <- i + 1
 
-        # since treatment variable is 0 or 1, if the feature considered is binary, then no transformation is neeeded;
-        # otherwise, we set values of the feature greater than specific quantile, say 0.75, to 1
+        treatment <- W_matrix[,colnames(W_matrix) == tx] # directly retreive the W vector from function input
+        message("Current treatment proportion: ")
+        print(table(treatment))
 
-        treatment <- covar_mat[, tx] # it has been confirmed that grf can deal with continuous treatment variable
-
-        treatment <- assign_tx(binary = is_binary, upperQ = txdirct[[tx]], thres = thres, treatment = treatment) # Use the assign_tx function to convert treatment vector
-
-        # Check if we have enough tx observations
-        if (!is_binary) {
-            if (length(unique(treatment)) == 1) {
-                print("Not enough obseravtaions for this treatment, skipping.")
-                next
-            }
+        if (length(unique(treatment)) == 1) {
+            print("Not enough obseravtaions for this treatment, skipping.")
+            next
         }
 
         if (!diffCovarTxTypes) X.covariates <- as.matrix(dplyr::select(covar_mat, -tx))
@@ -203,7 +199,7 @@ run.hte <- function(covar_mat,
 
         print(paste0("simes.pval is ", simes.pval))
 
-        if (simes.pval <= 0.05 & skip_perm == FALSE) {
+        if ((simes.pval <= 0.05 & skip_perm == FALSE) | perm_all) {
             print("Performing permutation.")
             cor.overall <- cor.test(covar_mat[, tx], Y, method = "pearson", alternative = "greater", use = "na.or.complete")
 

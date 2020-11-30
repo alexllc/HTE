@@ -328,3 +328,35 @@ filter_replicate_samples <- function(bcr, verbose = TRUE) {
 
     return(bcr_df$bcr)
 }
+
+#' Function for creating the treatment matrix (W) for each treatment variable. To pre-define treatment indicators before passing data into the `run.hte` function allows more flexibility.
+#' 
+#' @param txVector string vector indicating treatment variable names.
+#' @param binaryVector bool vector indicating whether binary or continuous values were used. Default is set as binary for all treatment variables. Please remember to build this vector in concordance with the `is_binary` variable you have input in the `run.hte` function.
+#' @param cutoffThreshDf numeric dataframe with first column indicating whether the group above this value is considered the treatment group or otherwise and the second column indicating the cutoff threshold. Default is taking entries with > 0.75 as the treatment group.
+#' @param covarMat matrix containing per patient row entries and column entries of treamtent variable values.
+#' 
+#' 
+create_tx_matrix <- function(txVector, 
+                            binaryVector = rep(TRUE, length(txVector)), 
+                            cutoffThreshDf = data.frame(
+                                                dirct = rep(">", length(txVector)), 
+                                                thresh = rep(0.75, length(txVector))
+                                                ), 
+                            covarMat = NULL) {
+    W_matrix <- matrix(,nrow = dim(covarMat)[1], ncol = length(txVector))
+    W_values <- NULL
+    for (i in 1:length(txVector)) {
+        W_values = covarMat[,colnames(covarMat) == txVector[i]]
+        if (binaryVector[i]){
+           if(cutoffThreshDf[i,1] == ">") {
+               W_values <- as.numeric(W_values > quantile(W_values, cutoffThreshDf[i,2]))
+           } else {
+              W_values <- as.numeric(W_values < quantile(W_values, cutoffThreshDf[i,2]))
+           }
+        }
+        W_matrix[,i] <- W_values
+    }
+    colnames(W_matrix) <- txVector
+    return(W_matrix)
+}
