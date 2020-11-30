@@ -44,6 +44,6 @@ $$
 
 ## To-do
 
-- [ ] Run mixed mutation, expression HTE for BRCA (use z score for all expression for consistency)
-- [ ] External validation strategies finalize and run script!!
-- [ ] Summary table of results
+* [x] Run mixed mutation, expression HTE for BRCA (use z score for all expression for consistency)
+* [x] External validation strategies finalize and run script!!
+* [ ] Summary table of results

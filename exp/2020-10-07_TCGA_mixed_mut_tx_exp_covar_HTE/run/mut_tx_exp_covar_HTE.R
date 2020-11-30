@@ -12,7 +12,7 @@ for (bin in bin_ls){
 ## Set parameters for this run
 cancer_type = "BRCA"
 endpt = "OS"
-output_file = "./exp/2020-10-07_TCGA_mixed_mut_tx_exp_covar_HTE/res/mixed_mut_tx_exp_covar_HTE/"
+output_file = "./exp/2020-10-07_TCGA_mixed_mut_tx_exp_covar_HTE/res/2020-11-30_perm_all/"
 mut_thres = 0.05
 
 ## Prepare mutation dataframe

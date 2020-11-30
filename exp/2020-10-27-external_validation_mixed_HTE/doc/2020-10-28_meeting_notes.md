@@ -8,7 +8,6 @@
 4. Uniformity of source code and modeling parameters
 5. Manuscript writing, discussion, interpretation of data
 
-
 ## Discussion
 
 1. Logitp requires independent p values, simes robust to positive dependencies
@@ -20,17 +19,9 @@
 2. Aspects of external validation: stability of models, test calibration, direct overlap
 3. Use already available immune proportion
 
-
 ## To-do
 
-- [ ] Perform SHC, permute for mixed HTE
+- [x] Perform SHC, permute for mixed HTE
 - [ ] further methods to perform external validation, email prof So about your ideas
 - [ ] discuss with everybody in the project to use the same set of codes.
-- [ ] Impute rather than omit missing data janssen2010, cismondi2013
-
-
-## Tentative procedures
-
-### External validation
-
-Basic requirement is 
+- [x] Impute rather than omit missing data janssen2010, cismondi2013
