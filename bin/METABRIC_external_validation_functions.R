@@ -85,7 +85,9 @@ print_cf_sum <- function(cf = NULL,
         print(test_corr)
         mean_test_res <- SIGN.test(OriginalTauPred, pred[,1])
         print(mean_test_res)
-        return(c(overall_tau_simes_p, test_corr, mean_test_res$statistic, mean_test_res$p.value, mean_test_res$conf.int))
+        lm_test <- lm(pred[,1] ~ OriginalTauPred + 0)
+        print(lm_test)
+        return(c(overall_tau_simes_p, test_corr, mean_test_res$statistic, mean_test_res$p.value, mean_test_res$conf.int, lm_test$coefficients))
     }
     return(c(overall_tau_simes_p, tc[1,1], tc[1,4], tc[2,1], tc[2,4]))
 }

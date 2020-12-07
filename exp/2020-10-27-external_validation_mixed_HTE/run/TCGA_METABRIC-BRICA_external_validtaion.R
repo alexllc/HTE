@@ -103,7 +103,7 @@ tcga_X <- dplyr::select(tcga_X, all_of(c("age_at_initial_pathologic_diagnosis", 
 ext_valid_tcga_cf <- data.frame()
 ext_valid_metab_cf <- data.frame()
 
-ext_valid_rn <- c("gene", "original_simes_pval", "mean_forest_pred_coeff", "mean_forest_pred_pval", "diff_forest_pred_coeff", "diff_forest_pred_pval", "oob_tau_simes_pval", "pearson_coeff", "pearson_pval", "kendall_coeff", "kendall_pval", "spearman_coeff", "spearman_pval", "SIGN_statistic", "SIGN_pval", "SIGN_lower_CI", "SIGN_upper_CI")
+ext_valid_rn <- c("gene", "original_simes_pval", "mean_forest_pred_coeff", "mean_forest_pred_pval", "diff_forest_pred_coeff", "diff_forest_pred_pval", "oob_tau_simes_pval", "pearson_coeff", "pearson_pval", "kendall_coeff", "kendall_pval", "spearman_coeff", "spearman_pval", "SIGN_statistic", "SIGN_pval", "SIGN_lower_CI", "SIGN_upper_CI", "lm_Y_x_coeff")
 
 for(tx in tx_list) {
     message(paste0("Processing gene: ", tx))
@@ -153,7 +153,12 @@ for(tx in tx_list) {
 
 ext_valid_tcga_cf <- cbind(tx_list, ext_valid_tcga_cf)
 colnames(ext_valid_tcga_cf) <- ext_valid_rn
+# calcualte calibration lm z score for tcga
+ext_valid_tcga_cf$lm_Z <- abs(ext_valid_tcga_cf$lm_Y_x_coeff - 1)/sd(ext_valid_tcga_cf$lm_Y_x_coeff)
 write.csv(ext_valid_tcga_cf, "./exp/2020-10-27-external_validation_mixed_HTE/res/TCGA_METABRIC-BRICA_external_validtaion_TCGA_forest.csv", row.names = FALSE)
+
+# calcualte calibration lm z score for metab
 ext_valid_metab_cf <- cbind(tx_list, ext_valid_metab_cf)
 colnames(ext_valid_metab_cf) <- ext_valid_rn
+ext_valid_metab_cf$lm_Z <- abs(ext_valid_metab_cf$lm_Y_x_coeff - 1)/sd(ext_valid_metab_cf$lm_Y_x_coeff)
 write.csv(ext_valid_METAB_cf, "./exp/2020-10-27-external_validation_mixed_HTE/res/TCGA_METABRIC-BRICA_external_validtaion_METABRIC_forest.csv", row.names = FALSE)
