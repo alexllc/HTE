@@ -230,8 +230,8 @@ fetch_exp_data <- function(cancer_type, addBatch = TRUE, numericBatch = TRUE, sc
 }
 
 mk_id_rownames <- function(df) {
-    rownames(df) = df$donorId
-    df$donorId = NULL
+    rownames(df) = df[,1]
+    df = df[,-1]
     return(df)
 }
 
@@ -337,7 +337,7 @@ filter_replicate_samples <- function(bcr, verbose = TRUE) {
 #' @param covarMat matrix containing per patient row entries and column entries of treamtent variable values.
 #' 
 #' 
-create_tx_matrix <- function(txVector, 
+create_tx_matrix <- function(txVector = NULL, 
                             binaryVector = rep(TRUE, length(txVector)), 
                             cutoffThreshDf = data.frame(
                                                 dirct = rep(">", length(txVector)), 

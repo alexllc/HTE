@@ -47,11 +47,45 @@ fetch_mrna_z_score <- function(data = NULL, save = FALSE) {
             class(mrna_z) = "numeric"
             mrna_z = as.data.frame(mrna_z)
             mrna_z$donorId = rownames(mrna_z)
-            if(save) write.csv(mrna_z, file = gzfile(paste0("./dat/METABRIC-TCGA_external_validation/exp_median_z/", data, "_mRNA_med_z_scores_transposed.csv.gz")), row.names = FALSE)
+            if(save) write.csv(mrna_z, file = gzfile(paste0("./dat/METABRIC-TCGA_external_validation/exp_median_z/", data, "_mRNA_med_z_scores_transposed.csv.gz")), row.names = TRUE)
     } else {
         mrna_z = as.data.frame(fread(paste0("./dat/METABRIC-TCGA_external_validation/exp_median_z/", data, "_mRNA_med_z_scores_transposed.csv.gz")))
     }
     z_not_na = sapply(mrna_z, function(x)all(!is.na(x))) # many genes are fully NA
     mrna_z = mrna_z[,z_not_na]
     return(mrna_z)
+}
+
+#' Function to only print out summary data of an individual CF
+#' 
+#' @param cf
+#' @param newCovar
+#' @param save
+#' 
+print_cf_sum <- function(cf = NULL,
+                        X = NULL,
+                        tx = NULL,
+                        newCovar = NULL,
+                        OriginalTauPred = NULL, 
+                        save = FALSE) {
+    if(is.null(newCovar)) {
+        pred <- predict(cf, estimate.variance = TRUE)
+        tc <- test_calibration(cf)
+    } else {
+       pred <- predict(cf, newdata = newCovar, estimate.variance = TRUE)
+    }
+
+    stats <- compute_stats(pred)
+    overall_tau_simes_p <- simes.test(stats$tau.pval)
+    message(paste0("simes tau p value is: ", overall_tau_simes_p))
+
+    # Perform data consistency test if new covarite matrix from another dataset is given
+    if(!is.null(newCovar)) {
+        test_corr <- correlation_test(OriginalTauPred, pred[, 1], methods = c("pearson", "kendall", "spearman"), alt = "two.sided")
+        print(test_corr)
+        mean_test_res <- SIGN.test(OriginalTauPred, pred[,1])
+        print(mean_test_res)
+        return(c(overall_tau_simes_p, test_corr, mean_test_res$statistic, mean_test_res$p.value, mean_test_res$conf.int))
+    }
+    return(c(overall_tau_simes_p, tc[1,1], tc[1,4], tc[2,1], tc[2,4]))
 }

@@ -65,7 +65,7 @@ run.hte <- function(covar_mat,
                     is_save = T,
                     save_split = T,
                     is_tuned = F,
-                    thres = 0.75,
+                    thres = 0.75, # redundant, please remove in the next commit
                     n_core = 8,
                     output_directory = NULL,
                     skip_perm = FALSE,
