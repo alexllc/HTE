@@ -58,9 +58,10 @@ fetch_mrna_z_score <- function(data = NULL, save = FALSE) {
 
 #' Function to only print out summary data of an individual CF
 #' 
-#' @param cf
-#' @param newCovar
-#' @param save
+#' @param cf forest object from `grf::causal_forest`
+#' @param newCovar the external matrix from an OOB dataset with the same number of columns as the covariate matrix used to build the `cf`. Default is `NULL`, indicating an OOB test is not required.
+#' @param save (saving option slot reserved for future update)
+#' @param OriginalTauPred the in-bag tau values generated for the patient entries in `newCovar`, used for comparison with the tau prediction of an OOB forest. Default is NULL, indicating an OOB test is not required. Does not have an effect if `OriginalTauPred` is not `NULL` but `OriginalTauPred` is `NULL`
 #' 
 print_cf_sum <- function(cf = NULL,
                         X = NULL,

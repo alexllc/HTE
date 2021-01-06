@@ -13,6 +13,6 @@
 - [x] add cross-model consistency checking function
 - [x] code and generate overall significance (compress into one value per gene per patient so that we can get better hold of what is and what isn't significant)
 - [x] Add in parts where it will do what external validation have been done for the past year -> modified quantile t test to SIGN test
-- [ ] Actually run the external validation script
+- [x] Actually run the external validation script
 
 Using `SIGN.test` from the `BDSA` package as we do not assume symmetry about median for non-parametric dependent sample test Wilcoxon or normality under T tests.

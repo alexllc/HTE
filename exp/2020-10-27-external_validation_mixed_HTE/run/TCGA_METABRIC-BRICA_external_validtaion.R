@@ -161,4 +161,4 @@ write.csv(ext_valid_tcga_cf, "./exp/2020-10-27-external_validation_mixed_HTE/res
 ext_valid_metab_cf <- cbind(tx_list, ext_valid_metab_cf)
 colnames(ext_valid_metab_cf) <- ext_valid_rn
 ext_valid_metab_cf$lm_Z <- abs(ext_valid_metab_cf$lm_Y_x_coeff - 1)/sd(ext_valid_metab_cf$lm_Y_x_coeff)
-write.csv(ext_valid_METAB_cf, "./exp/2020-10-27-external_validation_mixed_HTE/res/TCGA_METABRIC-BRICA_external_validtaion_METABRIC_forest.csv", row.names = FALSE)
+write.csv(ext_valid_metab_cf, "./exp/2020-10-27-external_validation_mixed_HTE/res/TCGA_METABRIC-BRICA_external_validtaion_METABRIC_forest.csv", row.names = FALSE)
