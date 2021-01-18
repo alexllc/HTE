@@ -92,3 +92,21 @@ print_cf_sum <- function(cf = NULL,
     }
     return(c(overall_tau_simes_p, tc[1,1], tc[1,4], tc[2,1], tc[2,4]))
 }
+
+#' Function for retreiving CNA table from METABRIC dataset
+#' 
+#' @param
+#' 
+fetch_cna <- function() {
+    if( !file.exists("./raw/cbioportal_METABRIC/data_CNA.txt") )
+        message("Please download METABRIC file and exttact to ./raw/cbioportal_METABRIC")
+    
+    cna <- fread("./raw/cbioportal_METABRIC/data_CNA.txt")
+    cna = as.data.frame(t(as.matrix(cna)))
+    colnames(cna) = cna[1,]
+    cna = cna[-c(1,2),]
+    cna = cna[complete.cases(cna),]
+    cna = sapply(cna, as.numeric)
+    cna = apply(cna, 2, sum)
+    return(cna)
+}

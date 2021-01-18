@@ -303,7 +303,7 @@ filter_replicate_samples <- function(bcr, verbose = TRUE) {
     bcr_df = separate(bcr_df, col = "portion,analyte", into = c("portion", "analyte"), sep = 2)
 
     # Selecting one aliquot based on GDC's Analyte Replicate Filter and Sort Replicate Filter rules
-    bcr_df = bcr_df %>% arrange(analyte, desc(plate), desc(bcr)) %>% group_by(TSS, patient, sample) %>% slice(1)
+    bcr_df = bcr_df %>% arrange(analyte, desc(plate), desc(bcr)) %>% group_by(TSS, patient, sample) %>% dplyr::slice(1)
     
     new_len <- length(bcr_df$bcr)
 
@@ -360,3 +360,4 @@ create_tx_matrix <- function(txVector = NULL,
     colnames(W_matrix) <- txVector
     return(W_matrix)
 }
+

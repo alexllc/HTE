@@ -1,4 +1,4 @@
-# Script for running testing whether treatment group proportion affects results significantly
+# Script  to test whether log2 scale or linear scale showed more heterogeneity
 
 ## Run from base directory
 setwd("~/project/HTE/")
@@ -12,11 +12,11 @@ for (bin in bin_ls){
 ## Set parameters for this run
 cancer_type = "BRCA"
 endpt = "OS"
-output_directory = "./exp/2020-12-11_tx_gruop_size_test/tmp/interactive_out/"
+output_directory = "./exp/2020-12-11_tx_gruop_size_test/tmp/gene_scale_out/"
 result_directory = "./exp/2020-12-11_tx_gruop_size_test/res/"
 is_tuned = FALSE
 is_save = FALSE
-n_core = 40
+n_core = 20
 seed = 111
 
 ## Prepare clinical dataframe
@@ -24,7 +24,7 @@ clinical = fetch_clinical_data(cancer_type, outParam = endpt, imputeMethod = "si
 clinical = mk_id_rownames(clinical)
 
 ## Prepare expression dataframe
-exp = fetch_exp_data(cancer_type, scale = FALSE, primaryTumorOnly = TRUE, formatPatient = TRUE)
+exp <- fetch_exp_data(cancer_type, scale = FALSE, primaryTumorOnly = TRUE, formatPatient = TRUE)
 
 ## Subset patients and settings for HTE
 # Check the list of common patients across three data frames
@@ -87,7 +87,7 @@ rownames(DEA_tbl) <- DEA_tbl$X
 # Will no longer test only significant genes ran in the past, but all genes that are present in the DEA analysis result
 sig_ls <- colnames(exp)[colnames(exp) %in% DEA_tbl$X]
 
-prop_ls <- c(0.01, 0.02, 0.05, 0.1, 0.25, 0.5)
+scale_ls <- c(0.01, 0.02, 0.05, 0.1, 0.25, 0.5)
 prop_names <- c("one", "two", "five", "ten", "quarter", "half")
 
 for(prop in prop_ls) {
