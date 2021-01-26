@@ -2,10 +2,13 @@ setwd("~/project/HTE/")
 
 library(ALDEx2)
 library(TCGAbiolinks)
+library(data.table)
+library(gdata)
 
 # Fetch TCGA gene counts
 CancerProject <- "TCGA-BRCA"
-DataDirectory <- "./exp/2021-01-15_ALDEx_DEA/raw"
+DataDirectory <- paste0("./raw/",gsub("-","_",CancerProject))
+FileNameData <- paste0(DataDirectory, "_","HTSeq_Counts",".rda")
 
 query <- GDCquery(project = CancerProject,
                 data.category = "Transcriptome Profiling",
@@ -20,43 +23,64 @@ dataSmTP <- TCGAquery_SampleTypes(barcode = samplesDown,
 dataSmNT <- TCGAquery_SampleTypes(barcode = samplesDown,
                                 typesample = "NT")
 
-queryDown <- GDCquery(project = CancerProject, 
-                    data.category = "Transcriptome Profiling",
-                    data.type = "Gene Expression Quantification", 
-                    workflow.type = "HTSeq - Counts", 
-                    barcode = c(dataSmTP, dataSmNT))
-                    
-GDCdownload(query = queryDown, directory = DataDirectory)
+if (!file.exists("./dat/BRCA_post_GC_norm.csv.gz") ) {
 
-dataPrep <- GDCprepare(query = queryDown, 
-                    save = TRUE, 
-                    directory =  DataDirectory)
+    # Donwload count matrix from GDC
+    queryDown <- GDCquery(project = CancerProject, 
+                        data.category = "Transcriptome Profiling",
+                        data.type = "Gene Expression Quantification", 
+                        workflow.type = "HTSeq - Counts", 
+                        barcode = c(dataSmTP, dataSmNT))
+                        
+    GDCdownload(query = queryDown, directory = DataDirectory)
 
-# Filter out zeros and near zero values
-dataFilt <- TCGAanalyze_Filtering(tabDF = dataPrep,
-                                method = "quantile", 
-                                qnt.cut =  0.25)
+    dataPrep <- GDCprepare(query = queryDown, 
+                        save = FALSE, # Ensembl server may go down 
+                        directory =  DataDirectory)
+
+    # GC content normalization
+    dataNorm <- TCGAanalyze_Normalization(tabDF = dataPrep,
+                                        geneInfo = geneInfoHT,
+                                        method = "gcContent")
+
+    write.csv(dataNorm, file = gzfile("./dat/BRCA_post_GC_norm.csv.gz"))
+} else {
+    dataNorm <- read.csv("./dat/BRCA_post_GC_norm.csv.gz")
+}
+
+# Replace zeros with 1 according to propr's strategy
+dataNorm[dataNorm == 0] <- 1
+
 # Perform ALDEx2
-conds <- colnames(dataPrep)
+rownames(dataNorm) <- dataNorm[, 1]
+dataNorm <- dataNorm[, -1]
+conds <- gsub("\\.", "-", colnames(dataNorm))
 names(conds) = ifelse(conds %in% dataSmTP, "TP", "NT")
-conds_filt <- colnames(dataFilt)
-names(conds_filt) = ifelse(conds_filt %in% dataSmTP, "TP", "NT")
 
-# TODO unfiltered count matrix aldex
+# unfiltered count matrix aldex
+message("Performing CLR.")
+iqlr <- aldex.clr(reads = dataNorm, 
+                  conds = names(conds), 
+                  mc.samples = 128, 
+                  denom="iqlr", 
+                  verbose=TRUE, 
+                  useMC=TRUE)
 
-iqlr <- aldex.clr(reads = dataPrep, conds = conds, mc.samples = 128, denom="iqlr", verbose=FALSE, useMC=TRUE)
+saveRDS(iqlr, file = "./dat/BRCA_iqlr_S4_obj.rds.gz")
 
+message("Done.")
 
-X <- aldex( reads = dataPrep,
-            conditions = conds,
-            mc.samples = 128,
-            test = "t",
-            effect = TRUE,
-            include.sample.summary = TRUE,
-            verbose = FALSE,
-            denom = "iqlr",
-            iterate = FALSE,
-            )
+# X <- aldex( reads = sel_dat,
+#             conditions = names(conds),
+#             mc.samples = 128,
+#             test = "t",
+#             effect = TRUE,
+#             include.sample.summary = TRUE,
+#             verbose = FALSE,
+#             denom = "iqlr",
+#             iterate = FALSE,
+#             )
 
 
 # TODO Comparison with previsouly calculated DE genes
+# Agreement b/t ALDEx vs DEA vs CNA
