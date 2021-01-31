@@ -1,9 +1,11 @@
-setwd("~/project/HTE/")
+setwd("~/proj/HTE/")
 
 library(ALDEx2)
 library(TCGAbiolinks)
 library(data.table)
 library(gdata)
+library(BiocParallel)
+library(SummarizedExperiment)
 
 # Fetch TCGA gene counts
 CancerProject <- "TCGA-BRCA"
@@ -23,7 +25,7 @@ dataSmTP <- TCGAquery_SampleTypes(barcode = samplesDown,
 dataSmNT <- TCGAquery_SampleTypes(barcode = samplesDown,
                                 typesample = "NT")
 
-if (!file.exists("./dat/BRCA_post_GC_norm.csv.gz") ) {
+if (!file.exists("./raw/count_matrix.RData") ) {
 
     # Donwload count matrix from GDC
     queryDown <- GDCquery(project = CancerProject, 
@@ -35,31 +37,27 @@ if (!file.exists("./dat/BRCA_post_GC_norm.csv.gz") ) {
     GDCdownload(query = queryDown, directory = DataDirectory)
 
     dataPrep <- GDCprepare(query = queryDown, 
-                        save = FALSE, # Ensembl server may go down 
+                        save = TRUE, 
+                        save.filename = "./raw/count_matrix.RData", # Ensembl server may go down 
                         directory =  DataDirectory)
 
-    # GC content normalization
-    dataNorm <- TCGAanalyze_Normalization(tabDF = dataPrep,
-                                        geneInfo = geneInfoHT,
-                                        method = "gcContent")
-
-    write.csv(dataNorm, file = gzfile("./dat/BRCA_post_GC_norm.csv.gz"))
-} else {
-    dataNorm <- read.csv("./dat/BRCA_post_GC_norm.csv.gz")
+    } else {
+    load("./raw/count_matrix.RData")
 }
 
-# Replace zeros with 1 according to propr's strategy
-dataNorm[dataNorm == 0] <- 1
-
-# Perform ALDEx2
-rownames(dataNorm) <- dataNorm[, 1]
-dataNorm <- dataNorm[, -1]
-conds <- gsub("\\.", "-", colnames(dataNorm))
+# Create condition list
+cntmat <- data.frame(as.list(assays(data,withDimnames=TRUE)))
+colnames(cntmat) <- gsub("HTSeq...Counts.", "", colnames(cntmat))
+conds <- gsub("\\.", "-", colnames(cntmat))
 names(conds) = ifelse(conds %in% dataSmTP, "TP", "NT")
+
+# Limit the number of cores available to ALDEx to avoid crashing
+default <- registered()
+register(MulticoreParam(workers = 28), default = TRUE)
 
 # unfiltered count matrix aldex
 message("Performing CLR.")
-iqlr <- aldex.clr(reads = dataNorm, 
+iqlr <- aldex.clr(reads = cntmat, 
                   conds = names(conds), 
                   mc.samples = 128, 
                   denom="iqlr", 
@@ -67,20 +65,9 @@ iqlr <- aldex.clr(reads = dataNorm,
                   useMC=TRUE)
 
 saveRDS(iqlr, file = "./dat/BRCA_iqlr_S4_obj.rds.gz")
+message("IQLR calculation done and saved.")
 
-message("Done.")
-
-# X <- aldex( reads = sel_dat,
-#             conditions = names(conds),
-#             mc.samples = 128,
-#             test = "t",
-#             effect = TRUE,
-#             include.sample.summary = TRUE,
-#             verbose = FALSE,
-#             denom = "iqlr",
-#             iterate = FALSE,
-#             )
+# Summarize MC instances into one expected value
+for ()
 
 
-# TODO Comparison with previsouly calculated DE genes
-# Agreement b/t ALDEx vs DEA vs CNA
