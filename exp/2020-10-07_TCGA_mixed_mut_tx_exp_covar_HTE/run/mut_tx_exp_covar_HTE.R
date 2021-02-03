@@ -27,7 +27,6 @@ mut = mk_id_rownames(mut)
 
 ## Prepare clinical dataframe
 clinical = fetch_clinical_data(cancer_type, outParam = endpt, imputeMethod = "simple", outUnitDays2Month = TRUE, discard = c("type", "tumor_status"))
-clinical
 clinical = mk_id_rownames(clinical)
 
 ## Prepare expression dataframe

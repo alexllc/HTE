@@ -1,4 +1,4 @@
-# FIXME Script to perform DEA analysis by TCGAbiolinks
+# Script to perform DEA analysis by TCGAbiolinks
 
 setwd("~/project/HTE/")
 

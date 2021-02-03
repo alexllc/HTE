@@ -24,7 +24,7 @@ Imported by
 - additional filter of FC >1.5 / <0.5 required?
 
 
-## TODO Technical concordance between Aligent and RNA-seq
+## Technical concordance between Aligent and RNA-seq
 
 - Pearson correlation (coeff. > 0.7)
   - BH correction for multiple testing

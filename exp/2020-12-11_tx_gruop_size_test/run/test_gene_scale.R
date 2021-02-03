@@ -124,7 +124,7 @@ for(prop in prop_ls) {
         } else if (simes.pval > 0.05) {
            message("Non-significant Simes p value.")
            next
-        } # TODO: keep an eye on the simes filtered results 61456
+        }
         partial.simes.pval <- simes.partial(floor(no.obs * 0.05), tau_stats[, 3])
 
         print(paste0("simes.pval is ", simes.pval))

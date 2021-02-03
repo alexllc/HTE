@@ -66,8 +66,14 @@ iqlr <- aldex.clr(reads = cntmat,
 
 saveRDS(iqlr, file = "./dat/BRCA_iqlr_S4_obj.rds.gz")
 message("IQLR calculation done and saved.")
-
 # Summarize MC instances into one expected value
-for ()
+sampleIDs <- getSampleIDs(iqlr)
+expected_count <- matrix(1, nrow = numFeatures(iqlr), ncol = length(sampleIDs))
 
-
+for (ID in 1:length(sampleIDs)) {
+    count <- rowMeans(iqlr@analysisData[[sampleIDs[ID]]])
+    expected_count[, ID] <- count
+}
+rownames(expected_count) <- getFeatureNames(iqlr)
+colnames(expected_count) <- sampleIDs
+write.csv(expected_count, file = gzfile("./dat/BRCA_iqlr_expected_count.csv.gz"), row.names = TRUE)

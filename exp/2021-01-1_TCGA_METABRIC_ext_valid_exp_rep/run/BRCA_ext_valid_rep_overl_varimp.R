@@ -55,7 +55,7 @@ tcga_dea <- read.csv(paste0("./dat/tables/BRCA_DEGtable.csv"))
 # Import cBioportal conversion list
 cbio_uniprot <- read.table("./raw/isoform_overrides_uniprot", sep = "\t")
 
-# TODO Convert ENST to ENSG
+# Convert ENST to ENSG
 library(EnsDb.Hsapiens.v75) # Only load when script requires
 edb <- EnsDb.Hsapiens.v75
 esb <- AnnotationDbi::select(edb, key = cbio_uniprot$V1, keytype = "TXID", columns = c("TXID", "GENEID", "SYMBOL"))
