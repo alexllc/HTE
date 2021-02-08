@@ -190,6 +190,7 @@ run.hte <- function(covar_mat,
         print("Fitting CF on the whole dataset.")
         tau.forest <- cf.estimator(X.covariates, Y, treatment)   # run causal forests by default
         tau.prediction <- predict(tau.forest, newdata = NULL, estimate.variance = TRUE, num.threads = n_core)
+        write.csv(tau.prediction, file = paste0(file_prefix,  "_tau_pred_", tx, ".csv"))
         tau.var <- var(tau.prediction$predictions)
 
         # compute zval, pval and ajusted.p
