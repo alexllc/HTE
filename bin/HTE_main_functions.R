@@ -24,7 +24,7 @@ setMethod("append", signature(x = "data.frame", values = "vector"),
     function(x, values) {
         if (ncol(x) != length(values)) {
             stop("dimension of data.frame does not match with the length of values.")
-        } else if(typeof(x) == "list") {
+        } else if (typeof(x) == "list") {
             x[nrow(x) + 1, ] <- values
             x
         } else {

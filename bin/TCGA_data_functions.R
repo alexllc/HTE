@@ -337,27 +337,31 @@ filter_replicate_samples <- function(bcr, verbose = TRUE) {
 #' @param covarMat matrix containing per patient row entries and column entries of treamtent variable values.
 #' 
 #' 
-create_tx_matrix <- function(txVector = NULL, 
-                            binaryVector = rep(TRUE, length(txVector)), 
+
+create_tx_matrix <- function(txVector,
+                            binaryVector = rep(TRUE, length(txVector)),
                             cutoffThreshDf = data.frame(
-                                                dirct = rep(">", length(txVector)), 
+                                                dirct = rep(">", length(txVector)),
                                                 thresh = rep(0.75, length(txVector))
-                                                ), 
+                                                ),
                             covarMat = NULL) {
     W_matrix <- matrix(,nrow = dim(covarMat)[1], ncol = length(txVector))
     W_values <- NULL
     for (i in 1:length(txVector)) {
-        W_values = covarMat[,colnames(covarMat) == txVector[i]]
+        W_values <- covarMat[,colnames(covarMat) == txVector[i]]
+    	# print(W_values)
         if (binaryVector[i]){
-           if(cutoffThreshDf[i,1] == ">") {
-               W_values <- as.numeric(W_values > quantile(W_values, cutoffThreshDf[i,2]))
-           } else {
-              W_values <- as.numeric(W_values < quantile(W_values, cutoffThreshDf[i,2]))
+           if (cutoffThreshDf[i, 1] == ">") {
+               W_values <- as.numeric(W_values > quantile(W_values, cutoffThreshDf[i, 2]))
+           } else if (cutoffThreshDf[i, 1] == "<") {
+              W_values <- as.numeric(W_values < quantile(W_values, cutoffThreshDf[i, 2]))
+           } else if (cutoffThreshDf[i, 1] == "0") {
+              W_values <- as.numeric(W_values != 0)
            }
         }
-        W_matrix[,i] <- W_values
+	# print(W_values)
+        W_matrix[, i] <- W_values
     }
     colnames(W_matrix) <- txVector
     return(W_matrix)
 }
-

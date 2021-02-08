@@ -61,6 +61,7 @@ According to [collins2014](https://doi.org/10.1186/1471-2288-14-40), you should 
 
 #### Action plan for external validation
 
+
 - [x] Impute missing clinical data for all studies
     - standardize imputation method (talk with Kai) -> usd the GRF built in
 
@@ -80,3 +81,6 @@ According to [collins2014](https://doi.org/10.1186/1471-2288-14-40), you should 
 * Pick up genes with sig. HTE -> overlap between the two datasets?
 * Overlap of covar with high variable importance (but collinearity may affect the results); two x two table  (eg varimp> cutoff eg 0)  
 * Within each dataset -> use a diff. Normalization scheme (z-score)
+#### Detailed Procedures
+
+Build separate forest 

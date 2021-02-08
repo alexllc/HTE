@@ -9,6 +9,7 @@ for (bin in bin_ls){
 }
 
 # Parameters for this run
+
 validis_tuned = FALSE
 is_binary = TRUE
 mut_thres = 0.01 # 0.05 yeilded too little results
@@ -24,6 +25,7 @@ if (!file.exists("./dat/METABRIC-TCGA_external_validation/")){
     download.file("http://download.cbioportal.org/brca_tcga_pan_can_atlas_2018.tar.gz", "./raw/")
     untar("./raw/‘brca_tcga_pan_can_atlas_2018.tar.gz.1’", exdir = "./dat/METABRIC-TCGA_external_validation/")
 }
+
 
 # I. PREPARE FROM RAW DATASETS
 # 1. Fetch clinical data
@@ -99,6 +101,7 @@ tcga_X <- mk_id_rownames(tcga_X)
 tcga_X$outcome <- NULL
 tcga_X <- dplyr::select(tcga_X, all_of(c("age_at_initial_pathologic_diagnosis", common_mut, common_z)))
 
+
 # Initialize result dataframes
 ext_valid_tcga_cf <- data.frame()
 ext_valid_metab_cf <- data.frame()
@@ -147,6 +150,7 @@ for(tx in tx_list) {
     tcga_in_metab <- print_cf_sum(cf = metab_cf, X = tmp_metab_X, tx = tx, newCovar = tmp_tcga_X, OriginalTauPred = predict(tcga_cf)[,1]) # fit tcga covar into metab cf
     ext_valid_tcga_cf <- rbind(ext_valid_tcga_cf, c(original_metab_cf_sum, tcga_in_metab)) # append to summary result table
     
+
     metab_in_tcga <- print_cf_sum(cf = tcga_cf, X = tmp_tcga_X, tx = tx, newCovar = tmp_metab_X, OriginalTauPred = predict(metab_cf)[,1]) # fit metab covar into tcga cf
     ext_valid_metab_cf <- rbind(ext_valid_metab_cf, c(original_tcga_cf_sum, metab_in_tcga))
 }
@@ -162,3 +166,37 @@ ext_valid_metab_cf <- cbind(tx_list, ext_valid_metab_cf)
 colnames(ext_valid_metab_cf) <- ext_valid_rn
 ext_valid_metab_cf$lm_Z <- abs(ext_valid_metab_cf$lm_Y_x_coeff - 1)/sd(ext_valid_metab_cf$lm_Y_x_coeff)
 write.csv(ext_valid_metab_cf, "./exp/2020-10-27-external_validation_mixed_HTE/res/TCGA_METABRIC-BRICA_external_validtaion_METABRIC_forest.csv", row.names = FALSE)
+
+
+    # Build individual forest
+    tcga_cf = causal_forest(
+                            X <- tcga_z,
+                            Y <- ,
+                            W,
+                            Y.hat = NULL,
+                            W.hat = NULL,
+                            num.trees = 2000,
+                            sample.weights = NULL,
+                            clusters = NULL,
+                            equalize.cluster.weights = FALSE,
+                            sample.fraction = 0.5,
+                            mtry = min(ceiling(sqrt(ncol(X)) + 20), ncol(X)),
+                            min.node.size = 5,
+                            honesty = TRUE,
+                            honesty.fraction = 0.5,
+                            honesty.prune.leaves = TRUE,
+                            alpha = 0.05,
+                            imbalance.penalty = 0,
+                            stabilize.splits = TRUE,
+                            ci.group.size = 2,
+                            tune.parameters = "none",
+                            tune.num.trees = 200,
+                            tune.num.reps = 50,
+                            tune.num.draws = 1000,
+                            compute.oob.predictions = TRUE,
+                            orthog.boosting = FALSE,
+                            num.threads = NULL,
+                            seed = runif(1, 0, .Machine$integer.max)
+                        )
+    # 
+}
