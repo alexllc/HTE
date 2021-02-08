@@ -21,9 +21,9 @@
 
 ## To-do (for HNSC as a starter)
 
-- [ ] LM22 (from larry)
-- [ ] scRNASeq profile for tumor types (HNSC), this can be achieved by CIBERSORTx. CIBERSORTx provide a function to generate signature file based on single cell profile.
-- [ ] get DWLS (R pkg)
+- [x] LM22 (from larry)
+- [x] scRNASeq profile for tumor types (HNSC), this can be achieved by CIBERSORTx. CIBERSORTx provide a function to generate signature file based on single cell profile.
+- [x] get DWLS (R pkg)
 ## To-do: (for HNSC as a starter)
 - [x] LM22 (from larry), LM22 is TPM based. 
     Already uploaded:

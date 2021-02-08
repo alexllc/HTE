@@ -230,8 +230,8 @@ fetch_exp_data <- function(cancer_type, addBatch = TRUE, numericBatch = TRUE, sc
 }
 
 mk_id_rownames <- function(df) {
-    rownames(df) = df$donorId
-    df$donorId = NULL
+    rownames(df) = df[,1]
+    df = df[,-1]
     return(df)
 }
 
@@ -303,7 +303,7 @@ filter_replicate_samples <- function(bcr, verbose = TRUE) {
     bcr_df = separate(bcr_df, col = "portion,analyte", into = c("portion", "analyte"), sep = 2)
 
     # Selecting one aliquot based on GDC's Analyte Replicate Filter and Sort Replicate Filter rules
-    bcr_df = bcr_df %>% arrange(analyte, desc(plate), desc(bcr)) %>% group_by(TSS, patient, sample) %>% slice(1)
+    bcr_df = bcr_df %>% arrange(analyte, desc(plate), desc(bcr)) %>% group_by(TSS, patient, sample) %>% dplyr::slice(1)
     
     new_len <- length(bcr_df$bcr)
 
@@ -337,6 +337,7 @@ filter_replicate_samples <- function(bcr, verbose = TRUE) {
 #' @param covarMat matrix containing per patient row entries and column entries of treamtent variable values.
 #' 
 #' 
+
 create_tx_matrix <- function(txVector,
                             binaryVector = rep(TRUE, length(txVector)),
                             cutoffThreshDf = data.frame(

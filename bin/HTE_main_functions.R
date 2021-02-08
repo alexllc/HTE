@@ -65,7 +65,7 @@ run.hte <- function(covar_mat,
                     is_save = T,
                     save_split = T,
                     is_tuned = F,
-                    thres = 0.75,
+                    thres = 0.75, # redundant, please remove in the next commit
                     n_core = 8,
                     output_directory = NULL,
                     skip_perm = FALSE,
@@ -190,6 +190,7 @@ run.hte <- function(covar_mat,
         print("Fitting CF on the whole dataset.")
         tau.forest <- cf.estimator(X.covariates, Y, treatment)   # run causal forests by default
         tau.prediction <- predict(tau.forest, newdata = NULL, estimate.variance = TRUE, num.threads = n_core)
+        write.csv(tau.prediction, file = paste0(file_prefix,  "_tau_pred_", tx, ".csv"))
         tau.var <- var(tau.prediction$predictions)
 
         # compute zval, pval and ajusted.p

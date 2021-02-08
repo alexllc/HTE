@@ -27,7 +27,6 @@ mut = mk_id_rownames(mut)
 
 ## Prepare clinical dataframe
 clinical = fetch_clinical_data(cancer_type, outParam = endpt, imputeMethod = "simple", outUnitDays2Month = TRUE, discard = c("type", "tumor_status"))
-clinical
 clinical = mk_id_rownames(clinical)
 
 ## Prepare expression dataframe
@@ -54,10 +53,10 @@ colnames(whole_dat)[colnames(whole_dat) == "rowname"] = "donorId"
 
 # Assign treatment group
 W = create_tx_matrix(txVector = tx_list, 
-                    binaryVector = rep(TRUE, length(txVector)), 
+                    binaryVector = rep(TRUE, length(tx_list)), 
                     cutoffThreshDf = data.frame(
-                                        dirct = rep(">", length(txVector)), 
-                                        thresh = rep(0, length(txVector))
+                                        dirct = rep(">", length(tx_list)), 
+                                        thresh = rep(0, length(tx_list))
                                         ), 
                     covarMat = X)
 

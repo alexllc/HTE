@@ -38,4 +38,9 @@ library(parallel)
 
 
 # For METABRIC_external_validation_functions.R
-library()
+library(BSDA)
+
+library(clusterProfiler) # for converting b/t ENSEMBL and HUGO SYMBOLS
+library(org.Hs.eg.db)
+
+# library(EnsDb.Hsapiens.v75) # load when external validation script is used

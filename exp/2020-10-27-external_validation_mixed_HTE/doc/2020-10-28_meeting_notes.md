@@ -22,6 +22,7 @@
 ## To-do
 
 - [x] Perform SHC, permute for mixed HTE
-- [ ] further methods to perform external validation, email prof So about your ideas
-- [ ] discuss with everybody in the project to use the same set of codes.
+
+- [x] further methods to perform external validation, email prof So about your ideas
+- [x] discuss with everybody in the project to use the same set of codes.
 - [x] Impute rather than omit missing data janssen2010, cismondi2013

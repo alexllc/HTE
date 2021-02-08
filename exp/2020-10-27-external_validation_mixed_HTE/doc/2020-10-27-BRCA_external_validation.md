@@ -61,14 +61,15 @@ According to [collins2014](https://doi.org/10.1186/1471-2288-14-40), you should 
 
 #### Action plan for external validation
 
-- [ ] Impute missing clinical data for all studies
+
+- [x] Impute missing clinical data for all studies
     - standardize imputation method (talk with Kai) -> usd the GRF built in
 
 - [ ] Statistics to demonstrate compatibilities between internal and external datasets
     - KS test per gene to see if the underlying distribution between the two cohorts of the **same** gene are different
     - Ranges and categories of clinical, actually any continuous predictors (make sure demographic compatibility is achieved)
 
-- [ ] Performance measures
+- [x] Performance measures
     - Vales of R-loss criterion ("debiased.error" column)
     - Calibration similar to the built in `test_calibration` function
         - whether the internal tau prediction is well calibrated with the external tau prediction
@@ -80,7 +81,6 @@ According to [collins2014](https://doi.org/10.1186/1471-2288-14-40), you should 
 * Pick up genes with sig. HTE -> overlap between the two datasets?
 * Overlap of covar with high variable importance (but collinearity may affect the results); two x two table  (eg varimp> cutoff eg 0)  
 * Within each dataset -> use a diff. Normalization scheme (z-score)
-
 #### Detailed Procedures
 
 Build separate forest 
