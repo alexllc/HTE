@@ -190,7 +190,6 @@ run.hte <- function(covar_mat,
         print("Fitting CF on the whole dataset.")
         tau.forest <- cf.estimator(X.covariates, Y, treatment)   # run causal forests by default
         tau.prediction <- predict(tau.forest, newdata = NULL, estimate.variance = TRUE, num.threads = n_core)
-        write.csv(tau.prediction, file = paste0(file_prefix,  "_tau_pred_", tx, ".csv"))
         tau.var <- var(tau.prediction$predictions)
 
         # compute zval, pval and ajusted.p
@@ -205,9 +204,11 @@ run.hte <- function(covar_mat,
             cor.overall <- cor.test(covar_mat[, tx], Y, method = "pearson", alternative = "greater", use = "na.or.complete")
 
             # save the result
-            pred.ret <- cbind(whole_dataset$donorId, tau_stats)
+            pred.ret <- cbind(tau_stats)
             colnames(pred.ret) <- c("donorId", "tau.val", "tau.zval", "tau.pval", "tau.p.adjust")
             write.csv(pred.ret, paste0(output_directory, project, "_tau_", tx, ".csv"), quote = F, row.names = F)
+            tau.pred.save <- cbind(whole_dataset$donorId, tau.prediction) # saving raw output from pred.causal_forest() to include error estimates
+            write.csv(tau.pred.save, file = paste0(file_prefix,  project, "_tau_pred_", tx, ".csv"), row.names = FALSE)
 
             # permutate estimated tau values to validate HET esimation
             Y.hat <- tau.forest[["Y.hat"]]
