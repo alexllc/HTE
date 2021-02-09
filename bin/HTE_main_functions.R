@@ -132,8 +132,10 @@ run.hte <- function(covar_mat,
         i <- i + 1
 
         treatment <- W_matrix[,colnames(W_matrix) == tx] # directly retreive the W vector from function input
-        message("Current treatment proportion: ")
-        print(table(treatment))
+        if (is_binary) {
+            message("Current treatment proportion: ")
+            print(table(treatment))
+        }
 
         if (length(unique(treatment)) == 1) {
             print("Not enough obseravtaions for this treatment, skipping.")
