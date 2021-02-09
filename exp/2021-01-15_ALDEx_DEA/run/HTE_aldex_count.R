@@ -13,6 +13,7 @@ for (bin in bin_ls){
 cancer_type = "BRCA"
 endpt = "OS"
 output_file = "./exp/2021-01-15_ALDEx_DEA/res/"
+resume = 1115
 
 ## Prepare clinical dataframe
 clinical = fetch_clinical_data(cancer_type, outParam = endpt, imputeMethod = "simple", outUnitDays2Month = TRUE, discard = c("type", "tumor_status"))
@@ -49,7 +50,7 @@ rownames(exp) <- format_tcga_patient(rownames(exp))
 ## Subset patients and settings for HTE
 # Check the list of common patients across three data frames
 common_pat = rownames(clinical)[rownames(clinical) %in% rownames(exp)]
-message(paste0("Number of patients with expression, mutation and clinical entries is: ", length(common_pat)))
+message(paste0("Number of patients with expression and clinical entries is: ", length(common_pat)))
 
 # Outcome vector for causal forest
 Y = clinical[common_pat, "outcome"]
@@ -78,6 +79,11 @@ W = create_tx_matrix(txVector = tx_list,
                                         ), 
                     covarMat = X)
 
+# options for resuming
+tx_list <- tx_list[resume:length(tx_list)]
+W <- W[,resume:length(tx_list)]
+
+
 ## Run and save HTE
 obsNumber <- dim(X)[1]
 trainId <- sample(1: obsNumber, floor(obsNumber/2), replace = FALSE)
@@ -95,7 +101,7 @@ result <- run.hte(covar_mat = X,
                 save_split = T, 
                 is_tuned = F, 
                 thres = 0.75, 
-                n_core = 6, 
+                n_core = 70, 
                 output_directory = output_file, 
                 perm_all = FALSE) # pre-filtered thres, should not have an effect here
 
@@ -103,3 +109,4 @@ write.csv(result[[1]], paste0(output_file, cancer_type, '_mixed_HTE_correlation_
 write.csv(result[[2]], paste0(output_file, cancer_type, '_iqlr_calibration_result.csv'), quote = F, row.names = F)
 write.csv(result[[3]], paste0(output_file, cancer_type, '_iqlr_median_t_test_result.csv'), quote = F, row.names = F)
 write.csv(result[[4]], paste0(output_file, cancer_type, '_iqlr_permutate_testing_result.csv'), quote = F, row.names = F)
+
