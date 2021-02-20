@@ -140,7 +140,7 @@ run.hte <- function(covar_mat,
             next
         }
 
-        if (!diffCovarTxTypes) X.covariates <- as.matrix(dplyr::select(covar_mat, -tx))
+        if (!diffCovarTxTypes) X.covariates <- as.matrix(dplyr::select(covar_mat, -all_of(tx)))
 
         # print(paste0(c('#', rep('-', 40), ' begin a new treatment ', rep('-', 40)), collapse = ''))
 
@@ -201,7 +201,7 @@ run.hte <- function(covar_mat,
 
         if ((simes.pval <= 0.05 & skip_perm == FALSE) | perm_all) {
             print("Performing permutation.")
-            cor.overall <- cor.test(covar_mat[, tx], Y, method = "pearson", alternative = "greater", use = "na.or.complete")
+            cor.overall <- cor.test(covar_mat[, all_of(tx)], Y, method = "pearson", alternative = "greater", use = "na.or.complete")
 
             # save the result
             pred.ret <- cbind(whole_dataset$donorId, tau_stats)
