@@ -110,3 +110,18 @@ write.csv(result[[2]], paste0(output_file, cancer_type, '_iqlr_calibration_resul
 write.csv(result[[3]], paste0(output_file, cancer_type, '_iqlr_median_t_test_result.csv'), quote = F, row.names = F)
 write.csv(result[[4]], paste0(output_file, cancer_type, '_iqlr_permutate_testing_result.csv'), quote = F, row.names = F)
 
+cont_result <- run.hte(covar_mat = X, 
+                tx_vector = tx_list, 
+                whole_dataset = whole_dat, 
+                project = cancer_type, 
+                W_matrix = X[,tx_list], 
+                trainId = trainId, 
+                seed = 111, 
+                is_binary = F, 
+                is_save = T, 
+                save_split = T, 
+                is_tuned = F, 
+                thres = 0.75, 
+                n_core = 70, 
+                output_directory = "./exp/2021-01-15_ALDEx_DEA/tmp/tmp_res/", 
+                perm_all = FALSE) 

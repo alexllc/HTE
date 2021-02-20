@@ -132,8 +132,10 @@ run.hte <- function(covar_mat,
         i <- i + 1
 
         treatment <- W_matrix[,colnames(W_matrix) == tx] # directly retreive the W vector from function input
-        message("Current treatment proportion: ")
-        print(table(treatment))
+        if (is_binary) {
+            message("Current treatment proportion: ")
+            print(table(treatment))
+        }
 
         if (length(unique(treatment)) == 1) {
             print("Not enough obseravtaions for this treatment, skipping.")
@@ -208,7 +210,7 @@ run.hte <- function(covar_mat,
             colnames(pred.ret) <- c("donorId", "tau.val", "tau.zval", "tau.pval", "tau.p.adjust")
             write.csv(pred.ret, paste0(output_directory, project, "_tau_", tx, ".csv"), quote = F, row.names = F)
             tau.pred.save <- cbind(whole_dataset$donorId, tau.prediction) # saving raw output from pred.causal_forest() to include error estimates
-            write.csv(tau.pred.save, file = paste0(file_prefix,  project, "_tau_pred_", tx, ".csv"), row.names = FALSE)
+            write.csv(tau.pred.save, file = paste0(file_prefix, "_tau_pred_", tx, ".csv"), row.names = FALSE)
 
             # permutate estimated tau values to validate HET esimation
             Y.hat <- tau.forest[["Y.hat"]]
