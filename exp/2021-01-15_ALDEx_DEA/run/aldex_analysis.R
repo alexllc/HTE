@@ -82,11 +82,11 @@ for (CancerProject in cancerList) {
 
       dataPrep <- GDCprepare(query = queryDown, 
                           save = TRUE, 
-                          save.filename = "./raw/count_matrix.RData", # Ensembl server may go down 
+                          save.filename = paste0("./raw/", CancerProject, "_count_matrix.RData", # Ensembl server may go down 
                           directory =  DataDirectory)
 
       } else {
-      load("./raw/count_matrix.RData")
+      load(paste0("./raw/", CancerProject, "_count_matrix.RData"))
   }
 
   # Create condition list
@@ -96,7 +96,7 @@ for (CancerProject in cancerList) {
   names(conds) = ifelse(conds %in% dataSmTP, "TP", "NT")
 
   message("Reading IQLR object from previous run.")
-  x <- readRDS("./dat/BRCA_iqlr_S4_obj.rds.gz")
+  x <- readRDS(paste0("./dat/", CancerProject, "_iqlr_S4_obj.rds.gz"))
 
   message("Performing ALDEx2 with IQLR.")
   out <- aldex_with_clr(x = x, 
@@ -105,5 +105,6 @@ for (CancerProject in cancerList) {
                         verbose=TRUE, 
                         denom="iqlr")
 
-  saveRDS(out, file = "./dat/ALDEx2_result.rds.gz")
+  saveRDS(out, file = paste0("./dat/", CancerProject, "_ALDEx2_result.rds.gz"))
+  message("ALDEx2 done.")
 }
