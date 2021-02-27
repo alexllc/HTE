@@ -82,10 +82,10 @@ for (CancerProject in cancerList) {
 
       dataPrep <- GDCprepare(query = queryDown, 
                           save = TRUE, 
-                          save.filename = paste0("./raw/", CancerProject, "_count_matrix.RData", # Ensembl server may go down 
+                          save.filename = paste0("./raw/", CancerProject, "_count_matrix.RData"), # Ensembl server may go down 
                           directory =  DataDirectory)
 
-      } else {
+  } else {
       load(paste0("./raw/", CancerProject, "_count_matrix.RData"))
   }
 
