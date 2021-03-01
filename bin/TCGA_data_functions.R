@@ -365,3 +365,16 @@ create_tx_matrix <- function(txVector,
     colnames(W_matrix) <- txVector
     return(W_matrix)
 }
+
+#' Correct drug names using a manually curated drug names conversion talbe provided by gatech.edu
+#' You must first download the "DrugCorrection.csv" file to the ``./dat` directory from the gatech site via 
+#' > wget https://gdisc.bme.gatech.edu/Data/DrugCorrection.csv --no-check-certificate
+#' Unforutnately, setting `Sys.setenv(LIBCURL_BUILD="winssl")``, nor does setting `httr::set_config(config(ssl_verifypeer = FALSE))` work.
+#' 
+#' @param drug_ls list of drugs extracted from TCGA datasets
+
+correct_drug_names <- function(drug_ls) {
+    drug_tbl = read.csv("./dat/DrugCorrection.csv")
+    drug_ls <- unlist(lapply(drug_ls, function(x) drug_tbl$Correction[drug_tbl$OldName == x]))
+    return(drug_ls)
+}
