@@ -56,7 +56,7 @@ for (CancerProject in cancerList) {
   DataDirectory <- paste0("./raw/",gsub("-","_",CancerProject))
   FileNameData <- paste0(DataDirectory, "_","HTSeq_Counts",".rda")
 
-  query <- GDCquery(project = CancerProject,
+  query <- GDCquery(project = paste0("TCGA-", CancerProject),
                   data.category = "Transcriptome Profiling",
                   data.type = "Gene Expression Quantification", 
                   workflow.type = "HTSeq - Counts")
@@ -69,10 +69,10 @@ for (CancerProject in cancerList) {
   dataSmNT <- TCGAquery_SampleTypes(barcode = samplesDown,
                                   typesample = "NT")
 
-  if (!file.exists("./raw/count_matrix.RData") ) {
+  if (!file.exists(paste0("./raw/TCGA-", CancerProject, "_count_matrix.RData")) ) {
 
       # Donwload count matrix from GDC
-      queryDown <- GDCquery(project = CancerProject, 
+      queryDown <- GDCquery(project = paste0("TCGA-", CancerProject),
                           data.category = "Transcriptome Profiling",
                           data.type = "Gene Expression Quantification", 
                           workflow.type = "HTSeq - Counts", 
@@ -86,7 +86,7 @@ for (CancerProject in cancerList) {
                           directory =  DataDirectory)
 
   } else {
-      load(paste0("./raw/", CancerProject, "_count_matrix.RData"))
+      load(paste0("./raw/TCGA-", CancerProject, "_count_matrix.RData"))
   }
 
   # Create condition list
@@ -96,7 +96,7 @@ for (CancerProject in cancerList) {
   names(conds) = ifelse(conds %in% dataSmTP, "TP", "NT")
 
   message("Reading IQLR object from previous run.")
-  x <- readRDS(paste0("./dat/", CancerProject, "_iqlr_S4_obj.rds.gz"))
+  x <- readRDS(paste0("./dat/TCGA-", CancerProject, "_iqlr_S4_obj.rds.gz"))
 
   message("Performing ALDEx2 with IQLR.")
   out <- aldex_with_clr(x = x, 
