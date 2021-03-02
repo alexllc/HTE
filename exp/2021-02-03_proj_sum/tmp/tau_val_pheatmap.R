@@ -1,5 +1,4 @@
 ## Run from base directory
-library("RColorBrewer")
 
 setwd("~/project/HTE/")
 bin_ls = list.files("./bin")
@@ -7,8 +6,21 @@ for (bin in bin_ls){
     source(paste0("./bin/", bin))
 }
 
+library(org.Hs.eg.db)
+library(dplyr)
+library("RColorBrewer")
+
+get_gene <- function(file_name, pos = NULL) {
+    gene_names <- strsplit(file_name, "_|\\.")
+    gene_names <- unlist(lapply(gene_names, function(x) {x[pos]}))
+    return(gene_names)
+}
+
+
+# heatmap parameters
 expri <- "/home/alex/project/HTE/exp/2020-06-20_TCGA_pancancer_DEA_indicated_tx_dirct_.25_gp_as_tx_exp_HTE"
 cancer <- "BRCA"
+include_rx <- TRUE
 
 perm <- read.csv(paste0(expri, "/res/", cancer, "/", cancer, "_expression_permutate_testing_result.csv"))
 # Load perm results and filter tau by it
@@ -64,16 +76,9 @@ drug_taken <- dplyr::select(drug_taken, -"pharmaceutical_therapy_drug_name") # g
 
 # We only care about whether a patient has *taken* the drug, not for how long or how many regimes, this information is important but it adds extra complexity in our visualization
 drug_taken <- dplyr::select(drug_taken, -"pharmaceutical_therapy_type")
-wide_drug <- drug_taken %>% unique() %>% mutate(n = 1) %>% spread(corr_drug_names, n, fill = 0)
-
-# Sparate tables (skip)
-chemo <- filter(drug_taken, pharmaceutical_therapy_type == "Chemotherapy")
-hormone <- filter(drug_taken, pharmaceutical_therapy_type == "Hormone Therapy")
-
 # long to wide drug information
-
 # Unique drug entries for each patients
-
+wide_drug <- drug_taken %>% unique() %>% mutate(n = 1) %>% spread(corr_drug_names, n, fill = 0)
 
 #************************ build heat map ************************
 
@@ -102,21 +107,24 @@ quali_col <- list(stage = stage,
                 )
 
 # include drug tx categories
-plot_clinical_rx <- plot_clinical
-plot_clinical_rx$bcr_patient_barcode <- rownames(plot_clinical_rx)
-plot_clin_rx <- left_join(plot_clinical_rx, wide_drug, by = "bcr_patient_barcode")
-rownames(plot_clin_rx) = plot_clin_rx$bcr_patient_barcode
-plot_clin_rx$bcr_patient_barcode = NULL
-plot_clin_rx[is.na(plot_clin_rx)] = "missing" # do not indicate missing drug information as "0", not taken
+if (include_rx) {
+    plot_clinical_rx <- plot_clinical
+    plot_clinical_rx$bcr_patient_barcode <- rownames(plot_clinical_rx)
+    plot_clin_rx <- left_join(plot_clinical_rx, wide_drug, by = "bcr_patient_barcode")
+    rownames(plot_clin_rx) = plot_clin_rx$bcr_patient_barcode
+    plot_clin_rx$bcr_patient_barcode = NULL
+    plot_clin_rx[is.na(plot_clin_rx)] = "missing" # do not indicate missing drug information as "0", not taken
+    plot_clinical <- plot_clin_rx
 
-drug_col <- list()
-for (i in 5:dim(plot_clin_rx)[2]) {
-    x <- c("1" = "brown1", "0" = "gray88", "missing" = "white")
-    assign(colnames(plot_clin_rx)[i], x)
-    drug_col[[i-4]] <- get(colnames(plot_clin_rx)[i])
+    drug_col <- list()
+    for (i in 5:dim(plot_clin_rx)[2]) {
+        x <- c("1" = "brown1", "0" = "gray88", "missing" = "white")
+        assign(colnames(plot_clin_rx)[i], x)
+        drug_col[[i-4]] <- get(colnames(plot_clin_rx)[i])
+    }
+    names(drug_col) <- colnames(plot_clin_rx)[5:dim(plot_clin_rx)[2]]
+    quali_col <- append(quali_col, drug_col)
 }
-names(drug_col) <- colnames(plot_clin_rx)[5:dim(plot_clin_rx)[2]]
-quali_col <- append(quali_col, drug_col)
 
 qualitative_var <- list(stage <- clinical$ajcc_pathologic_tumor_stage, 
                         gender <- clinical$gender, 
@@ -125,9 +133,9 @@ qualitative_var <- list(stage <- clinical$ajcc_pathologic_tumor_stage,
                         col = quali_col
                         )
 
-pdf(file = "test.pdf", width = 30, height = 20)
+pdf(file = "HTE_heatmap.pdf", width = 30, height = 20)
 pheatmap(as.matrix(tau_tbl),
-        annotation_col = plot_clin_rx,
+        annotation_col = plot_clinical,
         annotation_colors = quali_col,
         annotation_legend = F,
         cluster_cols=T, cluster_rows=T,
