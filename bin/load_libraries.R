@@ -44,3 +44,9 @@ library(clusterProfiler) # for converting b/t ENSEMBL and HUGO SYMBOLS
 library(org.Hs.eg.db)
 
 # library(EnsDb.Hsapiens.v75) # load when external validation script is used
+# For meta-summayr
+library(optparse)
+library(org.Hs.eg.db) # translate gene ENSEMBL ID to HugoSymbols
+
+# For drug HTE
+library(xlsx)

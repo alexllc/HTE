@@ -41,3 +41,7 @@ pval_perm, pval_var, simes_test, etc)
 ## Additional supplementary tasks
 - [ ] try X-learner with mutation data
 
+## Advanced modifications
+- PFI as outcome
+- Alternative survival models (assumption scrutiny)
+- Treatment continuous vs binary

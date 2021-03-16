@@ -1,6 +1,7 @@
 # Functions for retreiving TCGA data in HTE analysis
 ## These functions requires relative path access to donwloaded files and GDCdata, therefore this script ***MUST*** be run under the outermost home directory.
 
+# TODO update survival imputation methods in accordance to NICE TA TSD14 guidelines (http://nicedsu.org.uk/technical-support-documents/survival-analysis-tsd/)
 
 #' Function to use an axullary variable to impute time to failture wtih a Cox PH model, must be used in conjunction with fetch_clinical_data function or the column names will not match.
 #' 
@@ -109,6 +110,87 @@ fetch_clinical_data <- function(cancer_type,
 
     return(clinical_dat)
 }
+
+# TODO scavenge clinical information from up-to-date GDC data
+#' Fetch up to date clinical data
+#' 
+#' Although clinical outcome in the TCGA-CDR was more standardized calculation, it's more up-to-date and we'd sometimes want to have more cases rather than being accurate alone.
+#' This function is written for OS as endpoint only, other endpoins have not been implemented yet. 
+#' "OS is the period from the date of diagnosis until the date of death from any cause. "
+
+find_clinical_data <- function(cancerType, col_vec =  c("bcr_patient_barcode", "type", "age_at_initial_pathologic_diagnosis",  "gender", "ajcc_pathologic_tumor_stage")) {
+    
+    # Check if TCGA-CDR is missing some patients
+    cdr <- read_excel("./dat/TCGA-CDR-SupplementalTableS1.xlsx")
+    cdr <- filter(cdr, type == cancerType)
+    
+    # Check if newer patients have been added to the clinical indexed files
+    clinical <- GDCquery_clinic(project = paste0("TCGA-", cancerType), type = "clinical")
+    if (!all(clinical$bcr_patient_barcode %in% cdr$bcr_patient_barcode)) {
+        # CDR is not updated, some patients are missing from CDR
+        new_patients <- clinical[!(clinical$bcr_patient_barcode %in% cdr$bcr_patient_barcode),]
+    }
+}
+
+fetch_BCR_clinical <- function(cancerType) {
+
+    # clin data via BCR biotab files
+    query <- GDCquery(project = paste0("TCGA-", cancerType), 
+                  data.category = "Clinical",
+                  data.type = "Clinical Supplement", 
+                  data.format = "BCR Biotab")
+    GDCdownload(query)
+    clinical.BCRtab.all <- GDCprepare(query)
+    clin_BCR <- clinical.BCRtab.all$clinical_patient_brca
+    clin_covar <- dplyr::select(clin_BCR, all_of(c("bcr_patient_barcode", "age_at_diagnosis", "ajcc_pathologic_tumor_stage", "gender", "vital_status", "last_contact_days_to", "death_days_to", "days_to_initial_pathologic_diagnosis")))
+    clin_covar <- clin_covar[-c(1:2),] # remove col IDs and descriptions
+    clin_covar[clin_covar == "[Not Available]"] <- NA # remove string NA identifiers
+    numeric_cols <- grep("age_|days_", colnames(clin_covar))
+    clin_covar[numeric_cols] <- lapply(clin_covar[numeric_cols], as.numeric)
+    # convert to numeric
+
+    # Patients are either: ALIVE, DEAD or NA in this data. OS lengths of alive patients were indicated by last_contact_days_to, while dead patients were indicated by death_days_to. Once you have one entry, the other one should be NA, so to get the "OS length" you will need to coalesce these two cols
+    clin_covar <- clin_covar %>% mutate(OS_time = coalesce(last_contact_days_to, death_days_to))
+
+    # set negative OS times to 0s, these patients were contacted before diagnosis was made, and perhaps had been lost to follow-up
+    clin_covar$OS_time[clin_covar$OS_time < 0] <- 0
+    clin_covar <- dplyr::select(clin_covar, -c("last_contact_days_to", "death_days_to", "days_to_initial_pathologic_diagnosis"))
+
+    # Convert categorical variables into numeric for imputing missing stages
+    clin_covar <- convert_col_to_numeric(as.data.frame(clin_covar), id = "bcr_patient_barcode")
+
+    # impute missing stages with kNN
+    tmp = kNN(as.matrix(dplyr::select(clin_covar, -c("bcr_patient_barcode", "OS_time"))))
+
+    # patient missing survival data
+    missing_surv <- clin_covar[is.na(clin_covar$days_to_last_follow_up),]
+
+    
+    # Convert "days_to_last_follow_up" negative values to 0s, these patients were recorded before a proper diagnosis was made
+
+
+    # impute missing stages with 
+}
+
+fetch_indexed_clinical <- function(cancerType) {
+    clinical <- GDCquery_clinic(project = paste0("TCGA-", cancerType), type = "clinical")
+    # days_to_last_known_disease_status is all NAs
+    clinical_sub <- dplyr::select(clinical, all_of(c("bcr_patient_barcode", "age_at_index", "ajcc_pathologic_stage", "ajcc_pathologic_t", "ajcc_pathologic_n", "ajcc_pathologic_m", "days_to_diagnosis", "days_to_last_follow_up", "days_to_death", "vital_status")))
+    clinical_sub <- clinical_sub %>% mutate(OS_time = coalesce(days_to_last_follow_up, days_to_death))
+
+    missing_stages <- which(is.na(clinical_sub$ajcc_pathologic_stage))
+
+    # See if you can re-assign patients with missing stages using the TNM cols
+    clinical_sub[missing_stages, "ajcc_pathologic_stage"] <- find_ajcc_stage( clinical_sub[missing_stages,c(4:6)])
+
+    # omitt patinets you can't find survival data or stage data with
+    clinical_sub <- clinical_sub[-which(is.na(clinical_sub$OS_time) | is.na(clinical_sub$ajcc_pathologic_stage)),]
+
+    clinical_sub <- dplyr::select(clinical_sub, -c("ajcc_pathologic_t", "ajcc_pathologic_n", "ajcc_pathologic_m", "days_to_last_follow_up", "days_to_death", "days_to_diagnosis"))
+
+    return(clinical_sub)
+}
+
 
 #' Fetch mutation datat using TCGAbiolinks
 #' 
@@ -235,9 +317,9 @@ mk_id_rownames <- function(df) {
     return(df)
 }
 
-convert_col_to_numeric <- function(clin_df) {
+convert_col_to_numeric <- function(clin_df, id = "donorId") {
     for (c in colnames(clin_df)) {
-        if (!is.numeric(clin_df[,c]) && c != "donorId") {
+        if (!is.numeric(clin_df[,c]) && c != id) {
             # Convert empty strings into NAs first
             which.one <- which( levels(clin_df[,c]) == "")
             levels(clin_df[,c])[which.one] <- NA
@@ -377,4 +459,37 @@ correct_drug_names <- function(drug_ls) {
     drug_tbl = read.csv("./dat/DrugCorrection.csv")
     drug_ls <- unlist(lapply(drug_ls, function(x) drug_tbl$Correction[drug_tbl$OldName == x]))
     return(drug_ls)
+}
+
+#' Function to combine ajcc TNM system into stages according to the AJCC 7th edition guide
+#' 
+#' @example tnm_cols = clinical_sub[missing_stages,c(4:6)]
+#' @source \url{https://www.sciencedirect.com/science/article/pii/S1072751513002809}
+#' @param tnm_cols subset of the clinical dataframe containing columns of pathological status of the TNM system
+find_ajcc_stage <- function(tnm_cols = NULL) {
+
+    stage_tbl <- read.csv("./dat/brca_stage_tbl.csv")
+
+    for (i in 1:ncol(tnm_cols)) {
+
+        # remove minor categories
+        with_subcat <- grep("^[[:upper:]]\\d[[:lower:]]$", tnm_cols[,i])
+        tnm_cols[with_subcat,i] <- gsub("[[:lower:]]$", "", tnm_cols[with_subcat,i])
+
+        # assume lowest possible stage
+        with_unknown <- grep("^[[:upper:]]X$", tnm_cols[,i])
+        tnm_cols[with_unknown,i] <- gsub("X$", "0", tnm_cols[with_unknown,i])
+
+    }
+
+    tnm_cols$key <- unite(tnm_cols, col = "key", sep = "|")
+    stage_tbl$key <- unite(stage_tbl[,c(1:3)], col = "key", sep = "|")
+
+    tnm_cols <- left_join(tnm_cols, stage_tbl, by = "key")
+
+    # manually set for advanced stages
+    tnm_cols[which(tnm_cols$ajcc_pathologic_n == "N3"), "stage"] <- "IIIC"
+    tnm_cols[which(tnm_cols$ajcc_pathologic_m == "M1"), "stage"] <- "IV"
+
+    return(tnm_cols$stage)
 }

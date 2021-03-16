@@ -9,10 +9,6 @@
 # cancer <- "BRCA"
 # expri <- "/home/alex/project/HTE/exp/2020-06-20_TCGA_pancancer_DEA_indicated_tx_dirct_.25_gp_as_tx_exp_HTE"
 
-library(optparse)
-library(org.Hs.eg.db) # translate gene ENSEMBL ID to HugoSymbols
-library(dplyr)
-
 ## Run from base directory
 setwd("~/project/HTE/")
 
