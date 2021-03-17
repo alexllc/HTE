@@ -13,7 +13,7 @@ for (bin in bin_ls){
 cancer_type <- "BRCA"
 endpt <- "OS"
 output_file <- "./exp/2021-03-02_clinical_HTE/res/"
-resume <- 1
+paused_at <- 15
 useALDEX2_DE <- TRUE
 use_DE_covar_only <- TRUE
 # Control strigency indicator
@@ -151,7 +151,7 @@ blp_res <- NULL
 ate_res <- NULL
 
 
-for (rx in colnames(hot_drug)[colnames(hot_drug) != "bcr_patient_barcode"]) {
+for (rx in colnames(hot_drug)[colnames(hot_drug) != "bcr_patient_barcode"][(paused_at - 1):(length(colnames(hot_drug)) - 1)] ) {
 
     message(paste0("Running drug: ", rx))
     drug_takers <- unique(drug_taken$bcr_patient_barcode[drug_taken$corr_drug_names == rx])
@@ -172,15 +172,24 @@ for (rx in colnames(hot_drug)[colnames(hot_drug) != "bcr_patient_barcode"]) {
                             tune.parameters = c("sample.fraction", "mtry", "min.node.size", "honesty.fraction", "honesty.prune.leaves", "alpha", "imbalance.penalty")
                         )
         )
-    if(is.null(forest)) next
+    if(!exists("forest")) {
+        message("Failed to build forest.")
+        next
+    }
 
     # cf_scores <- grf::get_scores(cf) # does not work
     predictions <- predict(forest, estimate.variance = TRUE)
-    cf_split_freq <- split_frequencies(forest, max.depth = 4)
-    cf_tc <- test_calibration(forest)
-    cf_ape <- average_partial_effect(forest)
-    cf_blp <- best_linear_projection(forest)
-    cf_ate <- average_treatment_effect(forest)
+
+    # try(cf_split_freq <- split_frequencies(forest, max.depth = 4))
+    try(cf_tc <- test_calibration(forest))
+    try(cf_ape <- average_partial_effect(forest))
+    try(cf_blp <- best_linear_projection(forest))
+    try(cf_ate <- average_treatment_effect(forest))
+    
+    if(!all(c(exists("cf_tc"),exists("cf_ape"),exists("cf_blp"),exists("cf_ate")))) {
+        message("Failed to analyse forest.")
+        next
+    }
 
     message("Excess error summary statistics:")
     print(summary(predictions$excess.error))
@@ -208,7 +217,7 @@ for (rx in colnames(hot_drug)[colnames(hot_drug) != "bcr_patient_barcode"]) {
 
     varimp <- left_join(varimp, ensembl2ID, by = c("feature" = "ENSEMBL"))
 
-    write.csv(varimp, file = paste0(output_file, rx, "_varimp.csv"))
+    write.csv(varimp, file = paste0(output_file, rx, "_varimp.csv"), row.names = FALSE)
 
 }
 
