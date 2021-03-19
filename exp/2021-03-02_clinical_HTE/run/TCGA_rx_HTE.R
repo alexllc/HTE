@@ -10,10 +10,10 @@ for (bin in bin_ls){
 }
 
 ## Set parameters for this run
-cancer_type <- "BRCA"
+cancer_type <- "COAD"
 endpt <- "OS"
-output_file <- "./exp/2021-03-02_clinical_HTE/res/"
-paused_at <- 15
+output_file <- paste0("./exp/2021-03-02_clinical_HTE/res/", cancer_type)
+paused_at <- NULL
 useALDEX2_DE <- TRUE
 use_DE_covar_only <- TRUE
 # Control strigency indicator
@@ -23,7 +23,7 @@ pureCtrlsOnly <- FALSE
 
 ## BCR biotab
 # Load drug taken from TCGA BCR Biotab files
-query <- GDCquery(project = "TCGA-BRCA", 
+query <- GDCquery(project = paste0("TCGA-", cancer_type), 
                   data.category = "Clinical",
                   data.type = "Clinical Supplement", 
                   data.format = "BCR Biotab")
@@ -34,7 +34,7 @@ drug <- clinical.BCRtab.all$clinical_drug_brca
 
 
 ## Clinical indexed data
-clinical <- GDCquery_clinic(project = "TCGA-BRCA", type = "clinical")
+clinical <- GDCquery_clinic(project = paste0("TCGA-", cancer_type), type = "clinical")
 
 ## surveying the dataset
 table(clinical$treatments_pharmaceutical_treatment_or_therapy)
@@ -79,7 +79,7 @@ length(unique(yes_drug$bcr_patient_barcode))
 # For each drug, we can choose the truely "no" patients as control, these are the universally non-treated patiets. If a patient with drug recrods is not treated with the drug in question but treated with other drugs in question, they will be the pseudo control group. We could try HTE with pseudo control or true control, depending on whichever works.
 
 # Fetch clinical indexed data from TCGAbiolinks
-clin_indexed <- fetch_indexed_clinical(cancerType = "BRCA")
+clin_indexed <- fetch_indexed_clinical(cancerType = cancer_type)
 clin_indexed <- convert_col_to_numeric(clin_indexed, id = "bcr_patient_barcode")
 
 # Now the next step is to set up the drug binary tables, one hot encoding based on the above criteria
@@ -150,8 +150,12 @@ ape_res <- NULL
 blp_res <- NULL
 ate_res <- NULL
 
+drug_selection <- colnames(hot_drug)[colnames(hot_drug) != "bcr_patient_barcode"][1:(paused_at - 1)] # to resume drug from previous run
+# drug_selection <- colnames(hot_drug)[colnames(hot_drug) != "bcr_patient_barcode"][(paused_at - 1):(length(colnames(hot_drug)) - 1)]
 
-for (rx in colnames(hot_drug)[colnames(hot_drug) != "bcr_patient_barcode"][(paused_at - 1):(length(colnames(hot_drug)) - 1)] ) {
+for (rx in  drug_selection) {
+
+    message(paste0(rep("=")))
 
     message(paste0("Running drug: ", rx))
     drug_takers <- unique(drug_taken$bcr_patient_barcode[drug_taken$corr_drug_names == rx])
@@ -220,6 +224,13 @@ for (rx in colnames(hot_drug)[colnames(hot_drug) != "bcr_patient_barcode"][(paus
     write.csv(varimp, file = paste0(output_file, rx, "_varimp.csv"), row.names = FALSE)
 
 }
+# Save pan-drug results
+write.xlsx(tc_res, file = paste0(output_file, "BRCA_grf_res.xlsx"), sheetName="test_calib", row.names=FALSE)
+write.xlsx(ape_res, file=paste0(output_file, "BRCA_grf_res.xlsx"), sheetName="avg_partial_eff", append=TRUE, row.names=FALSE)
+write.xlsx(blp_res, file=paste0(output_file, "BRCA_grf_res.xlsx"), sheetName="best_linear_proj", append=TRUE, row.names=FALSE)
+write.xlsx(ate_res, file=paste0(output_file, "BRCA_grf_res.xlsx"), sheetName="avg_tx_eff", append=TRUE, row.names=FALSE)
+
+message("Drug HTE analysis completed. Beginning SHC and permutation tests.")
 
 # Run Kai's HTE tests
 # no need to try here, if ti fails it will fail up top
@@ -274,9 +285,4 @@ write.csv(result[[4]], paste0(output_file, cancer_type, '_drug_permutate_testing
 
     # 3. Differentially expressed genes normalized by IQLR
 
-# Save pan-drug results
-write.xlsx(tc_res, file = paste0(output_file, "BRCA_grf_res.xlsx"), sheetName="test_calib", row.names=FALSE)
-write.xlsx(ape_res, file=paste0(output_file, "BRCA_grf_res.xlsx"), sheetName="avg_partial_eff", append=TRUE, row.names=FALSE)
-write.xlsx(blp_res, file=paste0(output_file, "BRCA_grf_res.xlsx"), sheetName="best_linear_proj", append=TRUE, row.names=FALSE)
-write.xlsx(ate_res, file=paste0(output_file, "BRCA_grf_res.xlsx"), sheetName="avg_tx_eff", append=TRUE, row.names=FALSE)
 
