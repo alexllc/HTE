@@ -10,21 +10,28 @@ for (bin in bin_ls){
 }
 
 ## Set parameters for this run
-cancer_type = "BRCA"
-endpt = "OS"
-output_file = "./exp/2021-01-15_ALDEx_DEA/res/"
-resume = 1115
+cancer_type <- "BRCA"
+endpt <- "OS"
+output_file <- "./exp/2021-01-15_ALDEx_DEA/res/"
+resume <- 1115
+useALDEX2_DE <- TRUE
+use_DE_covar_only <- TRUE
 
 ## Prepare clinical dataframe
-clinical = fetch_clinical_data(cancer_type, outParam = endpt, imputeMethod = "simple", outUnitDays2Month = TRUE, discard = c("type", "tumor_status"))
-clinical = mk_id_rownames(clinical)
+clinical <- fetch_clinical_data(cancer_type, outParam = endpt, imputeMethod = "simple", outUnitDays2Month = TRUE, discard = c("type", "tumor_status"))
+clinical <- mk_id_rownames(clinical)
 
 ## Load expression matrix
-exp <- as.data.frame(fread("./dat/BRCA_iqlr_expected_count.csv.gz"))
-rownames(exp) <- exp$V1
-exp$V1 <- NULL
-exp <- t(exp)
+if(!DE_covar_only) {
+    exp <- as.data.frame(fread("./dat/BRCA_iqlr_expected_count.csv.gz"))
+    rownames(exp) <- exp$V1
+    exp$V1 <- NULL
+    exp <- t(exp)
+} else {
+   if (!useALDEX2) {
 
+   }
+}
 # select primary tumor only
 CancerProject <- "TCGA-BRCA"
 
@@ -57,11 +64,19 @@ Y = clinical[common_pat, "outcome"]
 X = exp[common_pat,]
 
 # Load DEA results
-dea <- read.csv("./dat/tables/BRCA_DEG_rerun.csv")
-rownames(dea) <- dea$X
-dea$X <- NULL
-dirct <- dea$logFC > 0
-names(dirct) <- dea$mRNA
+if (!useALDEX2_DE) {
+    dea <- read.csv("./dat/tables/BRCA_DEG_rerun.csv")
+    rownames(dea) <- dea$X
+    dea$X <- NULL
+    dirct <- dea$logFC > 0
+    names(dirct) <- dea$mRNA
+} else {
+   aldex <- readRDS("./dat/ALDEx2_result.rds.gz")
+   sig <- filter(aldex, abs(effect) > 1.5 & abs(overlap) < 0.05 ) # default filter setting
+   head(sig)[, c(1:3, 1219:1226)]
+    dea <- sig$effect
+    names(dea) <- rownames(sig)
+}
 
 tx_list = names(dirct)
 X = inner_join(rownames_to_column(clinical[common_pat, ]), rownames_to_column(as.data.frame(X)), by = "rowname")
@@ -110,6 +125,8 @@ write.csv(result[[2]], paste0(output_file, cancer_type, '_iqlr_calibration_resul
 write.csv(result[[3]], paste0(output_file, cancer_type, '_iqlr_median_t_test_result.csv'), quote = F, row.names = F)
 write.csv(result[[4]], paste0(output_file, cancer_type, '_iqlr_permutate_testing_result.csv'), quote = F, row.names = F)
 
+
+# for continuous treatment vectors
 cont_result <- run.hte(covar_mat = X, 
                 tx_vector = tx_list, 
                 whole_dataset = whole_dat, 

@@ -45,61 +45,66 @@ setwd("~/proj/HTE/")
 
 # Limit the number of cores available to ALDEx to avoid crashing
 default <- registered()
-register(MulticoreParam(workers = 28), default = TRUE)
+register(MulticoreParam(workers = 50), default = TRUE)
 
 # Load conditions
 # Fetch TCGA gene counts
-CancerProject <- "TCGA-BRCA"
-DataDirectory <- paste0("./raw/",gsub("-","_",CancerProject))
-FileNameData <- paste0(DataDirectory, "_","HTSeq_Counts",".rda")
+cancerList <- c("BLCA", "COAD", "GBM", "HNSC", "KIRC", "LUAD", "LUSC", "PRAD", "STAD", "THCA", "UCEC")
 
-query <- GDCquery(project = CancerProject,
-                data.category = "Transcriptome Profiling",
-                data.type = "Gene Expression Quantification", 
-                workflow.type = "HTSeq - Counts")
+for (CancerProject in cancerList) {
+  message(paste0("Processing cancer:", CancerProject))
+  DataDirectory <- paste0("./raw/",gsub("-","_",CancerProject))
+  FileNameData <- paste0(DataDirectory, "_","HTSeq_Counts",".rda")
 
-samplesDown <- getResults(query,cols=c("cases"))
+  query <- GDCquery(project = paste0("TCGA-", CancerProject),
+                  data.category = "Transcriptome Profiling",
+                  data.type = "Gene Expression Quantification", 
+                  workflow.type = "HTSeq - Counts")
 
-dataSmTP <- TCGAquery_SampleTypes(barcode = samplesDown,
-                                typesample = "TP")
+  samplesDown <- getResults(query,cols=c("cases"))
 
-dataSmNT <- TCGAquery_SampleTypes(barcode = samplesDown,
-                                typesample = "NT")
+  dataSmTP <- TCGAquery_SampleTypes(barcode = samplesDown,
+                                  typesample = "TP")
 
-if (!file.exists("./raw/count_matrix.RData") ) {
+  dataSmNT <- TCGAquery_SampleTypes(barcode = samplesDown,
+                                  typesample = "NT")
 
-    # Donwload count matrix from GDC
-    queryDown <- GDCquery(project = CancerProject, 
-                        data.category = "Transcriptome Profiling",
-                        data.type = "Gene Expression Quantification", 
-                        workflow.type = "HTSeq - Counts", 
-                        barcode = c(dataSmTP, dataSmNT))
-                        
-    GDCdownload(query = queryDown, directory = DataDirectory)
+  if (!file.exists(paste0("./raw/TCGA-", CancerProject, "_count_matrix.RData")) ) {
 
-    dataPrep <- GDCprepare(query = queryDown, 
-                        save = TRUE, 
-                        save.filename = "./raw/count_matrix.RData", # Ensembl server may go down 
-                        directory =  DataDirectory)
+      # Donwload count matrix from GDC
+      queryDown <- GDCquery(project = paste0("TCGA-", CancerProject),
+                          data.category = "Transcriptome Profiling",
+                          data.type = "Gene Expression Quantification", 
+                          workflow.type = "HTSeq - Counts", 
+                          barcode = c(dataSmTP, dataSmNT))
+                          
+      GDCdownload(query = queryDown, directory = DataDirectory)
 
-    } else {
-    load("./raw/count_matrix.RData")
+      dataPrep <- GDCprepare(query = queryDown, 
+                          save = TRUE, 
+                          save.filename = paste0("./raw/", CancerProject, "_count_matrix.RData"), # Ensembl server may go down 
+                          directory =  DataDirectory)
+
+  } else {
+      load(paste0("./raw/TCGA-", CancerProject, "_count_matrix.RData"))
+  }
+
+  # Create condition list
+  cntmat <- data.frame(as.list(assays(data,withDimnames=TRUE)))
+  colnames(cntmat) <- gsub("HTSeq...Counts.", "", colnames(cntmat))
+  conds <- gsub("\\.", "-", colnames(cntmat))
+  names(conds) = ifelse(conds %in% dataSmTP, "TP", "NT")
+
+  message("Reading IQLR object from previous run.")
+  x <- readRDS(paste0("./dat/TCGA-", CancerProject, "_iqlr_S4_obj.rds.gz"))
+
+  message("Performing ALDEx2 with IQLR.")
+  out <- aldex_with_clr(x = x, 
+                        conditions = names(conds), 
+                        include.sample.summary=TRUE, 
+                        verbose=TRUE, 
+                        denom="iqlr")
+
+  saveRDS(out, file = paste0("./dat/", CancerProject, "_ALDEx2_result.rds.gz"))
+  message("ALDEx2 done.")
 }
-
-# Create condition list
-cntmat <- data.frame(as.list(assays(data,withDimnames=TRUE)))
-colnames(cntmat) <- gsub("HTSeq...Counts.", "", colnames(cntmat))
-conds <- gsub("\\.", "-", colnames(cntmat))
-names(conds) = ifelse(conds %in% dataSmTP, "TP", "NT")
-
-message("Reading IQLR object from previous run.")
-x <- readRDS("./dat/BRCA_iqlr_S4_obj.rds.gz")
-
-message("Performing ALDEx2 with IQLR.")
-out <- aldex_with_clr(x = x, 
-                      conditions = names(conds), 
-                      include.sample.summary=TRUE, 
-                      verbose=TRUE, 
-                      denom="iqlr")
-
-saveRDS(out, file = "./dat/ALDEx2_result.rds.gz")
