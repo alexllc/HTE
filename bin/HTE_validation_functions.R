@@ -226,6 +226,7 @@ split_half_testing <- function(covariates, Y,
         return(pval)
     })
     return(aggregated_rslt)
+    seed <- seed + 1
 }
 
 paralleled.perm.cf <- function(covariates,
