@@ -4,6 +4,8 @@
     aldex = readRDS("./dat/ALDEx2_result.rds.gz")
     sig = filter(aldex, abs(effect) > 1 & abs(overlap) < 0.01 ) # default filter setting
     head(sig)[, c(1:3, 1219:1226)]
+    sig = filter(aldex, abs(effect) > 1 & abs(overlap) < 0.015  # more generous setting
+    # BRCA 414 sig genes vs 5 genes in default filter
 
 The recommended $|\Delta_{Q_0}^{A}| \leq 0.01$ and $|\Delta_R| \geq 1.5$ requirement only resulted in 5 DE genes in the TCGA-BRCA dataset:
 

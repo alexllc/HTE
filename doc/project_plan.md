@@ -3,6 +3,7 @@
 
 # Additional analysis
 - [x] using actual drug as treatment variables
+- [ ] ALDEx2 significant genes as covariates only
 
 ## Parameter setting
 - [ ] Test which proportion is best (with most genes passing perm test) without pre-selection
@@ -10,13 +11,15 @@
 - [x] log2 transformation test: does it boost or dampen heterogeneity?
 - [x] results for opposite vs in DEA treatment direction
 - [x] install [warrenmcg/sleuth-ALR](https://rdrr.io/github/warrenmcg/sleuth-ALR/)
+- [ ] 👉***use different seeds for each SHC repeats***👈
+- [ ] 👉***add GRF native analysis output to functions***👈
 
 ## Validation TODO
 - [x] Convert aligent using IQLR for technical concordant comparison
 - [ ] re-reun expression external validation
 - [ ] ext validation varimp overlap evaluation
 - [ ] Gene set enrichment approaches [kloet2020](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1008295)
-- [ ] 👉***prepare microarray data from TCGAbiolinks***👈
+- [x] 👉***prepare microarray data from TCGAbiolinks***👈
 
 ### Compositional data
 - [x] Compare HTE results using IQLR transformed count matrix

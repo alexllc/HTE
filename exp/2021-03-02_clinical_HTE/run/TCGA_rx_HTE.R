@@ -30,7 +30,7 @@ query <- GDCquery(project = paste0("TCGA-", cancer_type),
 GDCdownload(query)
 clinical.BCRtab.all <- GDCprepare(query)
 names(clinical.BCRtab.all)
-drug <- clinical.BCRtab.all$clinical_drug_brca
+drug <- clinical.BCRtab.all[[paste0("clinical_drug_", tolower(cancer_type))]]
 
 
 ## Clinical indexed data
@@ -101,10 +101,10 @@ not_reported <- nr[!(nr$bcr_patient_barcode %in% drug_taken$bcr_patient_barcode)
 not_reported <- not_reported$bcr_patient_barcode
 
 ## Load other covariates for covarriate matrix X input
-iqlr_count <- fread("./dat/BRCA_iqlr_expected_count.csv.gz")
+iqlr_count <- fread(paste0("./dat/", cancer_type, "_iqlr_expected_count.csv.gz"))
 
 # Differentially expressed genes included in the covar only
-de <- read.csv("./dat/tables/BRCA_DEG_rerun.csv")
+de <- read.csv(paste0("./dat/tables/", cancer_type, "_DEG_rerun.csv")
 iqlr_count <- iqlr_count[iqlr_count$V1 %in% de$X,]
 colnames(iqlr_count)[colnames(iqlr_count) == "V1"] <- "gene"
 colnames(iqlr_count) <- gsub("\\.", "-", colnames(iqlr_count))

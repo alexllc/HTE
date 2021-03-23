@@ -52,6 +52,7 @@ setMethod("append", signature(x = "data.frame", values = "vector"),
 #' @param output_directory file paths of output files, should be created before HTE run.
 #' @param skip_perm option to override permutation requirement for quicker run.
 #' @param perm_all option to permute all treatment variables 
+#' @param random_rep_seed boolean option to set whether different seeds should be generateed for each repeat, by default seeds will be saved for each run to ensure reproducability
 
 run.hte <- function(covar_mat,
                     tx_vector,
@@ -69,7 +70,8 @@ run.hte <- function(covar_mat,
                     n_core = 8,
                     output_directory = NULL,
                     skip_perm = FALSE,
-                    perm_all = FALSE) {
+                    perm_all = FALSE,
+                    random_rep_seed = TRUE) {
     # @covar_mat: covariates matrix (with treatment assignments as well if each of the covariates are taking turns to be analyzed as treatments). Treatment assignments can be binary or continuous.
     # @tx_vector: a vector of variables that will each be used as treatments
     # @whole_dataset: dataframe with outcome, covariates and treatment assignments
@@ -168,7 +170,8 @@ run.hte <- function(covar_mat,
                                 is_tuned = is_tuned,
                                 file_prefix = file_prefix,
                                 col_names = col_names,
-                                seed = seed)
+                                seed = seed,
+                                random_rep_seed = random_rep_seed)
             )
 
         if (class(pvalues) == "try-error") next
@@ -199,6 +202,8 @@ run.hte <- function(covar_mat,
         simes.pval <- simes.test(tau_stats[, 3])
         partial.simes.pval <- simes.partial(floor(no.obs * 0.05), tau_stats[, 3])
 
+        # TODO add native GRF analysis output
+        
         print(paste0("simes.pval is ", simes.pval))
 
         if ((simes.pval <= 0.05 & skip_perm == FALSE) | perm_all) {
