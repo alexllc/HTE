@@ -123,7 +123,8 @@ split_half_testing <- function(covariates, Y,
                                is_tuned = F,
                                no_repeats = 10,
                                seed = NULL, # seed will be set within run.hte call
-                               n_core = 8) {
+                               n_core = 8,
+                               random_rep_seed = TRUE) {
 
     # my added line 20 Sep 2019
     cf.estimator <- ifelse(is_tuned, cf.tuned, cf)
@@ -226,7 +227,7 @@ split_half_testing <- function(covariates, Y,
         return(pval)
     })
     return(aggregated_rslt)
-    seed <- seed + 1
+    if(random_rep_seed) seed <- seed + 1 # whether different seeds are used for each replicate
 }
 
 paralleled.perm.cf <- function(covariates,

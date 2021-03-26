@@ -53,6 +53,8 @@ setMethod("append", signature(x = "data.frame", values = "vector"),
 #' @param skip_perm option to override permutation requirement for quicker run.
 #' @param perm_all option to permute all treatment variables 
 #' @param random_rep_seed boolean option to set whether different seeds should be generateed for each repeat, by default seeds will be saved for each run to ensure reproducability
+#' @return list of data frames including correlation.test.ret, calibration.ret, double.dataset.test.ret, permutate.testing.ret, observed.tau.risk.var.ret, grf.ate.ret, grf.ape.ret, grf.blp.A0.ret. In this order.
+#' @export
 
 run.hte <- function(covar_mat,
                     tx_vector,
@@ -116,7 +118,25 @@ run.hte <- function(covar_mat,
                                             fixed.YW.risk = double(),
                                             stringsAsFactors = FALSE)
 
+    # saving GRF native analysis
+    grf.ate.ret <- data.frame(treatment = character(), 
+                          est = double(), 
+                          std.err = double())
 
+    grf.ape.ret <- data.frame(treatment = character(),
+                              est = double(), 
+                              std.err = double())
+
+    grf.blp.A0.ret <- data.frame(treatment = character(),
+                                 est = double(),
+                                 std.error = double(),
+                                 t.value = double(),
+                                 p.val = double())
+
+    tc_res <- NULL
+    ape_res <- NULL
+    blp_res <- NULL
+    ate_res <- NULL
 
     no.obs <- dim(covar_mat)[1]
     no.obs.train <- length(trainId)
@@ -127,6 +147,8 @@ run.hte <- function(covar_mat,
     cf.estimator <- ifelse(is_tuned, cf.tuned, cf)
 
     i <- 1
+
+
     for (tx in tx_vector) {
 
         print(paste0(c("#", rep("-", 40), " begin a new treatment ", rep("-", 40)), collapse = ""))
@@ -202,8 +224,6 @@ run.hte <- function(covar_mat,
         simes.pval <- simes.test(tau_stats[, 3])
         partial.simes.pval <- simes.partial(floor(no.obs * 0.05), tau_stats[, 3])
 
-        # TODO add native GRF analysis output
-        
         print(paste0("simes.pval is ", simes.pval))
 
         if ((simes.pval <= 0.05 & skip_perm == FALSE) | perm_all) {
@@ -270,11 +290,39 @@ run.hte <- function(covar_mat,
             varImp <- variable_importance(tau.forest,  max.depth = 4)
             varImp.ret <- data.frame(variable = colnames(X.covariates),  varImp)
             write.csv(varImp.ret, paste0(output_directory, project, "_varimp_", tx, ".csv"), quote = F, row.names = F)
+
+            # Add native GRF analysis output
+            # average partial effect, should equal ATE for binary unconfounded treatment
+            cf_ape <- average_partial_effect(tau.forest)
+            cf_ape <- c(list(tx), as.list(cf_ape))
+            grf.ape.ret <- append(grf.ape.ret, cf_ape)
+
+            # best linear prediction of beta0 only
+            cf_blp_A0 <- best_linear_projection(tau.forest)
+            cf_blp_A0 <- c(list(tx), as.list(cf_blp_A0))
+            grf.blp.A0.ret <- append(grf.blp.A0.ret, cf_blp_A0)
+
+            # average treatment effect
+            cf_ate <- average_treatment_effect(tau.forest)
+            cf_ate <- c(list(tx), as.list(cf_ate))
+            grf.ate.ret <- append(grf.ate.ret, cf_ate)
+
+            # best linear prediction conditioned on coviarates
+            sel_covar <- filter(varImp.ret, varImp > quantile(varImp.ret$varImp, 0.99))[["variable"]]
+            cf_blp <- best_linear_projection(tau.forest, A = X[,sel_covar])
+            write.csv(cf_blp, paste0(output_directory, project, "_blp_", tx, ".csv"), quote = F, row.names = F)
+
         } else {
             print("Skipping permutation.")
         }
 
-
-    }
-    return(list(correlation.test.ret, calibration.ret, double.dataset.test.ret, permutate.testing.ret, observed.tau.risk.var.ret))
-}
+    } # treatment loop
+    return(list(correlation.test.ret, 
+                calibration.ret, 
+                double.dataset.test.ret, 
+                permutate.testing.ret, 
+                observed.tau.risk.var.ret, 
+                grf.ate.ret, 
+                grf.ape.ret, 
+                grf.blp.A0.ret))
+} # end of function

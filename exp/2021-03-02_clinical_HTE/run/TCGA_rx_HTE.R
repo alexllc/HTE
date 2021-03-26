@@ -12,7 +12,7 @@ for (bin in bin_ls){
 ## Set parameters for this run
 cancer_type <- "COAD"
 endpt <- "OS"
-output_file <- paste0("./exp/2021-03-02_clinical_HTE/res/", cancer_type)
+output_file <- paste0("./exp/2021-03-02_clinical_HTE/res/", cancer_type, "/")
 paused_at <- NULL
 useALDEX2_DE <- TRUE
 use_DE_covar_only <- TRUE
@@ -101,10 +101,10 @@ not_reported <- nr[!(nr$bcr_patient_barcode %in% drug_taken$bcr_patient_barcode)
 not_reported <- not_reported$bcr_patient_barcode
 
 ## Load other covariates for covarriate matrix X input
-iqlr_count <- fread(paste0("./dat/", cancer_type, "_iqlr_expected_count.csv.gz"))
+iqlr_count <- fread(paste0("./dat/iqlr_normalized_expr/TCGA-", cancer_type, "_iqlr_expected_count.csv.gz"))
 
 # Differentially expressed genes included in the covar only
-de <- read.csv(paste0("./dat/tables/", cancer_type, "_DEG_rerun.csv")
+de <- read.csv(paste0("./dat/tables/", cancer_type, "_DEGtable.csv"))
 iqlr_count <- iqlr_count[iqlr_count$V1 %in% de$X,]
 colnames(iqlr_count)[colnames(iqlr_count) == "V1"] <- "gene"
 colnames(iqlr_count) <- gsub("\\.", "-", colnames(iqlr_count))
@@ -117,6 +117,8 @@ mode(iqlr_count) = "numeric"
 iqlr_count <- as.data.frame(iqlr_count)
 iqlr_count$donorId <- format_tcga_patient(rownames(iqlr_count))
 head(iqlr_count)[,1:10]
+
+# head(sig)[, c(1:3, 1219:1226)]
 
 # co-prescription one hot encoding
 hot_drug <- dplyr::select(drug_taken, -c("pharmaceutical_therapy_type"))
@@ -150,8 +152,12 @@ ape_res <- NULL
 blp_res <- NULL
 ate_res <- NULL
 
-drug_selection <- colnames(hot_drug)[colnames(hot_drug) != "bcr_patient_barcode"][1:(paused_at - 1)] # to resume drug from previous run
-# drug_selection <- colnames(hot_drug)[colnames(hot_drug) != "bcr_patient_barcode"][(paused_at - 1):(length(colnames(hot_drug)) - 1)]
+if (!is.null(paused_at)) {
+    drug_selection <- colnames(hot_drug)[colnames(hot_drug) != "bcr_patient_barcode"][1:(paused_at - 1)] # to resume drug from previous run
+    # drug_selection <- colnames(hot_drug)[colnames(hot_drug) != "bcr_patient_barcode"][(paused_at - 1):(length(colnames(hot_drug)) - 1)]
+} else {
+    drug_selection <- colnames(hot_drug)[colnames(hot_drug) != "bcr_patient_barcode"]
+}
 
 for (rx in  drug_selection) {
 
@@ -164,7 +170,8 @@ for (rx in  drug_selection) {
 
     wds <- left_join(clin_indexed, iqlr_count, by = c("bcr_patient_barcode" = "donorId"))
     treatment_W <- wds[[rx]]
-    
+    print(table(treatment_W))
+
     X <- dplyr::select(wds, -c(rx, "bcr_patient_barcode", "OS_time", "vital_status"))
 
     # we're not sure if each drug had enough observations, so sometimes this might fail upon forest builing
@@ -190,7 +197,7 @@ for (rx in  drug_selection) {
     try(cf_blp <- best_linear_projection(forest))
     try(cf_ate <- average_treatment_effect(forest))
     
-    if(!all(c(exists("cf_tc"),exists("cf_ape"),exists("cf_blp"),exists("cf_ate")))) {
+    if( !all(c(exists("cf_tc"),exists("cf_ape"),exists("cf_blp"),exists("cf_ate"))) | any(c( any(is.na(cf_tc)), any(is.na(cf_ape)), any(is.na(cf_blp)), any(is.na(cf_ate)) ) ) ) {
         message("Failed to analyse forest.")
         next
     }
@@ -205,8 +212,8 @@ for (rx in  drug_selection) {
     # save res for rbindlist later
     tc_res <- rbind(tc_res, c(rx, cf_tc[1,], cf_tc[2,]))
     ape_res <- rbind(ape_res, c(rx,cf_ape))
-    blp_res <- rbind(blp_res, c(rx,cf_blp))
     ate_res <- rbind(ate_res, c(rx,cf_ate))
+    blp_res <- rbind(blp_res, c(rx,cf_blp)) # estimation of beta0 only
 
     # estimate feature importance
     varimp <- variable_importance(forest)
@@ -223,11 +230,16 @@ for (rx in  drug_selection) {
 
     write.csv(varimp, file = paste0(output_file, rx, "_varimp.csv"), row.names = FALSE)
 
+    # Calculate BLP while considering top 1% of important features
+    important_feature = varimp$feature[as.numeric(varimp$importance) > quantile(as.numeric(varimp$importance), 0.99)]
+    cf_blp_A <- best_linear_projection(forest, A = X[, important_feature])
+    write.csv(cf_blp_A, file = paste0(output_file, rx, "_BLP_Ai.csv"))
+
 }
 # Save pan-drug results
 write.xlsx(tc_res, file = paste0(output_file, "BRCA_grf_res.xlsx"), sheetName="test_calib", row.names=FALSE)
 write.xlsx(ape_res, file=paste0(output_file, "BRCA_grf_res.xlsx"), sheetName="avg_partial_eff", append=TRUE, row.names=FALSE)
-write.xlsx(blp_res, file=paste0(output_file, "BRCA_grf_res.xlsx"), sheetName="best_linear_proj", append=TRUE, row.names=FALSE)
+write.xlsx(blp_res, file=paste0(output_file, "BRCA_grf_res.xlsx"), sheetName="best_linear_proj_beta_0", append=TRUE, row.names=FALSE)
 write.xlsx(ate_res, file=paste0(output_file, "BRCA_grf_res.xlsx"), sheetName="avg_tx_eff", append=TRUE, row.names=FALSE)
 
 message("Drug HTE analysis completed. Beginning SHC and permutation tests.")
@@ -253,13 +265,17 @@ result <- run.hte(covar_mat = dplyr::select(wds, -c("donorId", "outcome", "vital
                 thres = 0.75, 
                 n_core = 70, 
                 output_directory = paste0(output_file, "perm_shc/"), 
-                perm_all = TRUE
+                perm_all = TRUE,
+                random_rep_seed = TRUE
                 ) # pre-filtered thres, should not have an effect here
 write.csv(result[[1]], paste0(output_file, cancer_type, '_drug_correlation_test_result.csv'), quote = F, row.names = F)
 write.csv(result[[2]], paste0(output_file, cancer_type, '_drug_calibration_result.csv'), quote = F, row.names = F)
 write.csv(result[[3]], paste0(output_file, cancer_type, '_drug_median_t_test_result.csv'), quote = F, row.names = F)
 write.csv(result[[4]], paste0(output_file, cancer_type, '_drug_permutate_testing_result.csv'), quote = F, row.names = F)
-
+write.csv(result[[5]], paste0(output_file, cancer_type, '_drug_obs_tau_risk_var.csv'), quote = F, row.names = F)
+write.csv(result[[6]], paste0(output_file, cancer_type, '_drug_avg_tx_effect.csv'), quote = F, row.names = F)
+write.csv(result[[7]], paste0(output_file, cancer_type, '_drug_avg_partial_tx_effect.csv'), quote = F, row.names = F)
+write.csv(result[[8]], paste0(output_file, cancer_type, '_drug_best_linear_pred_intercept.csv'), quote = F, row.names = F)
     ## Covariate matrix X preparation
 
 # The TCGA-CDR summarized clinical data collected before the publication date. However, new data is being uploaded to the GDC data portal constantly. In this example, patient "TCGA-OL-A66H" was added to the database at 2019-08-08T16:30:14.878156-05:00, who would not be included in the TCGA-CDR of course. Therefore, for the missing patients, you would have to 'scavenge' the other datasets for their survival length.
