@@ -2,27 +2,30 @@
 
 # Logs and output files #
 ######################
-**/logs
+**/logs/
 *.log
 *.out
 *.o
-**/result
+**/result/
+**/res/
 *.pdf
 *.svg
 *.png
 *.txt
 *.swp
+*.rds.gz
 
 
 # Imported datasets #
 ######################
-**/GDCdata
+**/GDCdata/
 *.rda
 *.csv
 *.xlsx
 **/data
-**/raw
-**/dat
+**/raw/
+**/dat/
+
 
 
 # R workspace history #

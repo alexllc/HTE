@@ -177,17 +177,19 @@ fetch_indexed_clinical <- function(cancerType) {
     # days_to_last_known_disease_status is all NAs
     clinical_sub <- dplyr::select(clinical, all_of(c("bcr_patient_barcode", "age_at_index", "ajcc_pathologic_stage", "ajcc_pathologic_t", "ajcc_pathologic_n", "ajcc_pathologic_m", "days_to_diagnosis", "days_to_last_follow_up", "days_to_death", "vital_status")))
     clinical_sub <- clinical_sub %>% mutate(OS_time = coalesce(days_to_last_follow_up, days_to_death))
+    if (cancerType != "GBM") {
+        missing_stages <- which(is.na(clinical_sub$ajcc_pathologic_stage))
 
-    missing_stages <- which(is.na(clinical_sub$ajcc_pathologic_stage))
+        # See if you can re-assign patients with missing stages using the TNM cols
+        clinical_sub[missing_stages, "ajcc_pathologic_stage"] <- find_ajcc_stage( clinical_sub[missing_stages,c(4:6)])
 
-    # See if you can re-assign patients with missing stages using the TNM cols
-    clinical_sub[missing_stages, "ajcc_pathologic_stage"] <- find_ajcc_stage( clinical_sub[missing_stages,c(4:6)])
+        # omitt patinets you can't find survival data or stage data with
+        clinical_sub <- clinical_sub[-which(is.na(clinical_sub$OS_time) | is.na(clinical_sub$ajcc_pathologic_stage)),]
 
-    # omitt patinets you can't find survival data or stage data with
-    clinical_sub <- clinical_sub[-which(is.na(clinical_sub$OS_time) | is.na(clinical_sub$ajcc_pathologic_stage)),]
-
-    clinical_sub <- dplyr::select(clinical_sub, -c("ajcc_pathologic_t", "ajcc_pathologic_n", "ajcc_pathologic_m", "days_to_last_follow_up", "days_to_death", "days_to_diagnosis"))
-
+        clinical_sub <- dplyr::select(clinical_sub, -c("ajcc_pathologic_t", "ajcc_pathologic_n", "ajcc_pathologic_m", "days_to_last_follow_up", "days_to_death", "days_to_diagnosis"))
+    } else {
+        clinical_sub <- 
+    }
     return(clinical_sub)
 }
 
@@ -457,8 +459,15 @@ create_tx_matrix <- function(txVector,
 
 correct_drug_names <- function(drug_ls) {
     drug_tbl = read.csv("./dat/DrugCorrection.csv")
-    drug_ls <- unlist(lapply(drug_ls, function(x) drug_tbl$Correction[drug_tbl$OldName == x]))
-    return(drug_ls)
+    drug_names <- c()
+    for (i in 1:length(drug_ls)) {
+        if (drug_ls[i] %in% drug_tbl$OldName) {
+            drug_names[i] <- drug_tbl$Correction[drug_tbl$OldName == drug_ls[i]]
+        } else {
+            drug_names[i] <- drug_ls[i]
+        }
+    }
+    return(drug_names)
 }
 
 #' Function to combine ajcc TNM system into stages according to the AJCC 7th edition guide
@@ -492,4 +501,120 @@ find_ajcc_stage <- function(tnm_cols = NULL) {
     tnm_cols[which(tnm_cols$ajcc_pathologic_m == "M1"), "stage"] <- "IV"
 
     return(tnm_cols$stage)
+}
+
+#' Function to fetch binary matrix indicating past pharmacological treatment taken by TCGA patients. Note that we don't assume this drug record is complete.
+#' 
+#' @source https://www.bioconductor.org/packages/release/bioc/vignettes/TCGAbiolinks/inst/doc/clinical.html#Useful_information
+#' @param cancerType TCGA project code
+#' @param drugSummary whether to output number of people who has record of drug take, record of no drug take and no record at all
+#' @return binary drug matrix of records avaiable on TCGA, not all patients are recorded on here though.
+#' 
+fetch_drug <- function(cancerType, drugSummary = TRUE) {
+
+    message(paste0("Going through the TCGA BCR biotab records for: ", cancerType))
+    query <- GDCquery(project = paste0("TCGA-", cancerType), 
+                    data.category = "Clinical",
+                    data.type = "Clinical Supplement", 
+                    data.format = "BCR Biotab")
+    GDCdownload(query)
+    clinical.BCRtab.all <- GDCprepare(query)
+    names(clinical.BCRtab.all)
+    drug <- clinical.BCRtab.all[[paste0("clinical_drug_", tolower(cancerType))]]
+
+    ## Clinical indexed data
+    clinical <- GDCquery_clinic(project = paste0("TCGA-", cancerType), type = "clinical")
+
+    # no drug record
+    nr <- filter(clinical, treatments_pharmaceutical_treatment_or_therapy == "not reported")
+    nr_drug <- drug[drug$bcr_patient_barcode %in% nr$bcr_patient_barcode,]
+
+    # not taking any drug based on record
+    no <- filter(clinical, treatments_pharmaceutical_treatment_or_therapy == "no")
+    no_drug <- drug[drug$bcr_patient_barcode %in% no$bcr_patient_barcode,]
+
+    # has at least one drug record
+    yes <- filter(clinical, treatments_pharmaceutical_treatment_or_therapy == "yes")
+    yes_drug <- drug[drug$bcr_patient_barcode %in% yes$bcr_patient_barcode,]
+
+    if (drugSummary) {
+        ## surveying the dataset
+        message("In the official 'Clinical Indexed' data, among the patients with clinical entries, this is how much record we have: ")
+        table(clinical$treatments_pharmaceutical_treatment_or_therapy)
+        
+        dim(nr)
+            # [1] 103  74
+        dim(nr_drug)
+            # [1] 16 28
+        message("Number of patients that was labeled as 'no record' in clinical indexed data but actually has drug record in the BCR biotab: ")
+        message(length(unique(nr_drug$bcr_patient_barcode)), " out of ", length(unique(nr$bcr_patient_barcode)) )
+            # 10 patient has drug record despite being labelled as "not reported"
+        dim(no)
+        # [1] 148  74
+        dim(no_drug)
+        # [1] 16 28
+        message("Number of patients that was labeled as 'no drug taken' in clinical indexed data but actually has drug record in the BCR biotab: ")
+        message(length(unique(no_drug$bcr_patient_barcode)), " out of ", length(unique(no$bcr_patient_barcode)) )
+            # 5 patient has drug record despite being labelled as "no"
+            # 143 patients are truly not taking drugs
+        dim(yes)
+        # [1] 846  74
+        dim(yes_drug)
+        # [1] 2378   28
+        message("Number of patients that was labeled as 'yes' in clinical indexed data but actually has no drug record in the BCR biotab: ")
+        message(length(unique(yes_drug$bcr_patient_barcode)), " out of ", length(unique(yes$bcr_patient_barcode)) )
+
+        message("Corrected clinical indexed drug record: ")
+        drug_summary <- c(rep("yes", length(unique(yes_drug$bcr_patient_barcode))), 
+        rep("no", length(unique(no$bcr_patient_barcode)) - length(unique(no_drug$bcr_patient_barcode))), 
+        rep("no record", length(unique(nr$bcr_patient_barcode)) - length(unique(nr_drug$bcr_patient_barcode))) )
+        print(table(drug_summary))
+    }
+        # For each drug, we can choose the truely "no" patients as control, these are the universally non-treated patiets. If a patient with drug recrods is not treated with the drug in question but treated with other drugs in question, they will be the pseudo control group. We could try HTE with pseudo control or true control, depending on whichever works.
+
+    # Fetch clinical indexed data from TCGAbiolinks
+    clin_indexed <- fetch_indexed_clinical(cancerType = cancer_type)
+    clin_indexed <- convert_col_to_numeric(clin_indexed, id = "bcr_patient_barcode")
+
+    # Now the next step is to set up the drug binary tables, one hot encoding based on the above criteria
+
+    drug_taken <- dplyr::select(drug, c("bcr_patient_barcode", "pharmaceutical_therapy_drug_name", "pharmaceutical_therapy_type"))
+    drug_taken <- drug_taken[-c(1:2),]
+
+    # Unify drug names with pre-downloaded conversion table
+    drug_taken$corr_drug_names <- correct_drug_names(drug_taken$pharmaceutical_therapy_drug_name)
+    drug_taken$corr_drug_names <- gsub(" ", "", drug_taken$corr_drug_names)
+    drug_taken <- dplyr::select(drug_taken, -"pharmaceutical_therapy_drug_name") # get the old names out of the way
+
+    ## Universal controls
+    controls <- no$bcr_patient_barcode
+    controls <- unique(controls[!(controls %in% drug_taken$bcr_patient_barcode)])
+
+    ## True not reported cases (exclude)
+    not_reported <- nr[!(nr$bcr_patient_barcode %in% drug_taken$bcr_patient_barcode),]
+    not_reported <- not_reported$bcr_patient_barcode
+
+    # co-prescription one hot encoding
+    hot_drug <- dplyr::select(drug_taken, -c("pharmaceutical_therapy_type"))
+
+    # re-enter multi-drug treated patients into multiple rows
+    multi_tx <- hot_drug[grep("\\+", hot_drug$corr_drug_names),]
+    if (nrow(multi_tx) != 0) { # only append multi drugs if there are patients taking multiple drugs, if not you will append an extra NA to the drug table
+        for (i in 1:nrow(multi_tx)) {
+            record <- unlist(strsplit(multi_tx$corr_drug_names[i], "\\+"))
+            for (j in 1:length(record)) {
+                hot_drug <- rbindlist(list(hot_drug, as.list(c(multi_tx$bcr_patient_barcode[i], record[j]))))
+            }
+        }
+        hot_drug <- data.table(hot_drug[!grep("\\+", hot_drug$corr_drug_names)]) # removing rows by index not supported in data.tables
+    }
+    hot_drug <- dcast(setDT(hot_drug), bcr_patient_barcode ~ corr_drug_names, value.var = "corr_drug_names", function(x) as.numeric(length(x) > 0))
+
+    # add true controls to same table
+    control_row <- unique(no_drug$bcr_patient_barcode)
+
+    for (ctrl in control_row) {
+        hot_drug <- rbindlist(list(hot_drug, c(ctrl, as.list(rep(0, dim(hot_drug)[2] - 1)))))
+    }
+    return(hot_drug)
 }

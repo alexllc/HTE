@@ -9,12 +9,11 @@ for (bin in bin_ls){
     source(paste0("./bin/", bin))
 }
 
-## Set parameters for this run
-cancerList <- c("BLCA", "COAD", "GBM", "HNSC", "KIRC", "LUAD","LUSC", "PRAD", "STAD", "THCA", "UCEC")
+## Set parameters for this run "BLCA", "COAD",  
+cancerList <- c("GBM", "HNSC", "KIRC", "LUAD","LUSC", "PRAD", "STAD", "THCA", "UCEC")
 
 endpt <- "OS"
 paused_at <- NULL
-useALDEX2_DE <- TRUE
 use_DE_covar_only <- TRUE
 # Control strigency indicator
 pureCtrlsOnly <- FALSE
@@ -130,17 +129,18 @@ for (cancer_type in cancerList) {
 
     # re-enter multi-drug treated patients into multiple rows
     multi_tx <- hot_drug[grep("\\+", hot_drug$corr_drug_names),]
-
-    for (i in 1:nrow(multi_tx)) {
-        record <- unlist(strsplit(multi_tx$corr_drug_names[i], "\\+"))
-        for (j in 1:length(record)) {
-            hot_drug <- rbindlist(list(hot_drug, as.list(c(multi_tx$bcr_patient_barcode[i], record[j]))))
+    if (nrow(multi_tx) != 0) { # only append multi drugs if there are patients taking multiple drugs, if not you will append an extra NA to the drug table
+        for (i in 1:nrow(multi_tx)) {
+            record <- unlist(strsplit(multi_tx$corr_drug_names[i], "\\+"))
+            for (j in 1:length(record)) {
+                hot_drug <- rbindlist(list(hot_drug, as.list(c(multi_tx$bcr_patient_barcode[i], record[j]))))
+            }
         }
+        hot_drug <- data.table(hot_drug[!grep("\\+", hot_drug$corr_drug_names)]) # removing rows by index not supported in data.tables
     }
-    hot_drug <- data.table(hot_drug[!grep("\\+", hot_drug$corr_drug_names)]) # removing rows by index not supported in data.tables
     hot_drug <- dcast(setDT(hot_drug), bcr_patient_barcode ~ corr_drug_names, value.var = "corr_drug_names", function(x) as.numeric(length(x) > 0))
 
-    # add true controls to same tabel
+    # add true controls to same table
     control_row <- unique(no_drug$bcr_patient_barcode)
 
     for (ctrl in control_row) {
@@ -174,12 +174,16 @@ for (cancer_type in cancerList) {
         pseudo_ctr <- unique(drug_taken$bcr_patient_barcode[!(drug_taken$bcr_patient_barcode %in% not_reported)])
 
         wds <- left_join(clin_indexed, iqlr_count, by = c("bcr_patient_barcode" = "donorId"))
+        treatment_W <- wds[[rx]]
+        print(table(treatment_W))
+        if (all(!as.logical(treatment_W))) {
+            message("No drug takers with both drug and clinical information")
+            next
+        }
         if (save_wds) {
             saveRDS(wds, file = paste0(output_file, cancer_type, "_wds.rds.gz"))
             message("Whole dataset prepared and saved.")
         }
-        treatment_W <- wds[[rx]]
-        print(table(treatment_W))
 
         X <- dplyr::select(wds, -c(rx, "bcr_patient_barcode", "OS_time", "vital_status"))
 
@@ -206,7 +210,10 @@ for (cancer_type in cancerList) {
         try(cf_blp <- best_linear_projection(forest))
         try(cf_ate <- average_treatment_effect(forest))
         
-        if( !all(c(exists("cf_tc"),exists("cf_ape"),exists("cf_blp"),exists("cf_ate"))) | any(c( any(is.na(cf_tc)), any(is.na(cf_ape)), any(is.na(cf_blp)), any(is.na(cf_ate)) ) ) ) {
+        if( !all(c(exists("cf_tc"),exists("cf_ape"),exists("cf_blp"),exists("cf_ate"))) ) {
+            message("Failed to analyse forest.")
+            next
+        } else if ( any(c( any(is.na(cf_tc)), any(is.na(cf_ape)), any(is.na(cf_blp)), any(is.na(cf_ate)) ) ) ) { # evaluate NAs and missing variable separately
             message("Failed to analyse forest.")
             next
         }
