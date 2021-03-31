@@ -110,3 +110,96 @@ fetch_cna <- function() {
     cna = apply(cna, 2, sum)
     return(cna)
 }
+
+#' Function to print out summary data of two CF
+#' 
+#' @param cf1 forest object from `grf::causal_forest`
+#' @param cf2 forest object from `grf::causal_forest`
+#' @param covar1 the covar matrix used to train cf1
+#' @param covar2 the covar matrix used to train cf2
+#' @param fit_dat_index the covar used to fit (1 or 2)
+#' @param save (saving option slot reserved for future update)
+#' 
+corr_test_cf <- function(cf1 = NULL,
+                         cf2 = NULL,
+                         covar1 = NULL,
+                         covar2 = NULL,
+                         fit_dat_index = 1,
+                         save = FALSE) {
+
+    if (fit_dat_index == 1) {
+        # Make prediction
+        pred_cf1_covar1 <- predict(cf1, newdata = covar1, estimate.variance = TRUE, num.threads = 8)$predictions
+        pred_cf2_covar1 <- predict(cf2, newdata = covar1, estimate.variance = TRUE, num.threads = 8)$predictions
+
+        # # Perform best_linear_projection() to check whether a same dataset can show similar conditional treatment effect
+        # blp_cf1 <- best_linear_projection(cf1, A = covar1)
+        # blp_cf2 <- best_linear_projection(cf2, A = covar1)
+
+        # Perform data consistency test if new covarite matrix from another dataset is given
+        # Aim at testing whether two model will give similar prediction on the same dataset, so called external validation.
+        ke_test <- ks.test(pred_cf1_covar1, pred_cf2_covar1) # two-sample Kolmogorov-Smirnov test to see whether prediction are from same distribution
+        test_corr <- correlation_test(pred_cf1_covar1, pred_cf2_covar1, methods = c("pearson", "kendall", "spearman"), alt = "two.sided")
+        mean_test_res <- SIGN.test(pred_cf1_covar1, pred_cf2_covar1)
+
+        lm_test <- summary(lm(pred_cf1_covar1 ~ pred_cf2_covar1 + 0))
+        # Calculate 95% CI
+        lmlci <- lm_test$coefficients[1] - 1.96 * lm_test$coefficients[2]
+        lmuci <- lm_test$coefficients[1] + 1.96 * lm_test$coefficients[2]
+
+        deming_test <- mcr::mcreg(x = pred_cf2_covar1, y = pred_cf1_covar1, method.reg = "Deming", method.ci = "jackknife")@para
+
+        # return vector
+        # Kolmogorov-Smirnov test pval; correlation_test; mean_test_res statistic; mean_test_res p value; mean_test_res confident interval; linear regression coeff; linear regression coeff se; linear regression coeff pval; deming reg slope; deming reg slope se; deming reg slope 95% CI
+        return(c(ke_test$p.value, test_corr, mean_test_res$statistic,
+                mean_test_res$p.value, mean_test_res$conf.int,
+                lm_test$coefficients[1], lm_test$coefficients[2], paste0("[", lmlci, ", ", lmuci, "]"), lm_test$coefficients[4], deming_test[2], deming_test[4], paste0("[", deming_test[6], ", ", deming_test[8], "]")))
+    } else {
+        # Make prediction
+        pred_cf1_covar2 <- predict(cf1, newdata = covar2, estimate.variance = TRUE, num.threads = 8)$predictions
+        pred_cf2_covar2 <- predict(cf2, newdata = covar2, estimate.variance = TRUE, num.threads = 8)$predictions
+
+        # # Perform best_linear_projection() to check whether a same dataset can show similar conditional treatment effect
+        # blp_cf1 <- best_linear_projection(cf1, A = covar2)
+        # blp_cf2 <- best_linear_projection(cf2, A = covar2)
+
+        # Perform data consistency test if new covarite matrix from another dataset is given
+        # Aim at testing whether two model will give similar prediction on the same dataset, so called external validation.
+        ke_test <- ks.test(pred_cf1_covar2, pred_cf2_covar2) # two-sample Kolmogorov-Smirnov test to see whether prediction are from same distribution
+        test_corr <- correlation_test(pred_cf1_covar2, pred_cf2_covar2, methods = c("pearson", "kendall", "spearman"), alt = "two.sided")
+        mean_test_res <- SIGN.test(pred_cf1_covar2, pred_cf2_covar2)
+
+        lm_test <- summary(lm(pred_cf1_covar2 ~ pred_cf2_covar2 + 0))
+        # Calculate 95% CI
+        lmlci <- lm_test$coefficients[1] - 1.96 * lm_test$coefficients[2]
+        lmuci <- lm_test$coefficients[1] + 1.96 * lm_test$coefficients[2]
+
+        deming_test <- mcr::mcreg(x = pred_cf2_covar2, y = pred_cf1_covar2, method.reg = "Deming", method.ci = "jackknife")@para
+
+        # return vector
+        # Kolmogorov-Smirnov test pval; correlation_test; mean_test_res statistic; mean_test_res p value; mean_test_res confident interval; linear regression coeff; linear regression coeff se; linear regression coeff pval; deming reg slope; deming reg slope se; deming reg slope 95% CI
+        return(c(ke_test$p.value, test_corr, mean_test_res$statistic,
+                mean_test_res$p.value, mean_test_res$conf.int,
+                lm_test$coefficients[1], lm_test$coefficients[2], paste0("[", lmlci, ", ", lmuci, "]"), lm_test$coefficients[4], deming_test[2], deming_test[4], paste0("[", deming_test[6], ", ", deming_test[8], "]")))
+    }
+
+}
+
+#' Function for performing best linear projection
+#' 
+#' @param cf the causal forest model
+#' @param covar the covariates we want to project the CATE onto
+#' 
+
+best_linear_proj_func <- function(cf = NULL,
+                                  covar = NULL) {
+
+    best_proj <- grf::best_linear_projection(forest = cf, A = covar)
+
+    best_proj_df <- as.data.frame(matrix(best_proj, dim(best_proj)[1]))
+    colnames(best_proj_df) <- c("estimate", "std_Error", "t_value", "p-value")
+    row.names(best_proj_df) <- c("Intercept", colnames(covar))
+    best_proj_df <- best_proj_df[best_proj_df$`p-value` < 0.05, ] # Select the variable whose estimate is siginifcant.
+
+    return(best_proj_df)
+}
