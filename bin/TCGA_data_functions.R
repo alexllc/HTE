@@ -188,7 +188,7 @@ fetch_indexed_clinical <- function(cancerType) {
 
         clinical_sub <- dplyr::select(clinical_sub, -c("ajcc_pathologic_t", "ajcc_pathologic_n", "ajcc_pathologic_m", "days_to_last_follow_up", "days_to_death", "days_to_diagnosis"))
     } else {
-        clinical_sub <- 
+        clinical_sub <- dplyr::select(clinical_sub, -c("ajcc_pathologic_stage", "ajcc_pathologic_t", "ajcc_pathologic_n", "ajcc_pathologic_m", "days_to_last_follow_up", "days_to_death", "days_to_diagnosis"))
     }
     return(clinical_sub)
 }

@@ -8,9 +8,9 @@ bin_ls = list.files("./bin")
 for (bin in bin_ls){
     source(paste0("./bin/", bin))
 }
-
-## Set parameters for this run "BLCA", "COAD",  
-cancerList <- c("GBM", "HNSC", "KIRC", "LUAD","LUSC", "PRAD", "STAD", "THCA", "UCEC")
+#"HNSC", "KIRC","PRAD","STAD", 
+## Set parameters for this run "BLCA", "COAD",  "GBM",  "LUAD","LUSC", "THCA", 
+cancerList <- c( "UCEC")
 
 endpt <- "OS"
 paused_at <- NULL
