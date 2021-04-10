@@ -184,7 +184,9 @@ fetch_indexed_clinical <- function(cancerType) {
         clinical_sub[missing_stages, "ajcc_pathologic_stage"] <- find_ajcc_stage( clinical_sub[missing_stages,c(4:6)])
 
         # omitt patinets you can't find survival data or stage data with
-        clinical_sub <- clinical_sub[-which(is.na(clinical_sub$OS_time) | is.na(clinical_sub$ajcc_pathologic_stage)),]
+        missing_pat <- which(is.na(clinical_sub$OS_time) | is.na(clinical_sub$ajcc_pathologic_stage))
+        # subsetting an empty list from the df will remove all entries, you must do a length check before removing
+        if (length(missing_pat == 0)) clinical_sub <- clinical_sub[-missing_pat,]
 
         clinical_sub <- dplyr::select(clinical_sub, -c("ajcc_pathologic_t", "ajcc_pathologic_n", "ajcc_pathologic_m", "days_to_last_follow_up", "days_to_death", "days_to_diagnosis"))
     } else {
@@ -573,7 +575,7 @@ fetch_drug <- function(cancerType, drugSummary = TRUE) {
         # For each drug, we can choose the truely "no" patients as control, these are the universally non-treated patiets. If a patient with drug recrods is not treated with the drug in question but treated with other drugs in question, they will be the pseudo control group. We could try HTE with pseudo control or true control, depending on whichever works.
 
     # Fetch clinical indexed data from TCGAbiolinks
-    clin_indexed <- fetch_indexed_clinical(cancerType = cancer_type)
+    clin_indexed <- fetch_indexed_clinical(cancerType)
     clin_indexed <- convert_col_to_numeric(clin_indexed, id = "bcr_patient_barcode")
 
     # Now the next step is to set up the drug binary tables, one hot encoding based on the above criteria
@@ -616,5 +618,5 @@ fetch_drug <- function(cancerType, drugSummary = TRUE) {
     for (ctrl in control_row) {
         hot_drug <- rbindlist(list(hot_drug, c(ctrl, as.list(rep(0, dim(hot_drug)[2] - 1)))))
     }
-    return(hot_drug)
+    return(list(hot_drug, clin_indexed, drug_taken, not_reported, controls))
 }
