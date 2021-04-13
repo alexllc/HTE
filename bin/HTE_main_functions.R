@@ -309,7 +309,7 @@ run.hte <- function(covar_mat,
 
             # best linear prediction conditioned on coviarates
             sel_covar <- filter(varImp.ret, varImp > quantile(varImp.ret$varImp, 0.99))[["variable"]]
-            cf_blp <- best_linear_projection(tau.forest, A = X[,sel_covar])
+            cf_blp <- best_linear_projection(tau.forest, A = dplyr::select(X.covariates, all_of(c(sel_covar))))
             write.csv(cf_blp, paste0(output_directory, project, "_blp_", tx, ".csv"), quote = F, row.names = F)
 
         } else {

@@ -8,9 +8,9 @@ bin_ls = list.files("./bin")
 for (bin in bin_ls){
     source(paste0("./bin/", bin))
 }
-#"HNSC", 
-## Set parameters for this run "BLCA", "COAD",  "GBM",  "LUAD","LUSC", "THCA", 
-cancerList <- c("KIRC", "PRAD", "STAD", "UCEC")
+#"BLCA", "BRCA",
+## Set parameters for this run 
+cancerList <- c("COAD", "GBM", "HNSC", "LUAD", "LUSC", "KIRC", "PRAD", "STAD", "THCA", "UCEC")
 
 endpt <- "OS"
 paused_at <- NULL
@@ -53,6 +53,7 @@ for (cancer_type in cancerList) {
     # head(sig)[, c(1:3, 1219:1226)]
 
     clin_indexed <- inner_join(clin_indexed, hot_drug, by = "bcr_patient_barcode")
+    wds <- left_join(clin_indexed, iqlr_count, by = c("bcr_patient_barcode" = "donorId"))
 
     # result saving headers
     tc_res <- NULL
@@ -76,7 +77,6 @@ for (cancer_type in cancerList) {
         # a control for the current rx, but these patients take other drugs
         pseudo_ctr <- unique(drug_taken$bcr_patient_barcode[!(drug_taken$bcr_patient_barcode %in% not_reported)])
 
-        wds <- left_join(clin_indexed, iqlr_count, by = c("bcr_patient_barcode" = "donorId"))
         treatment_W <- wds[[rx]]
         print(table(treatment_W))
         if (all(!as.logical(treatment_W))) {
@@ -161,9 +161,8 @@ for (cancer_type in cancerList) {
     write.xlsx(ape_res, file=paste0(output_file, cancer_type, "_grf_res.xlsx"), sheetName="avg_partial_eff", append=TRUE, row.names=FALSE)
     write.xlsx(blp_res, file=paste0(output_file, cancer_type, "_grf_res.xlsx"), sheetName="best_linear_proj_beta_0", append=TRUE, row.names=FALSE)
     write.xlsx(ate_res, file=paste0(output_file, cancer_type, "_grf_res.xlsx"), sheetName="avg_tx_eff", append=TRUE, row.names=FALSE)
-
+ 
     message("Drug HTE analysis completed. Beginning SHC and permutation tests.")
-
     # Run Kai's HTE tests
     # no need to try here, if ti fails it will fail up top
     obsNumber <- dim(wds)[1]
@@ -172,7 +171,7 @@ for (cancer_type in cancerList) {
     colnames(wds)[colnames(wds) == "bcr_patient_barcode"] <- "donorId"
     colnames(wds)[colnames(wds) == "OS_time"] <- "outcome"
     result <- run.hte(covar_mat = dplyr::select(wds, -c("donorId", "outcome", "vital_status")), 
-                    tx_vector = colnames(hot_drug)[colnames(hot_drug) != "bcr_patient_barcode"], 
+                    tx_vector = colnames(hot_drug)[colnames(hot_drug) != "bcr_patient_barcode"],
                     whole_dataset = wds, 
                     project = cancer_type, 
                     W_matrix = wds[,colnames(hot_drug)[colnames(hot_drug) != "bcr_patient_barcode"]], 
