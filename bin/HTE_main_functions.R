@@ -308,9 +308,52 @@ run.hte <- function(covar_mat,
             grf.ate.ret <- append(grf.ate.ret, cf_ate)
 
             # best linear prediction conditioned on coviarates
-            sel_covar <- filter(varImp.ret, varImp > quantile(varImp.ret$varImp, 0.99))[["variable"]]
-            cf_blp <- best_linear_projection(tau.forest, A = X[,sel_covar])
-            write.csv(cf_blp, paste0(output_directory, project, "_blp_", tx, ".csv"), quote = F, row.names = F)
+            # reduce covariates until not all of the covairate p values were NAs
+            sel_covar <- head(varImp.ret[order(varImp.ret$varImp, decreasing = TRUE),], n = 500)
+            A_mat <- X.covariates[, sel_covar$variable] # selected n*500 matrix
+            cf_blp <- best_linear_projection(tau.forest, A = A_mat)
+            all_na <- all(is.na(cf_blp[,4]))
+            reduce <- 500 * (0.9)
+            while (all_na){
+                sel_covar <- head(varImp.ret[order(varImp.ret$varImp, decreasing = TRUE),], n = reduce)
+                if (dim(sel_covar)[1] == 0) {
+                    message("BLP failed to plot because all covariates resulted in NAs.")
+                }
+                A_mat <- X.covariates[, sel_covar$variable] # selected reduced matrix
+                cf_blp <- best_linear_projection(tau.forest, A = A_mat)
+                all_na <- all(is.na(cf_blp[,4]))
+                reduce <- reduce * 0.9
+            }
+
+            if (dim(sel_covar)[1] == 0) {
+                message("In the process of eliminating covariates s.t. the model isn't all NAs, you have eliminated all covariates. Nothing to see here, moving on.")
+            } else {
+                message("At least one of the covriates was significant, proceed with blackwards elimination.")
+                # Backward elimination of covariates
+                elim_blp <- cf_blp[order(cf_blp[,4], decreasing = TRUE),]
+                elim_A_mat <- A_mat[, - which(colnames(A_mat) == attr(elim_blp, 'dimnames')[[1]][1])]
+                elim_blp <- best_linear_projection(tau.forest, A = elim_A_mat)
+                all_sig <- all(elim_blp[,4] < 0.05)
+
+                while(!all_sig) {
+                    # stopping condition when all covariates had been exhausted
+                    if (dim(as.matrix(elim_A_mat))[2] == 1) { # at the end of the elimination, when there is only one column left, it will be coerced into a vector and using dim(matrix) alone will return an error
+                        message("All covariates were backwards eliminated.")
+                        break # exist loop
+                    }
+                    elim_blp <- elim_blp[order(elim_blp[,4], decreasing = TRUE),]
+                    to_b_eliminated <- attr(elim_blp, 'dimnames')[[1]][1]
+                    if (to_b_eliminated == "(Intercept)") to_b_eliminated <- attr(elim_blp, 'dimnames')[[1]][2] # if the intercept has the highest p value, then eliminate the next in line covariate
+                    # message(paste0("Eliminated: ", to_b_eliminated))
+                    elim_A_mat <- elim_A_mat[, - which(colnames(elim_A_mat) == to_b_eliminated)]
+                    elim_blp <- best_linear_projection(tau.forest, A = elim_A_mat)
+                    all_sig <- all(elim_blp[,4] < 0.05)
+                }
+                print(elim_blp)
+                write.csv(elim_blp, paste0(output_directory, project, "_back_elim_blp_", tx, ".csv"), quote = F, row.names = F)
+            }
+
+
 
         } else {
             print("Skipping permutation.")

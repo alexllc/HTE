@@ -172,19 +172,40 @@ fetch_BCR_clinical <- function(cancerType) {
     # impute missing stages with 
 }
 
+#' Fetch clinical data from the indexed clinial files from TCGAbiolinks. Refer to the `fetch_BCR_clinical` function if you wish to source your clinical data from the BCRbio tabs instead. The distinction between these files are docuemnted in the "Useful Information" box in the TCGAbiolinks clinical documentation. By default, this function will try to compute missing tumor stages based on T/N/M indicators using the `find_ajcc_stage` function. However, since GBM patients do not use such staging system, the indexed clinical dataframe output will omitt the `ajcc_pathologic_stage` column.
+#' 
+#' @param cancerType [string] TCGA project code
+#' 
+#' @source \url{https://www.bioconductor.org/packages/release/bioc/vignettes/TCGAbiolinks/inst/doc/clinical.html}
+#' @return [dataframe] with the following columns: "bcr_patient_barcode", "age_at_index", "ajcc_pathologic_stage", "OS_time"
+#' 
 fetch_indexed_clinical <- function(cancerType) {
     clinical <- GDCquery_clinic(project = paste0("TCGA-", cancerType), type = "clinical")
     # days_to_last_known_disease_status is all NAs
-    clinical_sub <- dplyr::select(clinical, all_of(c("bcr_patient_barcode", "age_at_index", "ajcc_pathologic_stage", "ajcc_pathologic_t", "ajcc_pathologic_n", "ajcc_pathologic_m", "days_to_diagnosis", "days_to_last_follow_up", "days_to_death", "vital_status")))
+
+    clinical_sub <- try(dplyr::select(clinical, all_of(c("bcr_patient_barcode", "age_at_index", "ajcc_pathologic_stage", "ajcc_pathologic_t", "ajcc_pathologic_n", "ajcc_pathologic_m", "days_to_diagnosis", "days_to_last_follow_up", "days_to_death", "vital_status"))))
+    # PRAD is known to have a missing ajcc_pathological_m column, in this case we will use the ajcc_clinical_m column as a replacement
+    if (class(clinical_sub) == "try-error") {
+        message("Some AJCC pathologic M indicator missing, using AJCC clinical M instead.")
+        clinical_sub <- dplyr::select(clinical, all_of(c("bcr_patient_barcode", "age_at_index", "ajcc_pathologic_t", "ajcc_pathologic_n", "ajcc_clinical_m", "days_to_diagnosis", "days_to_last_follow_up", "days_to_death", "vital_status")))
+        colnames(clinical_sub)[colnames(clinical_sub) == "ajcc_clinical_m"]  <- "ajcc_pathologic_m"
+        clinical_sub$ajcc_pathologic_stage <- NA
+    }
     clinical_sub <- clinical_sub %>% mutate(OS_time = coalesce(days_to_last_follow_up, days_to_death))
     if (cancerType != "GBM") {
         missing_stages <- which(is.na(clinical_sub$ajcc_pathologic_stage))
 
+        # Omit samples with more than 1 indicators
+        tnm_sub <- dplyr::select(clinical_sub, all_of(c("ajcc_pathologic_t", "ajcc_pathologic_n", "ajcc_pathologic_m")))[missing_stages,]
+        clinical_sub <- clinical_sub[-as.numeric(names(which(apply(tnm_sub, 1, function(x) all(is.na(x)))))),]
+
         # See if you can re-assign patients with missing stages using the TNM cols
-        clinical_sub[missing_stages, "ajcc_pathologic_stage"] <- find_ajcc_stage( clinical_sub[missing_stages,c(4:6)])
+        clinical_sub[missing_stages, "ajcc_pathologic_stage"] <- find_ajcc_stage(tnm_cols = tnm_sub)
 
         # omitt patinets you can't find survival data or stage data with
-        clinical_sub <- clinical_sub[-which(is.na(clinical_sub$OS_time) | is.na(clinical_sub$ajcc_pathologic_stage)),]
+        missing_pat <- which(is.na(clinical_sub$OS_time) | is.na(clinical_sub$ajcc_pathologic_stage))
+        # subsetting an empty list from the df will remove all entries, you must do a length check before removing
+        if (length(missing_pat == 0)) clinical_sub <- clinical_sub[-missing_pat,]
 
         clinical_sub <- dplyr::select(clinical_sub, -c("ajcc_pathologic_t", "ajcc_pathologic_n", "ajcc_pathologic_m", "days_to_last_follow_up", "days_to_death", "days_to_diagnosis"))
     } else {
@@ -198,6 +219,7 @@ fetch_indexed_clinical <- function(cancerType) {
 #' 
 #' @param cancer_type [string] TCGA cancer cancer_type code
 #' @return [dataframe] with genes as columns and patient entries as rows. The first column is named "donorId" for patient id.
+
 
 fetch_mut_data <- function(cancer_type) {
     m_query <- GDCquery(project = paste0("TCGA-", cancer_type),
@@ -454,11 +476,12 @@ create_tx_matrix <- function(txVector,
 #' You must first download the "DrugCorrection.csv" file to the ``./dat` directory from the gatech site via 
 #' > wget https://gdisc.bme.gatech.edu/Data/DrugCorrection.csv --no-check-certificate
 #' Unforutnately, setting `Sys.setenv(LIBCURL_BUILD="winssl")``, nor does setting `httr::set_config(config(ssl_verifypeer = FALSE))` work.
+#' Update April 12, 2021, there are some capitalization and trailing space problems in the original table, use the corrected one "DrugCorrectionByAlex.csv"
 #' 
 #' @param drug_ls list of drugs extracted from TCGA datasets
 
 correct_drug_names <- function(drug_ls) {
-    drug_tbl = read.csv("./dat/DrugCorrection.csv")
+    drug_tbl = read.csv("./dat/DrugCorrectionByAlex.csv")
     drug_names <- c()
     for (i in 1:length(drug_ls)) {
         if (drug_ls[i] %in% drug_tbl$OldName) {
@@ -470,12 +493,32 @@ correct_drug_names <- function(drug_ls) {
     return(drug_names)
 }
 
-#' Function to combine ajcc TNM system into stages according to the AJCC 7th edition guide
+#' Function to combine ajcc TNM system into stages according to the AJCC 7th edition guide, missing T/N/M indicators can be imputed
 #' 
-#' @example tnm_cols = clinical_sub[missing_stages,c(4:6)]
+#' @example tnm_cols = dplyr::select(clinical_sub, all_of(c("ajcc_pathologic_t", "ajcc_pathologic_n", "ajcc_pathologic_m")))
 #' @source \url{https://www.sciencedirect.com/science/article/pii/S1072751513002809}
 #' @param tnm_cols subset of the clinical dataframe containing columns of pathological status of the TNM system
-find_ajcc_stage <- function(tnm_cols = NULL) {
+#' @param kSize k neighbors used for KNN impute
+find_ajcc_stage <- function(tnm_cols = NULL, impute_missing = TRUE, kSize = 5) {
+
+    message("Imputing missing stages.")
+    if(impute_missing) {
+        # impute missing T/N/M indicators by KNN
+        tnm_impute <- sapply(tnm_cols, function(x) as.numeric(as.factor(x)))
+        tnm_impute <- as.data.frame(knn.impute(tnm_impute, k = kSize))
+
+        for (i in 1:ncol(tnm_cols)) {
+            store_fac <- levels(factor(tnm_cols[,i]))
+            store_num <- sort(unique(tnm_impute[,i]))
+            store_convert <- as.data.frame(cbind(store_fac, store_num))
+            
+            # Convert the numeric factors from characters back to numeric
+            store_convert$store_num = as.numeric(store_num)
+            converted_factors <- left_join(data.frame(num_stage = tnm_impute[,i]), store_convert, by = c("num_stage" = "store_num")) 
+            tnm_impute[,i] <- converted_factors$store_fac
+        }
+        tnm_cols <- tnm_impute
+    }
 
     stage_tbl <- read.csv("./dat/brca_stage_tbl.csv")
 
@@ -573,7 +616,7 @@ fetch_drug <- function(cancerType, drugSummary = TRUE) {
         # For each drug, we can choose the truely "no" patients as control, these are the universally non-treated patiets. If a patient with drug recrods is not treated with the drug in question but treated with other drugs in question, they will be the pseudo control group. We could try HTE with pseudo control or true control, depending on whichever works.
 
     # Fetch clinical indexed data from TCGAbiolinks
-    clin_indexed <- fetch_indexed_clinical(cancerType = cancer_type)
+    clin_indexed <- fetch_indexed_clinical(cancerType)
     clin_indexed <- convert_col_to_numeric(clin_indexed, id = "bcr_patient_barcode")
 
     # Now the next step is to set up the drug binary tables, one hot encoding based on the above criteria
@@ -616,5 +659,5 @@ fetch_drug <- function(cancerType, drugSummary = TRUE) {
     for (ctrl in control_row) {
         hot_drug <- rbindlist(list(hot_drug, c(ctrl, as.list(rep(0, dim(hot_drug)[2] - 1)))))
     }
-    return(hot_drug)
+    return(list(hot_drug, clin_indexed, drug_taken, not_reported, controls))
 }
