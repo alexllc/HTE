@@ -276,8 +276,7 @@ run.hte <- function(covar_mat,
                                                                 is_save = is_save,
                                                                 file_prefix = file_prefix,
                                                                 num_trees = 1000,
-                                                                num.strap = 500,
-                                                                run_blp = TRUE)
+                                                                num.strap = 500)
 
             perm_pval_record <- do.call("c", list(list(tx), as.list(perm.pvals)))
             perm_var_risk_record <- do.call("c", list(list(tx), as.list(c(tau.var, fixed.YW.tau.risk))))
