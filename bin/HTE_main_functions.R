@@ -73,7 +73,8 @@ run.hte <- function(covar_mat,
                     output_directory = NULL,
                     skip_perm = FALSE,
                     perm_all = FALSE,
-                    random_rep_seed = TRUE) {
+                    random_rep_seed = TRUE,
+                    run_blp = TRUE) {
     # @covar_mat: covariates matrix (with treatment assignments as well if each of the covariates are taking turns to be analyzed as treatments). Treatment assignments can be binary or continuous.
     # @tx_vector: a vector of variables that will each be used as treatments
     # @whole_dataset: dataframe with outcome, covariates and treatment assignments

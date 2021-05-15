@@ -16,7 +16,7 @@ cf <- function(covarites, Y, W, Y.hat = NULL, W.hat = NULL, num_trees = 5000, no
                                 mtry = round(ncol(covarites)* frac_selected), # default is ceiling(sqrt(ncol(covarites)) + 20)
                                 clusters = cluster_id,
                                 # seed = seed,
-                                num.threads = 10)
+                                num.threads = 30)
     return(tau.forest)
 }
 
@@ -36,7 +36,7 @@ cf.tuned <- function(covarites, Y, W, Y.hat = NULL, W.hat = NULL, cluster_id = N
                                 # mtry = round(ncol(covarites)* frac_selected) , # default is ceiling(sqrt(num.col.covariates) + 20)
                                 tune.parameters = is_tune,
                                 seed = seed,
-                                num.threads = 10)
+                                num.threads = 15)
     return(tau.forest)
 }
 
