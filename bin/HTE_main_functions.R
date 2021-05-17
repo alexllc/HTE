@@ -47,7 +47,6 @@ setMethod("append", signature(x = "data.frame", values = "vector"),
 #' @param is_binary whether treatment vector W should be set to binary.
 #' @param is_save whether to save all the split observations in SHC.
 #' @param is_tuned whether to allow tree self-tuning.
-#' @param thres quartile threshold to select as treatment group if `is_binary` is set to TRUE.
 #' @param n_core number of cores to use in paralelle run.
 #' @param output_directory file paths of output files, should be created before HTE run.
 #' @param skip_perm option to override permutation requirement for quicker run.
@@ -68,7 +67,6 @@ run.hte <- function(covar_mat,
                     is_save = T,
                     save_split = T,
                     is_tuned = F,
-                    thres = 0.75, # redundant, please remove in the next commit
                     n_core = 8,
                     output_directory = NULL,
                     skip_perm = FALSE,
