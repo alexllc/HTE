@@ -47,7 +47,6 @@ setMethod("append", signature(x = "data.frame", values = "vector"),
 #' @param is_binary whether treatment vector W should be set to binary.
 #' @param is_save whether to save all the split observations in SHC.
 #' @param is_tuned whether to allow tree self-tuning.
-#' @param thres quartile threshold to select as treatment group if `is_binary` is set to TRUE.
 #' @param n_core number of cores to use in paralelle run.
 #' @param output_directory file paths of output files, should be created before HTE run.
 #' @param skip_perm option to override permutation requirement for quicker run.
@@ -68,12 +67,12 @@ run.hte <- function(covar_mat,
                     is_save = T,
                     save_split = T,
                     is_tuned = F,
-                    thres = 0.75, # redundant, please remove in the next commit
                     n_core = 8,
                     output_directory = NULL,
                     skip_perm = FALSE,
                     perm_all = FALSE,
-                    random_rep_seed = TRUE) {
+                    random_rep_seed = TRUE,
+                    run_blp = TRUE) {
     # @covar_mat: covariates matrix (with treatment assignments as well if each of the covariates are taking turns to be analyzed as treatments). Treatment assignments can be binary or continuous.
     # @tx_vector: a vector of variables that will each be used as treatments
     # @whole_dataset: dataframe with outcome, covariates and treatment assignments
@@ -399,11 +398,7 @@ run.hte <- function(covar_mat,
 
                 print(elim_blp)
                 write.csv(elim_blp, paste0(output_directory, project, "_back_elim_blp_", tx, ".csv"), quote = F, row.names = T)
-
             }
-
-
-
         } else {
             print("Skipping permutation.")
         }

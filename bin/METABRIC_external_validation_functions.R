@@ -139,7 +139,7 @@ corr_test_cf <- function(cf1 = NULL,
         # Perform data consistency test if new covarite matrix from another dataset is given
         # Aim at testing whether two model will give similar prediction on the same dataset, so called external validation.
         ke_test <- ks.test(pred_cf1_covar1, pred_cf2_covar1) # two-sample Kolmogorov-Smirnov test to see whether prediction are from same distribution
-        test_corr <- correlation_test(pred_cf1_covar1, pred_cf2_covar1, methods = c("pearson", "kendall", "spearman"), alt = "two.sided")
+        test_corr <- correlation_test(pred_cf1_covar1, pred_cf2_covar1, methods = c("pearson", "kendall", "spearman"), alt = "greater")
         mean_test_res <- SIGN.test(pred_cf1_covar1, pred_cf2_covar1)
 
         lm_test <- summary(lm(pred_cf1_covar1 ~ pred_cf2_covar1 + 0))
@@ -166,7 +166,7 @@ corr_test_cf <- function(cf1 = NULL,
         # Perform data consistency test if new covarite matrix from another dataset is given
         # Aim at testing whether two model will give similar prediction on the same dataset, so called external validation.
         ke_test <- ks.test(pred_cf1_covar2, pred_cf2_covar2) # two-sample Kolmogorov-Smirnov test to see whether prediction are from same distribution
-        test_corr <- correlation_test(pred_cf1_covar2, pred_cf2_covar2, methods = c("pearson", "kendall", "spearman"), alt = "two.sided")
+        test_corr <- correlation_test(pred_cf1_covar2, pred_cf2_covar2, methods = c("pearson", "kendall", "spearman"), alt = "greater")
         mean_test_res <- SIGN.test(pred_cf1_covar2, pred_cf2_covar2)
 
         lm_test <- summary(lm(pred_cf1_covar2 ~ pred_cf2_covar2 + 0))

@@ -459,7 +459,7 @@ create_tx_matrix <- function(txVector,
     W_values <- NULL
     for (i in 1:length(txVector)) {
         W_values <- covarMat[,colnames(covarMat) == txVector[i]]
-    	# print(W_values)
+        # print(W_values)
         if (binaryVector[i]){
            if (cutoffThreshDf[i, 1] == ">") {
                W_values <- as.numeric(W_values > quantile(W_values, cutoffThreshDf[i, 2]))
@@ -469,7 +469,7 @@ create_tx_matrix <- function(txVector,
               W_values <- as.numeric(W_values != 0)
            }
         }
-	# print(W_values)
+    # print(W_values)
         W_matrix[, i] <- W_values
     }
     colnames(W_matrix) <- txVector
