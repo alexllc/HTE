@@ -84,17 +84,20 @@ fetch_clinical_data <- function(cancer_type,
         cdr = read_excel("./dat/TCGA-CDR-SupplementalTableS1.xlsx")
         clinical_dat = dplyr::select(cdr, col_vec)
 
+        labels = c("[Discrepancy]","[Not Applicable]","[Not Available]","[Unknown]")
+        clinical_dat$ajcc_pathologic_tumor_stage[which(clinical_dat$ajcc_pathologic_tumor_stage %in% labels)] = NA
+        # specify cancer type here
+        clinical_dat <- dplyr::filter(clinical_dat, type == cancer_type)
+        clinical_dat$type = NULL
+        
         clinical_dat[clinical_dat == "#N/A"] <- NA # sometimes missing entries are not well formatted
         clinical_dat <- subset(clinical_dat, !is.na(get(paste0(outParam, ".time"))) & !is.na(get(outParam)) & !is.na(age_at_initial_pathologic_diagnosis))
         colnames(clinical_dat)[colnames(clinical_dat)=="bcr_patient_barcode"] = "donorId"
         colnames(clinical_dat)[colnames(clinical_dat) == outParam | colnames(clinical_dat) == paste0(outParam, ".time")] = c("out_param", "out_param_time")
         clinical_dat = as.data.frame(clinical_dat)
-
-    # specify cancer type here
-    clinical_dat <- dplyr::filter(clinical_dat, type == cancer_type)
     
     if (imputeMethod == "simple") {
-        imput_surv = exp(impute.survival(clinical_dat$out_param_time, clinical_dat$out_param))
+        imput_surv = impute.survival(clinical_dat$out_param_time, clinical_dat$out_param)
         if (outUnitDays2Month) imput_surv = imput_surv / 30.417 # reverse log and convert days to months for better interpretation. Converting ratio 30.417 is an approximate value used by Google.
         clinical_dat$outcome = imput_surv
         # Variable type conversion is not intrinsically implemented in the impute.survival function, so it must implemented here.
@@ -102,7 +105,7 @@ fetch_clinical_data <- function(cancer_type,
     } else {
         clinical_dat = impute_with_NNMIS(clinical_dat)
     }
-    clinical_dat = dplyr::select(clinical_dat, -c(out_param, out_param_time, discard))
+    clinical_dat = dplyr::select(clinical_dat, -c(out_param_time))
     if (onlyCompleteCases) clinical_dat = clinical_dat[complete.cases(clinical_dat),]
     print("Processed patient dataframe: ")
 
@@ -152,6 +155,7 @@ fetch_BCR_clinical <- function(cancerType) {
     # Patients are either: ALIVE, DEAD or NA in this data. OS lengths of alive patients were indicated by last_contact_days_to, while dead patients were indicated by death_days_to. Once you have one entry, the other one should be NA, so to get the "OS length" you will need to coalesce these two cols
     clin_covar <- clin_covar %>% mutate(OS_time = coalesce(last_contact_days_to, death_days_to))
 
+    # impute censroed time with 
     # set negative OS times to 0s, these patients were contacted before diagnosis was made, and perhaps had been lost to follow-up
     clin_covar$OS_time[clin_covar$OS_time < 0] <- 0
     clin_covar <- dplyr::select(clin_covar, -c("last_contact_days_to", "death_days_to", "days_to_initial_pathologic_diagnosis"))
@@ -179,11 +183,15 @@ fetch_BCR_clinical <- function(cancerType) {
 #' @source \url{https://www.bioconductor.org/packages/release/bioc/vignettes/TCGAbiolinks/inst/doc/clinical.html}
 #' @return [dataframe] with the following columns: "bcr_patient_barcode", "age_at_index", "ajcc_pathologic_stage", "OS_time"
 #' 
-fetch_indexed_clinical <- function(cancerType) {
+fetch_indexed_clinical <- function(cancerType, set_k = set_k) {
     clinical <- GDCquery_clinic(project = paste0("TCGA-", cancerType), type = "clinical")
     # days_to_last_known_disease_status is all NAs
-
-    clinical_sub <- try(dplyr::select(clinical, all_of(c("bcr_patient_barcode", "age_at_index", "ajcc_pathologic_stage", "ajcc_pathologic_t", "ajcc_pathologic_n", "ajcc_pathologic_m", "days_to_diagnosis", "days_to_last_follow_up", "days_to_death", "vital_status"))))
+    
+    if (cancerType == "UCEC") {
+        clinical_sub <- try(dplyr::select(clinical, all_of(c("bcr_patient_barcode", "age_at_index", "figo_stage" ,"days_to_diagnosis", "days_to_last_follow_up", "days_to_death", "vital_status"))))
+    } else {
+        clinical_sub <- try(dplyr::select(clinical, all_of(c("bcr_patient_barcode", "age_at_index", "ajcc_pathologic_stage", "ajcc_pathologic_t", "ajcc_pathologic_n", "ajcc_pathologic_m", "days_to_diagnosis", "days_to_last_follow_up", "days_to_death", "vital_status"))))
+    }
     # PRAD is known to have a missing ajcc_pathological_m column, in this case we will use the ajcc_clinical_m column as a replacement
     if (class(clinical_sub) == "try-error") {
         message("Some AJCC pathologic M indicator missing, using AJCC clinical M instead.")
@@ -192,25 +200,21 @@ fetch_indexed_clinical <- function(cancerType) {
         clinical_sub$ajcc_pathologic_stage <- NA
     }
     clinical_sub <- clinical_sub %>% mutate(OS_time = coalesce(days_to_last_follow_up, days_to_death))
-    if (cancerType != "GBM") {
-        missing_stages <- which(is.na(clinical_sub$ajcc_pathologic_stage))
-
-        # Omit samples with more than 1 indicators
-        tnm_sub <- dplyr::select(clinical_sub, all_of(c("ajcc_pathologic_t", "ajcc_pathologic_n", "ajcc_pathologic_m")))[missing_stages,]
-        clinical_sub <- clinical_sub[-as.numeric(names(which(apply(tnm_sub, 1, function(x) all(is.na(x)))))),]
-
-        # See if you can re-assign patients with missing stages using the TNM cols
-        clinical_sub[missing_stages, "ajcc_pathologic_stage"] <- find_ajcc_stage(tnm_cols = tnm_sub)
-
-        # omitt patinets you can't find survival data or stage data with
-        missing_pat <- which(is.na(clinical_sub$OS_time) | is.na(clinical_sub$ajcc_pathologic_stage))
-        # subsetting an empty list from the df will remove all entries, you must do a length check before removing
-        if (length(missing_pat == 0)) clinical_sub <- clinical_sub[-missing_pat,]
-
-        clinical_sub <- dplyr::select(clinical_sub, -c("ajcc_pathologic_t", "ajcc_pathologic_n", "ajcc_pathologic_m", "days_to_last_follow_up", "days_to_death", "days_to_diagnosis"))
-    } else {
+    if (cancerType == "GBM") {
         clinical_sub <- dplyr::select(clinical_sub, -c("ajcc_pathologic_stage", "ajcc_pathologic_t", "ajcc_pathologic_n", "ajcc_pathologic_m", "days_to_last_follow_up", "days_to_death", "days_to_diagnosis"))
+
+    } else if (cancerType == "UCEC") {
+        clinical_sub <- dplyr::select(clinical_sub, -c("days_to_last_follow_up", "days_to_death", "days_to_diagnosis"))
+    } else {
+        tnm_sub <- dplyr::select(clinical_sub, all_of(c("ajcc_pathologic_t", "ajcc_pathologic_n", "ajcc_pathologic_m")))
     }
+
+    # See if you can re-assign patients with missing stages using the TNM cols
+    clinical_sub[, "ajcc_pathologic_stage"] <- find_ajcc_stage(tnm_cols = tnm_sub, kSize = set_k)
+    # do not omitt patinets you can't find survival data or stage data with
+
+    clinical_sub <- dplyr::select(clinical_sub, -c("ajcc_pathologic_t", "ajcc_pathologic_n", "ajcc_pathologic_m", "days_to_last_follow_up", "days_to_death", "days_to_diagnosis"))
+    
     return(clinical_sub)
 }
 
@@ -485,6 +489,7 @@ correct_drug_names <- function(drug_ls) {
     drug_names <- c()
     for (i in 1:length(drug_ls)) {
         if (drug_ls[i] %in% drug_tbl$OldName) {
+            # if(length(drug_tbl$Correction[drug_tbl$OldName == i]) > 1) print(i)
             drug_names[i] <- drug_tbl$Correction[drug_tbl$OldName == drug_ls[i]]
         } else {
             drug_names[i] <- drug_ls[i]
@@ -553,7 +558,7 @@ find_ajcc_stage <- function(tnm_cols = NULL, impute_missing = TRUE, kSize = 5) {
 #' @param drugSummary whether to output number of people who has record of drug take, record of no drug take and no record at all
 #' @return binary drug matrix of records avaiable on TCGA, not all patients are recorded on here though.
 #' 
-fetch_drug <- function(cancerType, drugSummary = TRUE) {
+fetch_drug <- function(cancerType, drugSummary = TRUE, set_k = 5) {
 
     message(paste0("Going through the TCGA BCR biotab records for: ", cancerType))
     query <- GDCquery(project = paste0("TCGA-", cancerType), 
@@ -604,7 +609,7 @@ fetch_drug <- function(cancerType, drugSummary = TRUE) {
         # [1] 846  74
         dim(yes_drug)
         # [1] 2378   28
-        message("Number of patients that was labeled as 'yes' in clinical indexed data but actually has no drug record in the BCR biotab: ")
+        message("Number of patients that was labeled as 'yes' in clinical indexed data and actually has drug record in the BCR biotab: ")
         message(length(unique(yes_drug$bcr_patient_barcode)), " out of ", length(unique(yes$bcr_patient_barcode)) )
 
         message("Corrected clinical indexed drug record: ")
@@ -616,7 +621,7 @@ fetch_drug <- function(cancerType, drugSummary = TRUE) {
         # For each drug, we can choose the truely "no" patients as control, these are the universally non-treated patiets. If a patient with drug recrods is not treated with the drug in question but treated with other drugs in question, they will be the pseudo control group. We could try HTE with pseudo control or true control, depending on whichever works.
 
     # Fetch clinical indexed data from TCGAbiolinks
-    clin_indexed <- fetch_indexed_clinical(cancerType)
+    clin_indexed <- fetch_indexed_clinical(cancerType, set_k = set_k)
     clin_indexed <- convert_col_to_numeric(clin_indexed, id = "bcr_patient_barcode")
 
     # Now the next step is to set up the drug binary tables, one hot encoding based on the above criteria
@@ -626,7 +631,7 @@ fetch_drug <- function(cancerType, drugSummary = TRUE) {
 
     # Unify drug names with pre-downloaded conversion table
     drug_taken$corr_drug_names <- correct_drug_names(drug_taken$pharmaceutical_therapy_drug_name)
-    drug_taken$corr_drug_names <- gsub(" ", "", drug_taken$corr_drug_names)
+    drug_taken <- drug_taken[!grepl("NOS", drug_taken$corr_drug_names),]
     drug_taken <- dplyr::select(drug_taken, -"pharmaceutical_therapy_drug_name") # get the old names out of the way
 
     ## Universal controls

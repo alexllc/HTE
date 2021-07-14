@@ -72,7 +72,7 @@ if (!useALDEX2_DE) {
     names(dirct) <- dea$mRNA
 } else {
    aldex <- readRDS("./dat/ALDEx2_result.rds.gz")
-   sig <- filter(aldex, abs(effect) > 1.5 & abs(overlap) < 0.05 ) # default filter setting
+   sig <- filter(aldex, abs(effect) > 1.5 & abs(overlap) < 0.05 ) # not default filter setting
    head(sig)[, c(1:3, 1219:1226)]
     dea <- sig$effect
     names(dea) <- rownames(sig)

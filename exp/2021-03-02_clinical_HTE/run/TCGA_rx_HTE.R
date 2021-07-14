@@ -6,18 +6,22 @@ setwd("~/project/HTE/")
 ## source bin scripts
 bin_ls = list.files("./bin")
 for (bin in bin_ls){
-    source(paste0("./bin/", bin))
+    suppressMessages(source(paste0("./bin/", bin)))
 }
-#"BLCA", "BRCA",
+
+message("Loaded libraries.")
+# 
 ## Set parameters for this run 
-cancerList <- c("COAD", "GBM", "HNSC", "LUAD", "LUSC", "KIRC", "PRAD", "STAD", "THCA", "UCEC")
+cancerList <- c("BLCA", "BRCA", "COAD", "GBM", "HNSC", "LUAD", "LUSC", "KIRC", "PRAD", "STAD", "THCA", "UCEC")
 
 endpt <- "OS"
-paused_at <- NULL
+imputeMethod <- "NNMIS"
+paused_at <- NULL # since this drug index is +1 (there was the patient barcode), so by setting a paused at, you will skip the last drug that failed
 use_DE_covar_only <- TRUE
 # Control strigency indicator
 pureCtrlsOnly <- FALSE
 save_wds <- TRUE
+perm_shc <- FALSE # whether to run permutation this run
 
 #****** Load various drug treatment information ******
 
@@ -25,12 +29,49 @@ for (cancer_type in cancerList) {
     message(rep("=", 50))
     message(paste0("Running cancer type: ", cancer_type))
     output_file <- paste0("./exp/2021-03-02_clinical_HTE/res/", cancer_type, "/")
-    drug_output  <- fetch_drug(cancer_type)
+    drug_output  <- fetch_drug(cancer_type, set_k = 3)
     hot_drug <- drug_output[[1]]
     clin_indexed <- drug_output[[2]]
     drug_taken <- drug_output[[3]]
     not_reported <- drug_output[[4]]
     controls <- drug_output[[5]]
+
+    # Survival times imputed
+    OS <- fetch_clinical_data(cancer_type = cancer_type, imputeMethod = imputeMethod, outParam = endpt)
+
+    
+    # beware of the names PFI vs OS though!!
+    clin_indexed <- left_join(clin_indexed, OS, by = c("bcr_patient_barcode" = "donorId"))
+
+    if (imputeMethod == "NNMIS") {
+        clin_indexed$OS_time <- log(clin_indexed$outcome) # log it if imputing with NNMIS
+    } else {
+        clin_indexed$OS_time <- clin_indexed$outcome # log it if imputing with NNMIS
+    }
+    clin_indexed$vital_status <- clin_indexed$out_param
+
+    if (cancer_type != "GBM") {
+        if (imputeMethod == "simple") {
+            clin_indexed <- dplyr::select(clin_indexed, -c("type", "age_at_initial_pathologic_diagnosis", "tumor_status", "ajcc_pathologic_tumor_stage", "outcome", "out_param"))
+        } else if (imputeMethod == "NNMIS") {
+            if (cancer_type != "PRAD") {
+                clin_indexed <- dplyr::select(clin_indexed, -c("outcome", "age_at_initial_pathologic_diagnosis", "out_param", "ajcc_pathologic_tumor_stage"))
+            } else {
+                clin_indexed <- dplyr::select(clin_indexed, -c("outcome", "age_at_initial_pathologic_diagnosis", "out_param"))
+            }
+        }
+    } else {
+        if (imputeMethod == "simple") {
+            clin_indexed <- dplyr::select(clin_indexed, -c("type", "age_at_initial_pathologic_diagnosis", "tumor_status", "outcome", "out_param"))
+        } else if (imputeMethod == "NNMIS") {
+            clin_indexed <- dplyr::select(clin_indexed, -c("outcome", "age_at_initial_pathologic_diagnosis", "out_param"))
+        }
+    }
+
+    # set OS length 
+    if(0 %in% clin_indexed$OS_time) {
+        clin_indexed$OS_time[which(clin_indexed$OS_time == 0)] <- 1
+    }
 
     ## Load other covariates for covarriate matrix X input
     iqlr_count <- fread(paste0("./dat/iqlr_normalized_expr/TCGA-", cancer_type, "_iqlr_expected_count.csv.gz"))
@@ -55,6 +96,9 @@ for (cancer_type in cancerList) {
     clin_indexed <- inner_join(clin_indexed, hot_drug, by = "bcr_patient_barcode")
     wds <- left_join(clin_indexed, iqlr_count, by = c("bcr_patient_barcode" = "donorId"))
 
+    # since we already have to impute for our BLP analysis it doesn't hurt to impute every missing one here
+    wds[,2:dim(wds)[2]] <- knn.impute(as.matrix(wds[,2:dim(wds)[2]]), k = 10)
+
     # result saving headers
     tc_res <- NULL
     ape_res <- NULL
@@ -62,140 +106,160 @@ for (cancer_type in cancerList) {
     ate_res <- NULL
 
     if (!is.null(paused_at)) {
-        drug_selection <- colnames(hot_drug)[colnames(hot_drug) != "bcr_patient_barcode"][1:(paused_at - 1)] # to resume drug from previous run
-        # drug_selection <- colnames(hot_drug)[colnames(hot_drug) != "bcr_patient_barcode"][(paused_at - 1):(length(colnames(hot_drug)) - 1)]
+        drug_selection <- colnames(hot_drug)[colnames(hot_drug) != "bcr_patient_barcode"][(paused_at):(dim(hot_drug)[2] - 1)] # to resume drug from previous run
+        # drug_selection <- colnames(hot_drug)[colnames(hot_drug) != "bcr_patient_barcode"][(paused_at):(length(colnames(hot_drug)) - 1)]
+        message(paste0("Resuming from the ", paused_at, "th drug: ", drug_selection[1]))
     } else {
         drug_selection <- colnames(hot_drug)[colnames(hot_drug) != "bcr_patient_barcode"]
     }
 
-    for (rx in  drug_selection) {
+    # skip individual Rx GRF build if re-running
+    if (is.null(paused_at)) {
+        for (rx in  drug_selection) {
 
-        message(paste0(rep("=", 50)))
+            message(paste0(rep("=", 50)))
+            message(paste0("Running drug: ", rx))
+            drug_takers <- unique(drug_taken$bcr_patient_barcode[drug_taken$corr_drug_names == rx])
+            # a control for the current rx, but these patients take other drugs
+            pseudo_ctr <- unique(drug_taken$bcr_patient_barcode[!(drug_taken$bcr_patient_barcode %in% not_reported)])
 
-        message(paste0("Running drug: ", rx))
-        drug_takers <- unique(drug_taken$bcr_patient_barcode[drug_taken$corr_drug_names == rx])
-        # a control for the current rx, but these patients take other drugs
-        pseudo_ctr <- unique(drug_taken$bcr_patient_barcode[!(drug_taken$bcr_patient_barcode %in% not_reported)])
+            treatment_W <- wds[[rx]]
+            print(table(treatment_W))
+            if (all(!as.logical(treatment_W))) {
+                message("No drug takers with both drug and clinical information")
+                next
+            }
 
-        treatment_W <- wds[[rx]]
-        print(table(treatment_W))
-        if (all(!as.logical(treatment_W))) {
-            message("No drug takers with both drug and clinical information")
-            next
+            X <- dplyr::select(wds, -c(rx, "bcr_patient_barcode", "OS_time", "vital_status"))
+
+            # we're not sure if each drug had enough observations, so sometimes this might fail upon forest builing
+            try(forest <- causal_forest(X = X, 
+                                    Y = wds$OS_time, 
+                                    W = treatment_W, 
+                                    num.trees = 20000, 
+                                    seed = 2020
+                                    # ,
+                                    # tune.parameters = c("sample.fraction", "mtry", "min.node.size", "honesty.fraction", "honesty.prune.leaves", "alpha", "imbalance.penalty")
+                                )
+                )
+            if(!exists("forest")) {
+                message("Failed to build forest.")
+                next
+            }
+
+            # cf_scores <- grf::get_scores(cf) # does not work
+            predictions <- predict(forest, estimate.variance = TRUE)
+
+            # try(cf_split_freq <- split_frequencies(forest, max.depth = 4))
+            try(cf_tc <- test_calibration(forest))
+            try(cf_ape <- average_partial_effect(forest))
+            try(cf_blp <- best_linear_projection(forest))
+            try(cf_ate <- average_treatment_effect(forest))
+            
+            if( !all(c(exists("cf_tc"),exists("cf_ape"),exists("cf_blp"),exists("cf_ate"))) ) {
+                message("Failed to analyse forest.")
+                next
+            } else if ( any(c( any(is.na(cf_tc)), any(is.na(cf_ape)), any(is.na(cf_blp)), any(is.na(cf_ate)) ) ) ) { # evaluate NAs and missing variable separately
+                message("Failed to analyse forest.")
+                next
+            }
+
+            message("Excess error summary statistics:")
+            print(summary(predictions$excess.error))
+            print(cf_tc)
+            print(cf_ape)
+            print(cf_blp)
+            print(cf_ate)
+
+            # save res for rbindlist later
+            tc_res <- rbind(tc_res, c(rx, cf_tc[1,], cf_tc[2,]))
+            ape_res <- rbind(ape_res, c(rx,cf_ape))
+            ate_res <- rbind(ate_res, c(rx,cf_ate))
+            blp_res <- rbind(blp_res, c(rx,cf_blp)) # estimation of beta0 only
+
+            # estimate feature importance
+            varimp <- variable_importance(forest)
+            varimp <- as.data.frame(cbind(colnames(X),varimp))
+            colnames(varimp) <- c("feature", "importance")
+            varimp <- varimp[order(varimp$importance, decreasing = TRUE),]
+
+            # translate gene names in varimp into readable form
+            important_gene <- varimp[grep("ENSG*", varimp$feature),1] # only keep genes
+            # Convert ensemblIDs to ENTERZ gene ID for the query
+            suppressMessages(ensembl2ID <- AnnotationDbi::select(org.Hs.eg.db, keys = important_gene,columns=c("SYMBOL"), keytype="ENSEMBL"))
+
+            varimp <- left_join(varimp, ensembl2ID, by = c("feature" = "ENSEMBL"))
+
+            write.csv(varimp, file = paste0(output_file, rx, "_varimp.csv"), row.names = FALSE)
+
+            # Calculate BLP while considering top 1% of important features
+            important_feature = varimp$feature[as.numeric(varimp$importance) > quantile(as.numeric(varimp$importance), 0.99)]
+            cf_blp_A <- try(best_linear_projection(forest, A = X[, important_feature]))
+            if (class(cf_blp_A) == "try-error") next
+            write.csv(cf_blp_A, file = paste0(output_file, rx, "_BLP_Ai.csv"))
+            
+            # Only saving the whole dataset if everything runs without an error
+            if (save_wds) {
+                saveRDS(wds, file = paste0(output_file, cancer_type, "_wds.rds.gz"))
+                message("Whole dataset prepared and saved.")
+            }
+
         }
-        if (save_wds) {
-            saveRDS(wds, file = paste0(output_file, cancer_type, "_wds.rds.gz"))
-            message("Whole dataset prepared and saved.")
-        }
-
-        X <- dplyr::select(wds, -c(rx, "bcr_patient_barcode", "OS_time", "vital_status"))
-
-        # we're not sure if each drug had enough observations, so sometimes this might fail upon forest builing
-        try(forest <- causal_forest(X = X, 
-                                Y = wds$OS_time, 
-                                W = treatment_W, 
-                                num.trees = 20000, 
-                                seed = 2020,
-                                tune.parameters = c("sample.fraction", "mtry", "min.node.size", "honesty.fraction", "honesty.prune.leaves", "alpha", "imbalance.penalty")
-                            )
-            )
-        if(!exists("forest")) {
-            message("Failed to build forest.")
-            next
-        }
-
-        # cf_scores <- grf::get_scores(cf) # does not work
-        predictions <- predict(forest, estimate.variance = TRUE)
-
-        # try(cf_split_freq <- split_frequencies(forest, max.depth = 4))
-        try(cf_tc <- test_calibration(forest))
-        try(cf_ape <- average_partial_effect(forest))
-        try(cf_blp <- best_linear_projection(forest))
-        try(cf_ate <- average_treatment_effect(forest))
-        
-        if( !all(c(exists("cf_tc"),exists("cf_ape"),exists("cf_blp"),exists("cf_ate"))) ) {
-            message("Failed to analyse forest.")
-            next
-        } else if ( any(c( any(is.na(cf_tc)), any(is.na(cf_ape)), any(is.na(cf_blp)), any(is.na(cf_ate)) ) ) ) { # evaluate NAs and missing variable separately
-            message("Failed to analyse forest.")
-            next
-        }
-
-        message("Excess error summary statistics:")
-        print(summary(predictions$excess.error))
-        print(cf_tc)
-        print(cf_ape)
-        print(cf_blp)
-        print(cf_ate)
-
-        # save res for rbindlist later
-        tc_res <- rbind(tc_res, c(rx, cf_tc[1,], cf_tc[2,]))
-        ape_res <- rbind(ape_res, c(rx,cf_ape))
-        ate_res <- rbind(ate_res, c(rx,cf_ate))
-        blp_res <- rbind(blp_res, c(rx,cf_blp)) # estimation of beta0 only
-
-        # estimate feature importance
-        varimp <- variable_importance(forest)
-        varimp <- as.data.frame(cbind(colnames(X),varimp))
-        colnames(varimp) <- c("feature", "importance")
-        varimp <- varimp[order(varimp$importance, decreasing = TRUE),]
-
-        # translate gene names in varimp into readable form
-        important_gene <- varimp[grep("ENSG*", varimp$feature),1] # only keep genes
-        # Convert ensemblIDs to ENTERZ gene ID for the query
-        suppressMessages(ensembl2ID <- AnnotationDbi::select(org.Hs.eg.db, keys = important_gene,columns=c("SYMBOL"), keytype="ENSEMBL"))
-
-        varimp <- left_join(varimp, ensembl2ID, by = c("feature" = "ENSEMBL"))
-
-        write.csv(varimp, file = paste0(output_file, rx, "_varimp.csv"), row.names = FALSE)
-
-        # Calculate BLP while considering top 1% of important features
-        important_feature = varimp$feature[as.numeric(varimp$importance) > quantile(as.numeric(varimp$importance), 0.99)]
-        cf_blp_A <- try(best_linear_projection(forest, A = X[, important_feature]))
-        if (class(cf_blp_A) == "try-error") next
-        write.csv(cf_blp_A, file = paste0(output_file, rx, "_BLP_Ai.csv"))
-
+        # Save pan-drug results
+        write.xlsx(tc_res, file = paste0(output_file, cancer_type, "_grf_res.xlsx"), sheetName="test_calib", row.names=FALSE)
+        write.xlsx(ape_res, file=paste0(output_file, cancer_type, "_grf_res.xlsx"), sheetName="avg_partial_eff", append=TRUE, row.names=FALSE)
+        write.xlsx(blp_res, file=paste0(output_file, cancer_type, "_grf_res.xlsx"), sheetName="best_linear_proj_beta_0", append=TRUE, row.names=FALSE)
+        write.xlsx(ate_res, file=paste0(output_file, cancer_type, "_grf_res.xlsx"), sheetName="avg_tx_eff", append=TRUE, row.names=FALSE)
     }
-    # Save pan-drug results
-    write.xlsx(tc_res, file = paste0(output_file, cancer_type, "_grf_res.xlsx"), sheetName="test_calib", row.names=FALSE)
-    write.xlsx(ape_res, file=paste0(output_file, cancer_type, "_grf_res.xlsx"), sheetName="avg_partial_eff", append=TRUE, row.names=FALSE)
-    write.xlsx(blp_res, file=paste0(output_file, cancer_type, "_grf_res.xlsx"), sheetName="best_linear_proj_beta_0", append=TRUE, row.names=FALSE)
-    write.xlsx(ate_res, file=paste0(output_file, cancer_type, "_grf_res.xlsx"), sheetName="avg_tx_eff", append=TRUE, row.names=FALSE)
  
     message("Drug HTE analysis completed. Beginning SHC and permutation tests.")
     # Run Kai's HTE tests
     # no need to try here, if ti fails it will fail up top
-    obsNumber <- dim(wds)[1]
-    trainId <- sample(1: obsNumber, floor(obsNumber/2), replace = FALSE)
-    registerDoParallel(10)
-    colnames(wds)[colnames(wds) == "bcr_patient_barcode"] <- "donorId"
-    colnames(wds)[colnames(wds) == "OS_time"] <- "outcome"
-    result <- run.hte(covar_mat = dplyr::select(wds, -c("donorId", "outcome", "vital_status")), 
-                    tx_vector = colnames(hot_drug)[colnames(hot_drug) != "bcr_patient_barcode"],
-                    whole_dataset = wds, 
-                    project = cancer_type, 
-                    W_matrix = wds[,colnames(hot_drug)[colnames(hot_drug) != "bcr_patient_barcode"]], 
-                    trainId = trainId, 
-                    seed = 111, 
-                    is_binary = T, 
-                    is_save = T, 
-                    save_split = T, 
-                    is_tuned = F, 
-                    thres = 0.75, 
-                    n_core = 70, 
-                    output_directory = paste0(output_file, "perm_shc/"), 
-                    perm_all = TRUE,
-                    random_rep_seed = TRUE
-                    ) # pre-filtered thres, should not have an effect here
-    write.csv(result[[1]], paste0(output_file, cancer_type, '_drug_correlation_test_result.csv'), quote = F, row.names = F)
-    write.csv(result[[2]], paste0(output_file, cancer_type, '_drug_calibration_result.csv'), quote = F, row.names = F)
-    write.csv(result[[3]], paste0(output_file, cancer_type, '_drug_median_t_test_result.csv'), quote = F, row.names = F)
-    write.csv(result[[4]], paste0(output_file, cancer_type, '_drug_permutate_testing_result.csv'), quote = F, row.names = F)
-    write.csv(result[[5]], paste0(output_file, cancer_type, '_drug_obs_tau_risk_var.csv'), quote = F, row.names = F)
-    write.csv(result[[6]], paste0(output_file, cancer_type, '_drug_avg_tx_effect.csv'), quote = F, row.names = F)
-    write.csv(result[[7]], paste0(output_file, cancer_type, '_drug_avg_partial_tx_effect.csv'), quote = F, row.names = F)
-    write.csv(result[[8]], paste0(output_file, cancer_type, '_drug_best_linear_pred_intercept.csv'), quote = F, row.names = F)
 
+    if (perm_shc) {
+        obsNumber <- dim(wds)[1]
+        trainId <- sample(1: obsNumber, floor(obsNumber/2), replace = FALSE)
+        registerDoParallel(10)
+        colnames(wds)[colnames(wds) == "bcr_patient_barcode"] <- "donorId"
+        colnames(wds)[colnames(wds) == "OS_time"] <- "outcome"
+
+        # Treatment selection or resume run
+        if (!is.null(paused_at)) {
+            tx_vector <- colnames(hot_drug)[colnames(hot_drug) != "bcr_patient_barcode"][(paused_at):(dim(hot_drug)[2] - 1)] # to resume drug from previous run
+        } else {
+            tx_vector <- colnames(hot_drug)[colnames(hot_drug) != "bcr_patient_barcode"]
+        }
+
+        result <- run.hte(covar_mat = dplyr::select(wds, -c("donorId", "outcome", "vital_status")), 
+                        tx_vector = tx_vector,
+                        whole_dataset = wds, 
+                        project = cancer_type, 
+                        W_matrix = as.matrix(wds[,tx_vector]), 
+                        trainId = trainId, 
+                        seed = 111, 
+                        is_binary = T, 
+                        is_save = T, 
+                        save_split = T, 
+                        is_tuned = F, 
+                        thres = 0.75, 
+                        n_core = 70, 
+                        output_directory = paste0(output_file, "perm_shc/"), 
+                        perm_all = TRUE,
+                        random_rep_seed = TRUE
+                        ) # pre-filtered thres, should not have an effect here
+        write.csv(result[[1]], paste0(output_file, cancer_type, '_drug_correlation_test_result.csv'), quote = F, row.names = F)
+        write.csv(result[[2]], paste0(output_file, cancer_type, '_drug_calibration_result.csv'), quote = F, row.names = F)
+        write.csv(result[[3]], paste0(output_file, cancer_type, '_drug_median_t_test_result.csv'), quote = F, row.names = F)
+        write.csv(result[[4]], paste0(output_file, cancer_type, '_drug_permutate_testing_result.csv'), quote = F, row.names = F)
+        write.csv(result[[5]], paste0(output_file, cancer_type, '_drug_obs_tau_risk_var.csv'), quote = F, row.names = F)
+        write.csv(result[[6]], paste0(output_file, cancer_type, '_drug_avg_tx_effect.csv'), quote = F, row.names = F)
+        write.csv(result[[7]], paste0(output_file, cancer_type, '_drug_avg_partial_tx_effect.csv'), quote = F, row.names = F)
+        write.csv(result[[8]], paste0(output_file, cancer_type, '_drug_best_linear_pred_intercept.csv'), quote = F, row.names = F)
+        
+        paused_at <- NULL # reset resume index once a cancer type is completed
+    } else {
+       message("Skipping permutation and SHC.")
+    }
 }
 
 

@@ -154,7 +154,12 @@ run.hte <- function(covar_mat,
         print(paste0("Processing ", i, " of ", length(tx_vector), " genes."))
         i <- i + 1
 
-        treatment <- W_matrix[,colnames(W_matrix) == tx] # directly retreive the W vector from function input
+        if (dim(W_matrix)[2] == 1) { # you will get an error if you try to subset via 
+            treatment <- W_matrix[,1]
+        } else {
+            treatment <- W_matrix[,colnames(W_matrix) == tx] # directly retreive the W vector from function input
+        }
+
         if (is_binary) {
             message("Current treatment proportion: ")
             print(table(treatment))
@@ -291,67 +296,108 @@ run.hte <- function(covar_mat,
             write.csv(varImp.ret, paste0(output_directory, project, "_varimp_", tx, ".csv"), quote = F, row.names = F)
 
             # Add native GRF analysis output
+
             # average partial effect, should equal ATE for binary unconfounded treatment
-            cf_ape <- average_partial_effect(tau.forest)
+            try(cf_ape <- average_partial_effect(tau.forest))
+            # best linear prediction of beta0 only
+            try(cf_blp_A0 <- best_linear_projection(tau.forest))
+            # average treatment effect
+            try(cf_ate <- average_treatment_effect(tau.forest))
+
+            if( !all(c(exists("cf_ape"),exists("cf_blp_A0"),exists("cf_ate"))) ) {
+                message("Failed to analyse forest.")
+                next
+            } else if ( any(c( any(is.na(cf_ape)), any(is.na(cf_blp_A0)), any(is.na(cf_ate)) ) ) ) { # evaluate NAs and missing variable separately
+                message("Failed to analyse forest.")
+                next
+            }
+
             cf_ape <- c(list(tx), as.list(cf_ape))
             grf.ape.ret <- append(grf.ape.ret, cf_ape)
 
-            # best linear prediction of beta0 only
-            cf_blp_A0 <- best_linear_projection(tau.forest)
             cf_blp_A0 <- c(list(tx), as.list(cf_blp_A0))
             grf.blp.A0.ret <- append(grf.blp.A0.ret, cf_blp_A0)
 
-            # average treatment effect
-            cf_ate <- average_treatment_effect(tau.forest)
             cf_ate <- c(list(tx), as.list(cf_ate))
             grf.ate.ret <- append(grf.ate.ret, cf_ate)
 
             # best linear prediction conditioned on coviarates
             # reduce covariates until not all of the covairate p values were NAs
-            if (run_blp == TRUE){
-                sel_covar <- head(varImp.ret[order(varImp.ret$varImp, decreasing = TRUE),], n = 500)
-                A_mat <- X.covariates[, sel_covar$variable] # selected n*500 matrix
+            sel_covar <- head(varImp.ret[order(varImp.ret$varImp, decreasing = TRUE),], n = 500)
+            A_mat <- X.covariates[, sel_covar$variable] # selected n*500 matrix
+
+            # You will need to manually handle missing values the way GRF handles the missing values
+            # see https://grf-labs.github.io/grf/REFERENCE.html#missing-values
+            # however, we are not doing splits here so we will need to impute
+
+            A_mat <- knn.impute(A_mat, k = 10)
+
+            try(cf_blp <- best_linear_projection(tau.forest, A = A_mat))
+            if (any(class(cf_blp) == "try-error")) next # must check error, it constantly fails with a colname error
+            all_na <- all(is.na(cf_blp[,4]))
+            reduce <- 500 * (0.9)
+            while (all_na){
+                sel_covar <- head(varImp.ret[order(varImp.ret$varImp, decreasing = TRUE),], n = reduce)
+                if (dim(sel_covar)[1] == 0) {
+                    message("BLP failed to plot because all covariates resulted in NAs.")
+                }
+                A_mat <- X.covariates[, sel_covar$variable] # selected reduced matrix
                 cf_blp <- best_linear_projection(tau.forest, A = A_mat)
                 all_na <- all(is.na(cf_blp[,4]))
-                reduce <- 500 * (0.9)
-                while (all_na){
-                    sel_covar <- head(varImp.ret[order(varImp.ret$varImp, decreasing = TRUE),], n = reduce)
-                    if (dim(sel_covar)[1] == 0) {
-                        message("BLP failed to plot because all covariates resulted in NAs.")
+                reduce <- reduce * 0.9
+            }
+
+            if (dim(sel_covar)[1] == 0) {
+                message("In the process of eliminating covariates s.t. the model isn't all NAs, you have eliminated all covariates. Nothing to see here, moving on.")
+            } else {
+                message("At least one of the covriates was significant, proceed with blackwards elimination.")
+                # Backward elimination of covariates
+                elim_blp <- cf_blp[order(cf_blp[,4], decreasing = TRUE),]
+                elim_A_mat <- A_mat[, - which(colnames(A_mat) == attr(elim_blp, 'dimnames')[[1]][1])]
+                try(elim_blp <- best_linear_projection(tau.forest, A = elim_A_mat))
+                if (any(class(elim_blp) == "try-error")) next # must check error, it constantly fails with a colname error
+                # some times it gives you both "matrix" and "array" as class, which you will then get the repeated 'Error in dimnames(x) <- dn : length of 'dimnames' [2] not equal to array extent' error
+                all_sig <- all(elim_blp[,4] < 0.05)
+
+                while(!all_sig) {
+                    # stopping condition when all covariates had been exhausted
+                    if (dim(as.matrix(elim_A_mat))[2] == 1) { # at the end of the elimination, when there is only one column left, it will be coerced into a vector and using dim(matrix) alone will return an error
+                        message("All covariates were backwards eliminated.")
+                        break # exist loop
                     }
-                    A_mat <- X.covariates[, sel_covar$variable] # selected reduced matrix
-                    cf_blp <- best_linear_projection(tau.forest, A = A_mat)
-                    all_na <- all(is.na(cf_blp[,4]))
-                    reduce <- reduce * 0.9
-                }
+                    elim_blp <- elim_blp[order(elim_blp[,4], decreasing = TRUE),]
+                    to_b_eliminated <- attr(elim_blp, 'dimnames')[[1]][1]
 
-                if (dim(sel_covar)[1] == 0) {
-                    message("In the process of eliminating covariates s.t. the model isn't all NAs, you have eliminated all covariates. Nothing to see here, moving on.")
-                } else {
-                    message("At least one of the covriates was significant, proceed with blackwards elimination.")
-                    # Backward elimination of covariates
-                    elim_blp <- cf_blp[order(cf_blp[,4], decreasing = TRUE),]
-                    elim_A_mat <- A_mat[, - which(colnames(A_mat) == attr(elim_blp, 'dimnames')[[1]][1])]
-                    elim_blp <- best_linear_projection(tau.forest, A = elim_A_mat)
-                    all_sig <- all(elim_blp[,4] < 0.05)
+                    # save to be eliminated covariates
+                    to_b_elim_coeff <- elim_blp[1,]
+                    to_b_elim_vector <- elim_A_mat[, which(colnames(elim_A_mat) == to_b_eliminated)]
 
-                    while(!all_sig) {
-                        # stopping condition when all covariates had been exhausted
-                        if (dim(as.matrix(elim_A_mat))[2] == 1) { # at the end of the elimination, when there is only one column left, it will be coerced into a vector and using dim(matrix) alone will return an error
-                            message("All covariates were backwards eliminated.")
-                            break # exist loop
-                        }
-                        elim_blp <- elim_blp[order(elim_blp[,4], decreasing = TRUE),]
-                        to_b_eliminated <- attr(elim_blp, 'dimnames')[[1]][1]
-                        if (to_b_eliminated == "(Intercept)") to_b_eliminated <- attr(elim_blp, 'dimnames')[[1]][2] # if the intercept has the highest p value, then eliminate the next in line covariate
-                        # message(paste0("Eliminated: ", to_b_eliminated))
-                        elim_A_mat <- elim_A_mat[, - which(colnames(elim_A_mat) == to_b_eliminated)]
-                        elim_blp <- best_linear_projection(tau.forest, A = elim_A_mat)
+                    if (to_b_eliminated == "(Intercept)") to_b_eliminated <- attr(elim_blp, 'dimnames')[[1]][2] # if the intercept has the highest p value, then eliminate the next in line covariate
+                    # message(paste0("Eliminated: ", to_b_eliminated))
+                    elim_A_mat <- elim_A_mat[, - which(colnames(elim_A_mat) == to_b_eliminated)]
+                    if (dim(as.matrix(elim_A_mat))[2] == 1) { # when only one coviarate is left in the covariate matrix subset, the best_linear_project function in GRF will report a column name error because the subset will be coerced into a colname-less vector
+                        elim_A_mat <- as.matrix(elim_A_mat)
+                        colnames(elim_A_mat) <- to_b_eliminated
+                    }
+                    try(elim_blp <- best_linear_projection(tau.forest, A = elim_A_mat))
+                    if (any(class(elim_blp) == "try-error")) {
+                        all_sig <- TRUE # exit while loop
+                        message("Failed to calculate BLP.")
+                    } else {
                         all_sig <- all(elim_blp[,4] < 0.05)
+                        if (is.na(all_sig)) {
+                            # restore previously eliminated covariate
+                            elim_A_mat <- cbind(elim_A_mat, to_b_elim_vector)
+                            colnames(elim_A_mat)[dim(elim_A_mat)[2]] <- to_b_eliminated
+                            try(elim_blp <- best_linear_projection(tau.forest, A = elim_A_mat))
+                            all_sig <- TRUE # break while loop
+                            message("All coeff in BLP has become NAs.")
+                        }
                     }
-                    print(elim_blp)
-                    write.csv(elim_blp, paste0(output_directory, project, "_back_elim_blp_", tx, ".csv"), quote = F, row.names = F)
                 }
+
+                print(elim_blp)
+                write.csv(elim_blp, paste0(output_directory, project, "_back_elim_blp_", tx, ".csv"), quote = F, row.names = T)
             }
         } else {
             print("Skipping permutation.")
@@ -365,5 +411,6 @@ run.hte <- function(covar_mat,
                 observed.tau.risk.var.ret, 
                 grf.ate.ret, 
                 grf.ape.ret, 
-                grf.blp.A0.ret))
+                grf.blp.A0.ret,
+                elim_blp))
 } # end of function
