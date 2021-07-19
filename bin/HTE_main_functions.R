@@ -47,11 +47,13 @@ setMethod("append", signature(x = "data.frame", values = "vector"),
 #' @param is_binary whether treatment vector W should be set to binary.
 #' @param is_save whether to save all the split observations in SHC.
 #' @param is_tuned whether to allow tree self-tuning.
-#' @param thres quartile threshold to select as treatment group if `is_binary` is set to TRUE.
 #' @param n_core number of cores to use in paralelle run.
 #' @param output_directory file paths of output files, should be created before HTE run.
 #' @param skip_perm option to override permutation requirement for quicker run.
 #' @param perm_all option to permute all treatment variables 
+#' @param random_rep_seed boolean option to set whether different seeds should be generateed for each repeat, by default seeds will be saved for each run to ensure reproducability
+#' @return list of data frames including correlation.test.ret, calibration.ret, double.dataset.test.ret, permutate.testing.ret, observed.tau.risk.var.ret, grf.ate.ret, grf.ape.ret, grf.blp.A0.ret. In this order.
+#' @export
 
 run.hte <- function(covar_mat,
                     tx_vector,
@@ -65,11 +67,12 @@ run.hte <- function(covar_mat,
                     is_save = T,
                     save_split = T,
                     is_tuned = F,
-                    thres = 0.75, # redundant, please remove in the next commit
                     n_core = 8,
                     output_directory = NULL,
                     skip_perm = FALSE,
-                    perm_all = FALSE) {
+                    perm_all = FALSE,
+                    random_rep_seed = TRUE,
+                    run_blp = TRUE) {
     # @covar_mat: covariates matrix (with treatment assignments as well if each of the covariates are taking turns to be analyzed as treatments). Treatment assignments can be binary or continuous.
     # @tx_vector: a vector of variables that will each be used as treatments
     # @whole_dataset: dataframe with outcome, covariates and treatment assignments
@@ -114,7 +117,25 @@ run.hte <- function(covar_mat,
                                             fixed.YW.risk = double(),
                                             stringsAsFactors = FALSE)
 
+    # saving GRF native analysis
+    grf.ate.ret <- data.frame(treatment = character(), 
+                          est = double(), 
+                          std.err = double())
 
+    grf.ape.ret <- data.frame(treatment = character(),
+                              est = double(), 
+                              std.err = double())
+
+    grf.blp.A0.ret <- data.frame(treatment = character(),
+                                 est = double(),
+                                 std.error = double(),
+                                 t.value = double(),
+                                 p.val = double())
+
+    tc_res <- NULL
+    ape_res <- NULL
+    blp_res <- NULL
+    ate_res <- NULL
 
     no.obs <- dim(covar_mat)[1]
     no.obs.train <- length(trainId)
@@ -125,13 +146,20 @@ run.hte <- function(covar_mat,
     cf.estimator <- ifelse(is_tuned, cf.tuned, cf)
 
     i <- 1
+
+
     for (tx in tx_vector) {
 
         print(paste0(c("#", rep("-", 40), " begin a new treatment ", rep("-", 40)), collapse = ""))
         print(paste0("Processing ", i, " of ", length(tx_vector), " genes."))
         i <- i + 1
 
-        treatment <- W_matrix[,colnames(W_matrix) == tx] # directly retreive the W vector from function input
+        if (dim(W_matrix)[2] == 1) { # you will get an error if you try to subset via 
+            treatment <- W_matrix[,1]
+        } else {
+            treatment <- W_matrix[,colnames(W_matrix) == tx] # directly retreive the W vector from function input
+        }
+
         if (is_binary) {
             message("Current treatment proportion: ")
             print(table(treatment))
@@ -142,7 +170,7 @@ run.hte <- function(covar_mat,
             next
         }
 
-        if (!diffCovarTxTypes) X.covariates <- as.matrix(dplyr::select(covar_mat, -tx))
+        if (!diffCovarTxTypes) X.covariates <- as.matrix(dplyr::select(covar_mat, -all_of(tx)))
 
         # print(paste0(c('#', rep('-', 40), ' begin a new treatment ', rep('-', 40)), collapse = ''))
 
@@ -168,7 +196,8 @@ run.hte <- function(covar_mat,
                                 is_tuned = is_tuned,
                                 file_prefix = file_prefix,
                                 col_names = col_names,
-                                seed = seed)
+                                seed = seed,
+                                random_rep_seed = random_rep_seed)
             )
 
         if (class(pvalues) == "try-error") next
@@ -203,7 +232,7 @@ run.hte <- function(covar_mat,
 
         if ((simes.pval <= 0.05 & skip_perm == FALSE) | perm_all) {
             print("Performing permutation.")
-            cor.overall <- cor.test(covar_mat[, tx], Y, method = "pearson", alternative = "greater", use = "na.or.complete")
+            cor.overall <- cor.test(covar_mat[, all_of(tx)], Y, method = "pearson", alternative = "greater", use = "na.or.complete")
 
             # save the result
             pred.ret <- cbind(whole_dataset$donorId, tau_stats)
@@ -265,11 +294,123 @@ run.hte <- function(covar_mat,
             varImp <- variable_importance(tau.forest,  max.depth = 4)
             varImp.ret <- data.frame(variable = colnames(X.covariates),  varImp)
             write.csv(varImp.ret, paste0(output_directory, project, "_varimp_", tx, ".csv"), quote = F, row.names = F)
+
+            # Add native GRF analysis output
+
+            # average partial effect, should equal ATE for binary unconfounded treatment
+            try(cf_ape <- average_partial_effect(tau.forest))
+            # best linear prediction of beta0 only
+            try(cf_blp_A0 <- best_linear_projection(tau.forest))
+            # average treatment effect
+            try(cf_ate <- average_treatment_effect(tau.forest))
+
+            if( !all(c(exists("cf_ape"),exists("cf_blp_A0"),exists("cf_ate"))) ) {
+                message("Failed to analyse forest.")
+                next
+            } else if ( any(c( any(is.na(cf_ape)), any(is.na(cf_blp_A0)), any(is.na(cf_ate)) ) ) ) { # evaluate NAs and missing variable separately
+                message("Failed to analyse forest.")
+                next
+            }
+
+            cf_ape <- c(list(tx), as.list(cf_ape))
+            grf.ape.ret <- append(grf.ape.ret, cf_ape)
+
+            cf_blp_A0 <- c(list(tx), as.list(cf_blp_A0))
+            grf.blp.A0.ret <- append(grf.blp.A0.ret, cf_blp_A0)
+
+            cf_ate <- c(list(tx), as.list(cf_ate))
+            grf.ate.ret <- append(grf.ate.ret, cf_ate)
+
+            # best linear prediction conditioned on coviarates
+            # reduce covariates until not all of the covairate p values were NAs
+            sel_covar <- head(varImp.ret[order(varImp.ret$varImp, decreasing = TRUE),], n = 500)
+            A_mat <- X.covariates[, sel_covar$variable] # selected n*500 matrix
+
+            # You will need to manually handle missing values the way GRF handles the missing values
+            # see https://grf-labs.github.io/grf/REFERENCE.html#missing-values
+            # however, we are not doing splits here so we will need to impute
+
+            A_mat <- knn.impute(A_mat, k = 10)
+
+            try(cf_blp <- best_linear_projection(tau.forest, A = A_mat))
+            if (any(class(cf_blp) == "try-error")) next # must check error, it constantly fails with a colname error
+            all_na <- all(is.na(cf_blp[,4]))
+            reduce <- 500 * (0.9)
+            while (all_na){
+                sel_covar <- head(varImp.ret[order(varImp.ret$varImp, decreasing = TRUE),], n = reduce)
+                if (dim(sel_covar)[1] == 0) {
+                    message("BLP failed to plot because all covariates resulted in NAs.")
+                }
+                A_mat <- X.covariates[, sel_covar$variable] # selected reduced matrix
+                cf_blp <- best_linear_projection(tau.forest, A = A_mat)
+                all_na <- all(is.na(cf_blp[,4]))
+                reduce <- reduce * 0.9
+            }
+
+            if (dim(sel_covar)[1] == 0) {
+                message("In the process of eliminating covariates s.t. the model isn't all NAs, you have eliminated all covariates. Nothing to see here, moving on.")
+            } else {
+                message("At least one of the covriates was significant, proceed with blackwards elimination.")
+                # Backward elimination of covariates
+                elim_blp <- cf_blp[order(cf_blp[,4], decreasing = TRUE),]
+                elim_A_mat <- A_mat[, - which(colnames(A_mat) == attr(elim_blp, 'dimnames')[[1]][1])]
+                try(elim_blp <- best_linear_projection(tau.forest, A = elim_A_mat))
+                if (any(class(elim_blp) == "try-error")) next # must check error, it constantly fails with a colname error
+                # some times it gives you both "matrix" and "array" as class, which you will then get the repeated 'Error in dimnames(x) <- dn : length of 'dimnames' [2] not equal to array extent' error
+                all_sig <- all(elim_blp[,4] < 0.05)
+
+                while(!all_sig) {
+                    # stopping condition when all covariates had been exhausted
+                    if (dim(as.matrix(elim_A_mat))[2] == 1) { # at the end of the elimination, when there is only one column left, it will be coerced into a vector and using dim(matrix) alone will return an error
+                        message("All covariates were backwards eliminated.")
+                        break # exist loop
+                    }
+                    elim_blp <- elim_blp[order(elim_blp[,4], decreasing = TRUE),]
+                    to_b_eliminated <- attr(elim_blp, 'dimnames')[[1]][1]
+
+                    # save to be eliminated covariates
+                    to_b_elim_coeff <- elim_blp[1,]
+                    to_b_elim_vector <- elim_A_mat[, which(colnames(elim_A_mat) == to_b_eliminated)]
+
+                    if (to_b_eliminated == "(Intercept)") to_b_eliminated <- attr(elim_blp, 'dimnames')[[1]][2] # if the intercept has the highest p value, then eliminate the next in line covariate
+                    # message(paste0("Eliminated: ", to_b_eliminated))
+                    elim_A_mat <- elim_A_mat[, - which(colnames(elim_A_mat) == to_b_eliminated)]
+                    if (dim(as.matrix(elim_A_mat))[2] == 1) { # when only one coviarate is left in the covariate matrix subset, the best_linear_project function in GRF will report a column name error because the subset will be coerced into a colname-less vector
+                        elim_A_mat <- as.matrix(elim_A_mat)
+                        colnames(elim_A_mat) <- to_b_eliminated
+                    }
+                    try(elim_blp <- best_linear_projection(tau.forest, A = elim_A_mat))
+                    if (any(class(elim_blp) == "try-error")) {
+                        all_sig <- TRUE # exit while loop
+                        message("Failed to calculate BLP.")
+                    } else {
+                        all_sig <- all(elim_blp[,4] < 0.05)
+                        if (is.na(all_sig)) {
+                            # restore previously eliminated covariate
+                            elim_A_mat <- cbind(elim_A_mat, to_b_elim_vector)
+                            colnames(elim_A_mat)[dim(elim_A_mat)[2]] <- to_b_eliminated
+                            try(elim_blp <- best_linear_projection(tau.forest, A = elim_A_mat))
+                            all_sig <- TRUE # break while loop
+                            message("All coeff in BLP has become NAs.")
+                        }
+                    }
+                }
+
+                print(elim_blp)
+                write.csv(elim_blp, paste0(output_directory, project, "_back_elim_blp_", tx, ".csv"), quote = F, row.names = T)
+            }
         } else {
             print("Skipping permutation.")
         }
 
-
-    }
-    return(list(correlation.test.ret, calibration.ret, double.dataset.test.ret, permutate.testing.ret, observed.tau.risk.var.ret))
-}
+    } # treatment loop
+    return(list(correlation.test.ret, 
+                calibration.ret, 
+                double.dataset.test.ret, 
+                permutate.testing.ret, 
+                observed.tau.risk.var.ret, 
+                grf.ate.ret, 
+                grf.ape.ret, 
+                grf.blp.A0.ret,
+                elim_blp))
+} # end of function

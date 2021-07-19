@@ -1,6 +1,7 @@
 # Functions for retreiving TCGA data in HTE analysis
 ## These functions requires relative path access to donwloaded files and GDCdata, therefore this script ***MUST*** be run under the outermost home directory.
 
+# TODO update survival imputation methods in accordance to NICE TA TSD14 guidelines (http://nicedsu.org.uk/technical-support-documents/survival-analysis-tsd/)
 
 #' Function to use an axullary variable to impute time to failture wtih a Cox PH model, must be used in conjunction with fetch_clinical_data function or the column names will not match.
 #' 
@@ -75,7 +76,7 @@ fetch_clinical_data <- function(cancer_type,
                                 outUnitDays2Month = FALSE, 
                                 imputeMethod = "simple", 
                                 onlyCompleteCases = FALSE, 
-                                col_vec =  c("bcr_patient_barcode", "type", "age_at_initial_pathologic_diagnosis",  "gender", "ajcc_pathologic_tumor_stage", "tumor_status", outParam, paste0(outParam, ".time")), 
+                                col_vec =  c("bcr_patient_barcode", "type", "age_at_initial_pathologic_diagnosis",  "gender", "ajcc_pathologic_tumor_stage", outParam, paste0(outParam, ".time")), 
                                 discard = c("type")) {
     if (!file.exists("./dat/TCGA-CDR-SupplementalTableS1.xlsx")) {
         download.file("https://ars.els-cdn.com/content/image/1-s2.0-S0092867418302290-mmc1.xlsx", "./dat/TCGA-CDR-SupplementalTableS1.xlsx") }
@@ -83,17 +84,20 @@ fetch_clinical_data <- function(cancer_type,
         cdr = read_excel("./dat/TCGA-CDR-SupplementalTableS1.xlsx")
         clinical_dat = dplyr::select(cdr, col_vec)
 
+        labels = c("[Discrepancy]","[Not Applicable]","[Not Available]","[Unknown]")
+        clinical_dat$ajcc_pathologic_tumor_stage[which(clinical_dat$ajcc_pathologic_tumor_stage %in% labels)] = NA
+        # specify cancer type here
+        clinical_dat <- dplyr::filter(clinical_dat, type == cancer_type)
+        clinical_dat$type = NULL
+        
         clinical_dat[clinical_dat == "#N/A"] <- NA # sometimes missing entries are not well formatted
         clinical_dat <- subset(clinical_dat, !is.na(get(paste0(outParam, ".time"))) & !is.na(get(outParam)) & !is.na(age_at_initial_pathologic_diagnosis))
         colnames(clinical_dat)[colnames(clinical_dat)=="bcr_patient_barcode"] = "donorId"
         colnames(clinical_dat)[colnames(clinical_dat) == outParam | colnames(clinical_dat) == paste0(outParam, ".time")] = c("out_param", "out_param_time")
         clinical_dat = as.data.frame(clinical_dat)
-
-    # specify cancer type here
-    clinical_dat <- dplyr::filter(clinical_dat, type == cancer_type)
     
     if (imputeMethod == "simple") {
-        imput_surv = exp(impute.survival(clinical_dat$out_param_time, clinical_dat$out_param))
+        imput_surv = impute.survival(clinical_dat$out_param_time, clinical_dat$out_param)
         if (outUnitDays2Month) imput_surv = imput_surv / 30.417 # reverse log and convert days to months for better interpretation. Converting ratio 30.417 is an approximate value used by Google.
         clinical_dat$outcome = imput_surv
         # Variable type conversion is not intrinsically implemented in the impute.survival function, so it must implemented here.
@@ -101,7 +105,7 @@ fetch_clinical_data <- function(cancer_type,
     } else {
         clinical_dat = impute_with_NNMIS(clinical_dat)
     }
-    clinical_dat = dplyr::select(clinical_dat, -c(out_param, out_param_time, discard))
+    clinical_dat = dplyr::select(clinical_dat, -c(out_param, out_param_time))
     if (onlyCompleteCases) clinical_dat = clinical_dat[complete.cases(clinical_dat),]
     print("Processed patient dataframe: ")
 
@@ -110,10 +114,116 @@ fetch_clinical_data <- function(cancer_type,
     return(clinical_dat)
 }
 
+# TODO scavenge clinical information from up-to-date GDC data
+#' Fetch up to date clinical data
+#' 
+#' Although clinical outcome in the TCGA-CDR was more standardized calculation, it's more up-to-date and we'd sometimes want to have more cases rather than being accurate alone.
+#' This function is written for OS as endpoint only, other endpoins have not been implemented yet. 
+#' "OS is the period from the date of diagnosis until the date of death from any cause. "
+
+find_clinical_data <- function(cancerType, col_vec =  c("bcr_patient_barcode", "type", "age_at_initial_pathologic_diagnosis",  "gender", "ajcc_pathologic_tumor_stage")) {
+    
+    # Check if TCGA-CDR is missing some patients
+    cdr <- read_excel("./dat/TCGA-CDR-SupplementalTableS1.xlsx")
+    cdr <- filter(cdr, type == cancerType)
+    
+    # Check if newer patients have been added to the clinical indexed files
+    clinical <- GDCquery_clinic(project = paste0("TCGA-", cancerType), type = "clinical")
+    if (!all(clinical$bcr_patient_barcode %in% cdr$bcr_patient_barcode)) {
+        # CDR is not updated, some patients are missing from CDR
+        new_patients <- clinical[!(clinical$bcr_patient_barcode %in% cdr$bcr_patient_barcode),]
+    }
+}
+
+fetch_BCR_clinical <- function(cancerType) {
+
+    # clin data via BCR biotab files
+    query <- GDCquery(project = paste0("TCGA-", cancerType), 
+                  data.category = "Clinical",
+                  data.type = "Clinical Supplement", 
+                  data.format = "BCR Biotab")
+    GDCdownload(query)
+    clinical.BCRtab.all <- GDCprepare(query)
+    clin_BCR <- clinical.BCRtab.all$clinical_patient_brca
+    clin_covar <- dplyr::select(clin_BCR, all_of(c("bcr_patient_barcode", "age_at_diagnosis", "ajcc_pathologic_tumor_stage", "gender", "vital_status", "last_contact_days_to", "death_days_to", "days_to_initial_pathologic_diagnosis")))
+    clin_covar <- clin_covar[-c(1:2),] # remove col IDs and descriptions
+    clin_covar[clin_covar == "[Not Available]"] <- NA # remove string NA identifiers
+    numeric_cols <- grep("age_|days_", colnames(clin_covar))
+    clin_covar[numeric_cols] <- lapply(clin_covar[numeric_cols], as.numeric)
+    # convert to numeric
+
+    # Patients are either: ALIVE, DEAD or NA in this data. OS lengths of alive patients were indicated by last_contact_days_to, while dead patients were indicated by death_days_to. Once you have one entry, the other one should be NA, so to get the "OS length" you will need to coalesce these two cols
+    clin_covar <- clin_covar %>% mutate(OS_time = coalesce(last_contact_days_to, death_days_to))
+
+    # impute censroed time with 
+    # set negative OS times to 0s, these patients were contacted before diagnosis was made, and perhaps had been lost to follow-up
+    clin_covar$OS_time[clin_covar$OS_time < 0] <- 0
+    clin_covar <- dplyr::select(clin_covar, -c("last_contact_days_to", "death_days_to", "days_to_initial_pathologic_diagnosis"))
+
+    # Convert categorical variables into numeric for imputing missing stages
+    clin_covar <- convert_col_to_numeric(as.data.frame(clin_covar), id = "bcr_patient_barcode")
+
+    # impute missing stages with kNN
+    tmp = kNN(as.matrix(dplyr::select(clin_covar, -c("bcr_patient_barcode", "OS_time"))))
+
+    # patient missing survival data
+    missing_surv <- clin_covar[is.na(clin_covar$days_to_last_follow_up),]
+
+    
+    # Convert "days_to_last_follow_up" negative values to 0s, these patients were recorded before a proper diagnosis was made
+
+
+    # impute missing stages with 
+}
+
+#' Fetch clinical data from the indexed clinial files from TCGAbiolinks. Refer to the `fetch_BCR_clinical` function if you wish to source your clinical data from the BCRbio tabs instead. The distinction between these files are docuemnted in the "Useful Information" box in the TCGAbiolinks clinical documentation. By default, this function will try to compute missing tumor stages based on T/N/M indicators using the `find_ajcc_stage` function. However, since GBM patients do not use such staging system, the indexed clinical dataframe output will omitt the `ajcc_pathologic_stage` column.
+#' 
+#' @param cancerType [string] TCGA project code
+#' 
+#' @source \url{https://www.bioconductor.org/packages/release/bioc/vignettes/TCGAbiolinks/inst/doc/clinical.html}
+#' @return [dataframe] with the following columns: "bcr_patient_barcode", "age_at_index", "ajcc_pathologic_stage", "OS_time"
+#' 
+fetch_indexed_clinical <- function(cancerType, set_k = set_k) {
+    clinical <- GDCquery_clinic(project = paste0("TCGA-", cancerType), type = "clinical")
+    # days_to_last_known_disease_status is all NAs
+    
+    if (cancerType == "UCEC") {
+        clinical_sub <- try(dplyr::select(clinical, all_of(c("bcr_patient_barcode", "age_at_index", "figo_stage" ,"days_to_diagnosis", "days_to_last_follow_up", "days_to_death", "vital_status"))))
+    } else {
+        clinical_sub <- try(dplyr::select(clinical, all_of(c("bcr_patient_barcode", "age_at_index", "ajcc_pathologic_stage", "ajcc_pathologic_t", "ajcc_pathologic_n", "ajcc_pathologic_m", "days_to_diagnosis", "days_to_last_follow_up", "days_to_death", "vital_status"))))
+    }
+    # PRAD is known to have a missing ajcc_pathological_m column, in this case we will use the ajcc_clinical_m column as a replacement
+    if (class(clinical_sub) == "try-error") {
+        message("Some AJCC pathologic M indicator missing, using AJCC clinical M instead.")
+        clinical_sub <- dplyr::select(clinical, all_of(c("bcr_patient_barcode", "age_at_index", "ajcc_pathologic_t", "ajcc_pathologic_n", "ajcc_clinical_m", "days_to_diagnosis", "days_to_last_follow_up", "days_to_death", "vital_status")))
+        colnames(clinical_sub)[colnames(clinical_sub) == "ajcc_clinical_m"]  <- "ajcc_pathologic_m"
+        clinical_sub$ajcc_pathologic_stage <- NA
+    }
+    clinical_sub <- clinical_sub %>% mutate(OS_time = coalesce(days_to_last_follow_up, days_to_death))
+    if (cancerType == "GBM") {
+        clinical_sub <- dplyr::select(clinical_sub, -c("ajcc_pathologic_stage", "ajcc_pathologic_t", "ajcc_pathologic_n", "ajcc_pathologic_m", "days_to_last_follow_up", "days_to_death", "days_to_diagnosis"))
+
+    } else if (cancerType == "UCEC") {
+        clinical_sub <- dplyr::select(clinical_sub, -c("days_to_last_follow_up", "days_to_death", "days_to_diagnosis"))
+    } else {
+        tnm_sub <- dplyr::select(clinical_sub, all_of(c("ajcc_pathologic_t", "ajcc_pathologic_n", "ajcc_pathologic_m")))
+    }
+
+    # See if you can re-assign patients with missing stages using the TNM cols
+    clinical_sub[, "ajcc_pathologic_stage"] <- find_ajcc_stage(tnm_cols = tnm_sub, kSize = set_k)
+    # do not omitt patinets you can't find survival data or stage data with
+
+    clinical_sub <- dplyr::select(clinical_sub, -c("ajcc_pathologic_t", "ajcc_pathologic_n", "ajcc_pathologic_m", "days_to_last_follow_up", "days_to_death", "days_to_diagnosis"))
+    
+    return(clinical_sub)
+}
+
+
 #' Fetch mutation datat using TCGAbiolinks
 #' 
 #' @param cancer_type [string] TCGA cancer cancer_type code
 #' @return [dataframe] with genes as columns and patient entries as rows. The first column is named "donorId" for patient id.
+
 
 fetch_mut_data <- function(cancer_type) {
     m_query <- GDCquery(project = paste0("TCGA-", cancer_type),
@@ -235,9 +345,9 @@ mk_id_rownames <- function(df) {
     return(df)
 }
 
-convert_col_to_numeric <- function(clin_df) {
+convert_col_to_numeric <- function(clin_df, id = "donorId") {
     for (c in colnames(clin_df)) {
-        if (!is.numeric(clin_df[,c]) && c != "donorId") {
+        if (!is.numeric(clin_df[,c]) && c != id) {
             # Convert empty strings into NAs first
             which.one <- which( levels(clin_df[,c]) == "")
             levels(clin_df[,c])[which.one] <- NA
@@ -349,7 +459,7 @@ create_tx_matrix <- function(txVector,
     W_values <- NULL
     for (i in 1:length(txVector)) {
         W_values <- covarMat[,colnames(covarMat) == txVector[i]]
-    	# print(W_values)
+        # print(W_values)
         if (binaryVector[i]){
            if (cutoffThreshDf[i, 1] == ">") {
                W_values <- as.numeric(W_values > quantile(W_values, cutoffThreshDf[i, 2]))
@@ -359,9 +469,200 @@ create_tx_matrix <- function(txVector,
               W_values <- as.numeric(W_values != 0)
            }
         }
-	# print(W_values)
+    # print(W_values)
         W_matrix[, i] <- W_values
     }
     colnames(W_matrix) <- txVector
     return(W_matrix)
+}
+
+#' Correct drug names using a manually curated drug names conversion talbe provided by gatech.edu
+#' You must first download the "DrugCorrection.csv" file to the ``./dat` directory from the gatech site via 
+#' > wget https://gdisc.bme.gatech.edu/Data/DrugCorrection.csv --no-check-certificate
+#' Unforutnately, setting `Sys.setenv(LIBCURL_BUILD="winssl")``, nor does setting `httr::set_config(config(ssl_verifypeer = FALSE))` work.
+#' Update April 12, 2021, there are some capitalization and trailing space problems in the original table, use the corrected one "DrugCorrectionByAlex.csv"
+#' 
+#' @param drug_ls list of drugs extracted from TCGA datasets
+
+correct_drug_names <- function(drug_ls) {
+    drug_tbl = read.csv("./dat/DrugCorrectionByAlex.csv")
+    drug_names <- c()
+    for (i in 1:length(drug_ls)) {
+        if (drug_ls[i] %in% drug_tbl$OldName) {
+            # if(length(drug_tbl$Correction[drug_tbl$OldName == i]) > 1) print(i)
+            drug_names[i] <- drug_tbl$Correction[drug_tbl$OldName == drug_ls[i]]
+        } else {
+            drug_names[i] <- drug_ls[i]
+        }
+    }
+    return(drug_names)
+}
+
+#' Function to combine ajcc TNM system into stages according to the AJCC 7th edition guide, missing T/N/M indicators can be imputed
+#' 
+#' @example tnm_cols = dplyr::select(clinical_sub, all_of(c("ajcc_pathologic_t", "ajcc_pathologic_n", "ajcc_pathologic_m")))
+#' @source \url{https://www.sciencedirect.com/science/article/pii/S1072751513002809}
+#' @param tnm_cols subset of the clinical dataframe containing columns of pathological status of the TNM system
+#' @param kSize k neighbors used for KNN impute
+find_ajcc_stage <- function(tnm_cols = NULL, impute_missing = TRUE, kSize = 5) {
+
+    message("Imputing missing stages.")
+    if(impute_missing) {
+        # impute missing T/N/M indicators by KNN
+        tnm_impute <- sapply(tnm_cols, function(x) as.numeric(as.factor(x)))
+        tnm_impute <- as.data.frame(knn.impute(tnm_impute, k = kSize))
+
+        for (i in 1:ncol(tnm_cols)) {
+            store_fac <- levels(factor(tnm_cols[,i]))
+            store_num <- sort(unique(tnm_impute[,i]))
+            store_convert <- as.data.frame(cbind(store_fac, store_num))
+            
+            # Convert the numeric factors from characters back to numeric
+            store_convert$store_num = as.numeric(store_num)
+            converted_factors <- left_join(data.frame(num_stage = tnm_impute[,i]), store_convert, by = c("num_stage" = "store_num")) 
+            tnm_impute[,i] <- converted_factors$store_fac
+        }
+        tnm_cols <- tnm_impute
+    }
+
+    stage_tbl <- read.csv("./dat/brca_stage_tbl.csv")
+
+    for (i in 1:ncol(tnm_cols)) {
+
+        # remove minor categories
+        with_subcat <- grep("^[[:upper:]]\\d[[:lower:]]$", tnm_cols[,i])
+        tnm_cols[with_subcat,i] <- gsub("[[:lower:]]$", "", tnm_cols[with_subcat,i])
+
+        # assume lowest possible stage
+        with_unknown <- grep("^[[:upper:]]X$", tnm_cols[,i])
+        tnm_cols[with_unknown,i] <- gsub("X$", "0", tnm_cols[with_unknown,i])
+
+    }
+
+    tnm_cols$key <- unite(tnm_cols, col = "key", sep = "|")
+    stage_tbl$key <- unite(stage_tbl[,c(1:3)], col = "key", sep = "|")
+
+    tnm_cols <- left_join(tnm_cols, stage_tbl, by = "key")
+
+    # manually set for advanced stages
+    tnm_cols[which(tnm_cols$ajcc_pathologic_n == "N3"), "stage"] <- "IIIC"
+    tnm_cols[which(tnm_cols$ajcc_pathologic_m == "M1"), "stage"] <- "IV"
+
+    return(tnm_cols$stage)
+}
+
+#' Function to fetch binary matrix indicating past pharmacological treatment taken by TCGA patients. Note that we don't assume this drug record is complete.
+#' 
+#' @source https://www.bioconductor.org/packages/release/bioc/vignettes/TCGAbiolinks/inst/doc/clinical.html#Useful_information
+#' @param cancerType TCGA project code
+#' @param drugSummary whether to output number of people who has record of drug take, record of no drug take and no record at all
+#' @return binary drug matrix of records avaiable on TCGA, not all patients are recorded on here though.
+#' 
+fetch_drug <- function(cancerType, drugSummary = TRUE, set_k = 5) {
+
+    message(paste0("Going through the TCGA BCR biotab records for: ", cancerType))
+    query <- GDCquery(project = paste0("TCGA-", cancerType), 
+                    data.category = "Clinical",
+                    data.type = "Clinical Supplement", 
+                    data.format = "BCR Biotab")
+    GDCdownload(query)
+    clinical.BCRtab.all <- GDCprepare(query)
+    names(clinical.BCRtab.all)
+    drug <- clinical.BCRtab.all[[paste0("clinical_drug_", tolower(cancerType))]]
+
+    ## Clinical indexed data
+    clinical <- GDCquery_clinic(project = paste0("TCGA-", cancerType), type = "clinical")
+
+    # no drug record
+    nr <- filter(clinical, treatments_pharmaceutical_treatment_or_therapy == "not reported")
+    nr_drug <- drug[drug$bcr_patient_barcode %in% nr$bcr_patient_barcode,]
+
+    # not taking any drug based on record
+    no <- filter(clinical, treatments_pharmaceutical_treatment_or_therapy == "no")
+    no_drug <- drug[drug$bcr_patient_barcode %in% no$bcr_patient_barcode,]
+
+    # has at least one drug record
+    yes <- filter(clinical, treatments_pharmaceutical_treatment_or_therapy == "yes")
+    yes_drug <- drug[drug$bcr_patient_barcode %in% yes$bcr_patient_barcode,]
+
+    if (drugSummary) {
+        ## surveying the dataset
+        message("In the official 'Clinical Indexed' data, among the patients with clinical entries, this is how much record we have: ")
+        table(clinical$treatments_pharmaceutical_treatment_or_therapy)
+        
+        dim(nr)
+            # [1] 103  74
+        dim(nr_drug)
+            # [1] 16 28
+        message("Number of patients that was labeled as 'no record' in clinical indexed data but actually has drug record in the BCR biotab: ")
+        message(length(unique(nr_drug$bcr_patient_barcode)), " out of ", length(unique(nr$bcr_patient_barcode)) )
+            # 10 patient has drug record despite being labelled as "not reported"
+        dim(no)
+        # [1] 148  74
+        dim(no_drug)
+        # [1] 16 28
+        message("Number of patients that was labeled as 'no drug taken' in clinical indexed data but actually has drug record in the BCR biotab: ")
+        message(length(unique(no_drug$bcr_patient_barcode)), " out of ", length(unique(no$bcr_patient_barcode)) )
+            # 5 patient has drug record despite being labelled as "no"
+            # 143 patients are truly not taking drugs
+        dim(yes)
+        # [1] 846  74
+        dim(yes_drug)
+        # [1] 2378   28
+        message("Number of patients that was labeled as 'yes' in clinical indexed data and actually has drug record in the BCR biotab: ")
+        message(length(unique(yes_drug$bcr_patient_barcode)), " out of ", length(unique(yes$bcr_patient_barcode)) )
+
+        message("Corrected clinical indexed drug record: ")
+        drug_summary <- c(rep("yes", length(unique(yes_drug$bcr_patient_barcode))), 
+        rep("no", length(unique(no$bcr_patient_barcode)) - length(unique(no_drug$bcr_patient_barcode))), 
+        rep("no record", length(unique(nr$bcr_patient_barcode)) - length(unique(nr_drug$bcr_patient_barcode))) )
+        print(table(drug_summary))
+    }
+        # For each drug, we can choose the truely "no" patients as control, these are the universally non-treated patiets. If a patient with drug recrods is not treated with the drug in question but treated with other drugs in question, they will be the pseudo control group. We could try HTE with pseudo control or true control, depending on whichever works.
+
+    # Fetch clinical indexed data from TCGAbiolinks
+    clin_indexed <- fetch_indexed_clinical(cancerType, set_k = set_k)
+    clin_indexed <- convert_col_to_numeric(clin_indexed, id = "bcr_patient_barcode")
+
+    # Now the next step is to set up the drug binary tables, one hot encoding based on the above criteria
+
+    drug_taken <- dplyr::select(drug, c("bcr_patient_barcode", "pharmaceutical_therapy_drug_name", "pharmaceutical_therapy_type"))
+    drug_taken <- drug_taken[-c(1:2),]
+
+    # Unify drug names with pre-downloaded conversion table
+    drug_taken$corr_drug_names <- correct_drug_names(drug_taken$pharmaceutical_therapy_drug_name)
+    drug_taken <- drug_taken[!grepl("NOS", drug_taken$corr_drug_names),]
+    drug_taken <- dplyr::select(drug_taken, -"pharmaceutical_therapy_drug_name") # get the old names out of the way
+
+    ## Universal controls
+    controls <- no$bcr_patient_barcode
+    controls <- unique(controls[!(controls %in% drug_taken$bcr_patient_barcode)])
+
+    ## True not reported cases (exclude)
+    not_reported <- nr[!(nr$bcr_patient_barcode %in% drug_taken$bcr_patient_barcode),]
+    not_reported <- not_reported$bcr_patient_barcode
+
+    # co-prescription one hot encoding
+    hot_drug <- dplyr::select(drug_taken, -c("pharmaceutical_therapy_type"))
+
+    # re-enter multi-drug treated patients into multiple rows
+    multi_tx <- hot_drug[grep("\\+", hot_drug$corr_drug_names),]
+    if (nrow(multi_tx) != 0) { # only append multi drugs if there are patients taking multiple drugs, if not you will append an extra NA to the drug table
+        for (i in 1:nrow(multi_tx)) {
+            record <- unlist(strsplit(multi_tx$corr_drug_names[i], "\\+"))
+            for (j in 1:length(record)) {
+                hot_drug <- rbindlist(list(hot_drug, as.list(c(multi_tx$bcr_patient_barcode[i], record[j]))))
+            }
+        }
+        hot_drug <- data.table(hot_drug[!grep("\\+", hot_drug$corr_drug_names)]) # removing rows by index not supported in data.tables
+    }
+    hot_drug <- dcast(setDT(hot_drug), bcr_patient_barcode ~ corr_drug_names, value.var = "corr_drug_names", function(x) as.numeric(length(x) > 0))
+
+    # add true controls to same table
+    control_row <- unique(no_drug$bcr_patient_barcode)
+
+    for (ctrl in control_row) {
+        hot_drug <- rbindlist(list(hot_drug, c(ctrl, as.list(rep(0, dim(hot_drug)[2] - 1)))))
+    }
+    return(list(hot_drug, clin_indexed, drug_taken, not_reported, controls))
 }

@@ -6,12 +6,9 @@
 ## To run this example case interactively in the console, uncomment and execute the following lines
 # opt <- NULL
 # opt$datatype <- "pathway" # or "expression"
+# opt$datatype <- "expression"
 # cancer <- "BRCA"
-# expri <- "/home/alex/project/HTE/exp/2020-08-31_TCGA_pancancer_pathway_PROPS_HTE"
-
-library(optparse)
-library(org.Hs.eg.db) # translate gene ENSEMBL ID to HugoSymbols
-library(dplyr)
+# expri <- "/home/alex/project/HTE/exp/2020-06-20_TCGA_pancancer_DEA_indicated_tx_dirct_.25_gp_as_tx_exp_HTE"
 
 ## Run from base directory
 setwd("~/project/HTE/")
@@ -19,7 +16,7 @@ setwd("~/project/HTE/")
 ## source bin scripts
 bin_ls = list.files("./bin")
 for (bin in bin_ls){
-    source(paste0("./bin/", bin))
+    suppressMessages(source(paste0("./bin/", bin)))
 }
 
 option_list = list(
@@ -33,10 +30,8 @@ opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
 
 if (opt$datatype == "pathway") {
-  library(clusterProfiler)
-  KEGGdb <- download_KEGG("hsa", keggType = "pathway", keyType = "kegg")
-  KEGGdb <- as.data.frame(KEGGdb$KEGGPATHID2NAME)
-  KEGGdb$from  <- gsub("M", "X", KEGGdb$from)
+  download.file("http://rest.kegg.jp/list/pathway", "path_name_ls.txt")
+  KEGGdb <- read.table("path_name_ls.txt", sep = "\t")
 } 
 
 if (is.null(opt$path)){
@@ -67,22 +62,10 @@ get_partial_simes <- function(pvec, n, u_ls = NULL) {
 
 # FIXME this downloaded DB is missing a lot of names
 KEGG_path_2_name <- function(pathID = NULL) {
-  id2KEGG <- left_join(as.data.frame(pathID), KEGGdb, by = c("pathID" = "from"))
-  return(unlist(translation))
-}
-
-# FIXME this will not work if too many queries are sent at once (the varimp file loop below)
-# Function to retreive KEGG pathway names from KEGGREST. For some strange reasons, they won't take a list of queries even though the query size was set at 100. However, I execute the query one path at a time, I would get an error message saying "Forbidden (HTTP 403)", hence the sys.sleep break. I am guess querying more than 100 within a short period of time would not be allowed too.
-kegg_all_names <- function(pathID) {
-  repeats <- floor(length(pathID) / 100)
-  final_rep <- length(pathID) %% 100
-  pathNames <- NULL
-  for (i in 1:repeats) {
-    pathNames <- c(pathNames, unlist(lapply(gsub("X", "map", pathID[(1 + (i * 100) - 100):(i * 100)]), function(x) keggFind("pathway", x))))
-    Sys.sleep(5)
-  }
-  pathNames <- c(pathNames, unlist(lapply(gsub("X", "map", pathID[(1 + (i * 100)):(i * 100 + final_rep)]), function(x) keggFind("pathway", x))))
-  return(pathNames)
+  
+  pathID <- gsub("X", "path:map", pathID)
+  id2KEGG <- left_join(as.data.frame(pathID), KEGGdb, by = c("pathID" = "V1"))
+  return(id2KEGG$V2)
 }
 
 # determine the u levels to be used when re-calculating SH partial Simes values
@@ -108,47 +91,58 @@ for (expri in path_list) { # 'exp' and 'expr' are reserved names in r-base
     tau_tbl <- data.frame()
     for (gene_tau in tau_files) {
       tau_values <- read.csv(paste0(expri, "/res/", cancer, "/", gene_tau))
+      # tau_value <- filter(tau_values, tau.p.adjust < 0.05)
       # summary stats
       tau_sum <- summary(tau_values$tau.val)
       tau_sum_names <- names(tau_sum)
       # interpretation, CDR unit in days, present ratio/%
       max_per <- (exp(max(tau_values$tau.val)) - 1) * 100
       min_per <- (exp(min(tau_values$tau.val)) - 1) * 100
+      med_per <- (exp(median(tau_values$tau.val)) - 1) * 100
       overall <- sum(tau_values$tau.p.adjust < 0.05) / dim(tau_values)[1]
 
       # Calculate partial simes for patient-wise p values
-      tau_psimes <- get_partial_simes(pvec = tau_values$tau.pval, n = dim(tau_values)[1], u_ls = psimes_u_ls)
-      tau_sum <- c(tau_sum, max_per, min_per, overall, tau_psimes)
-      names(tau_sum) <- c(tau_sum_names, "max%", "min%", "%sig_adj_tau_p", paste0("partial_simes_pval_", gsub("0\\.", "u.", psimes_u_ls)))
+      tau_simes <- simes.test(tau_values$tau.p.adjust)
+      tau_psimes <- get_partial_simes(pvec = tau_values$tau.p.adjust, n = dim(tau_values)[1], u_ls = psimes_u_ls)
+      tau_sum <- c(tau_sum, max_per, med_per, min_per, overall, tau_simes, tau_psimes)
+      names(tau_sum) <- c(tau_sum_names, "max_ptg", "med_ptg", "min_ptg", "%sig_adj_tau_p", "simes_pval", paste0("partial_simes_pval_", gsub("0\\.", "u.", psimes_u_ls)))
       tau_tbl <- rbind(tau_tbl, tau_sum)
     }
     names(tau_tbl) <- names(tau_sum)
-    ## extract gene names
-    gene_names <- get_gene(tau_files, pos = 4)
-    tau_tbl <- cbind(gene_names, tau_tbl)
 
-    ## translate ENSEMBL ID to hugo symbols
+    ## extract gene names
+    if (opt$datatype == "pathway") {
+      gene_names <- get_gene(tau_files, pos = 4)
+    } else { 
+      gene_names <- get_gene(tau_files, pos = 3)
+    }
+    tau_tbl <- cbind(gene_names, tau_tbl) # bind treatment gene names
+
+    ## translate ENSEMBL ID to hugo symbols if not already
     if (opt$datatype == "pathway") {
       pathway_names <- KEGG_path_2_name(tau_tbl$gene_names)
       tau_tbl <- cbind(pathway_names, tau_tbl)
-    } else {
-      translate <- suppressMessages(AnnotationDbi::select(org.Hs.eg.db, keys=gene_names,columns=c("SYMBOL"), keytype="ENSEMBL"))
-      symbol_unique <- NULL
-      for (gene in unique(translate$ENSEMBL)) {
-        symbol_ls <- translate[translate$ENSEMBL == gene,]
-        symbol_ls <- paste(symbol_ls$SYMBOL, collapse = "|")
-        symbol_unique <- c(symbol_unique, symbol_ls)
-      }
-      tau_tbl <- cbind(symbol_unique, tau_tbl)
+    } else if (all(grepl("ENSG", tau_tbl$gene_names))) {
+        translate <- suppressMessages(AnnotationDbi::select(org.Hs.eg.db, keys=gene_names,columns=c("SYMBOL"), keytype="ENSEMBL"))
+        symbol_unique <- NULL
+        for (gene in unique(translate$ENSEMBL)) {
+          symbol_ls <- translate[translate$ENSEMBL == gene,]
+          symbol_ls <- paste(symbol_ls$SYMBOL, collapse = "|")
+          symbol_unique <- c(symbol_unique, symbol_ls)
+        }
+        tau_tbl <- cbind(symbol_unique, tau_tbl)
     }
+
+    dea_tbl <- read.csv(paste0("/home/alex/project/HTE/dat/tables/", cancer, "_DEGtable.csv"))
+    dea_tbl <- dplyr::select(dea_tbl, all_of(c("X", "logFC")))
+    tau_tbl <- left_join(tau_tbl, dea_tbl, by = c("gene_names" = "X"))
 
     #********************split half significance recalculation********************
     # 1. append to tau tables (sig only)
     # 2. export to separate sheet (non-sig only)
 
     sh_files <- list.files(path = paste0(expri, "/res/", cancer, "/"), pattern = "_split_half")
-    sh_files <- sapply(tau_tbl$gene_names, function(x) sh_files[grep(x, sh_files)])
-    gene_names <- ifelse(opt$datatype == "pathway", get_gene(sh_files, pos = 3), get_gene(sh_files, pos = 2))
+    sh_files <- sapply(tau_tbl$gene_names, function(x) sh_files[grep(paste0("_", x), sh_files)])
 
     corr_psimes <- data.frame()
     corr_psimes_names <- NULL
@@ -158,55 +152,60 @@ for (expri in path_list) { # 'exp' and 'expr' are reserved names in r-base
       # recalculate simes partial for replicates' tau values
       # DO NOT report tau simes or partial simes p values for individual splits
       sh_psimes_ls <- NULL
-      for (pcol in c("pearson.pvalue", "kendall.pvalue", "spearman.pvalue", "fisher.pval")) {
+      for (pcol in c("pearson.pvalue", "kendall.pvalue", "spearman.pvalue", "fisher.pval", "t.test.a.pval", "t.test.b.pval")) {
         sh_psimes <- get_partial_simes(sh_values[[pcol]], n = dim(sh_values)[1], u = psimes_u_ls)
         sh_psimes_ls <- c(sh_psimes_ls, sh_psimes)
       }
       corr_psimes <- rbind(corr_psimes, sh_psimes_ls)
     }
-    corr_psimes <- cbind(gene_names, corr_psimes)
-    corr_psimes_names <- c("gene", unlist(lapply(c("pearson.pvalue", "kendall.pvalue", "spearman.pvalue", "fisher.pval"), function(x) paste0(x, "_partial_simes_", gsub("0\\.", "u.", psimes_u_ls)))))
+    if (opt$datatype == "pathway") {
+      gene_names <- get_gene(sh_files, pos = 3)
+    } else { 
+      gene_names <- get_gene(sh_files, pos = 2)
+    }
+    corr_psimes <- cbind(gene_names, corr_psimes) # bind treatment gene names
+
+    # rename all correlation Simes p value calculation
+    corr_psimes_names <- c("gene", unlist(lapply(c("pearson.pvalue", "kendall.pvalue", "spearman.pvalue", "fisher.pval", "t.test.a.pval", "t.test.b.pval"), function(x) paste0(x, "_partial_simes_", gsub("0\\.", "u.", psimes_u_ls)))))
     colnames(corr_psimes) <- corr_psimes_names
 
     #******************************** varimp ****************************************
     # varimp enrichment (for expression HTE) and name reporting
     varimp_files <- list.files(path = paste0(expri, "/res/", cancer, "/"), pattern = paste0(cancer, "_varimp_"))
-    # init
+    
+    # init for all permuted genes
     top_varimp <- data.frame()
+
     for (file in varimp_files) {
       varimp <- read.csv(paste0(expri, "/res/", cancer, "/", file))
-      # choosing to report only the top 25% of varimp
-      important <- varimp$varImp[varimp$varImp > quantile(varimp$varImp, 0.75)]
-      names(important) <- varimp$variable[varimp$varImp > quantile(varimp$varImp, 0.75)]
-      message(paste0("Processing: ", which(file %in% varimp_files), " out of ", length(varimp_files)))
-      if (opt$datatype == "pathway") {
-        # FIXME translating mapIDs into map names with KEGGREST, will result in "Forbidden (HTTP 403)" when too many pathIDs were queries in a short period of time
-        important_path <- sort(important[grep("X", names(important))], decreasing = TRUE)
-        tx_path_name <- get_gene(file, pos = 4)
-        top_path <- paste(unlist(lapply(strsplit(names(important_path), "\\."), function(x) x[[1]])), collapse = "|")
-        # Convert pathIDs into KEGG names
-        top_varimp <- rbind(top_varimp, c(tx_path_name, top_path))
-        colnames(top_varimp) <- c("tx_path", "important_varimp_pathID")
-        all_path <- unique(unlist(lapply(top_varimp$important_varimp_pathID, function(x) {unlist(strsplit(x, "\\|"))})))
-        all_path <- cbind(all_path, kegg_all_names(all_path))
-        Sys.sleep(5)
-        colnames(all_path) <- c("pathID", "description")
-        all_path <- as.data.frame(all_path)
+      # choosing to report only the top 25% of varimp and include translation
+      # selection of top 1/4
+      varimp_cutoff <- quantile(varimp$varImp, 0.75)
+      important <- filter(varimp, varImp > varimp_cutoff)
+      important <- important[order(important$varImp, decreasing = TRUE),]
 
-        top_varimp_names <- unlist(lapply(top_varimp$important_varimp_pathID, function(x) {
-          KEGG_dscp <- unlist(lapply(unlist(strsplit(x, "\\|")), function(x) {
-            x = all_path$description[all_path$pathID == x]
-            }))
-          x <- paste(KEGG_dscp, collapse = "|")
-        }))
-        top_varimp <- cbind(top_varimp, top_varimp_names)
+      if (opt$datatype == "pathway") {
+        # remove trailing file names for pathways
+        important$variable[grepl("X", important$variable)] <- unlist(lapply(strsplit(important$variable[grepl("X", important$variable)], "\\."), function(x) x[[1]]))
+
+        # convert pathway names to full KEGG names
+        important$variable_name[grepl("X", important$variable)] <- KEGG_path_2_name(important$variable[grepl("X", important$variable)])
+
+        tx_path_name <- get_gene(file, pos = 4)
+
+        # concatenate the top 25% covar of *EACH* treatment gene into *ONE* chatacter
+        # Convert pathIDs into KEGG names
+        top_varimp <- rbind(top_varimp, c(tx_path_name, paste(important$variable, collapse = "|"), paste(important$variable_name, collapse = "|"), summary(important$varImp)))
+        colnames(top_varimp) <- c("gene", "important_varimp", "important_varimp_name", "Min.", "1st Qu.",  "Median", "Mean", "3rd Qu.", "Max.")
         
       } else {
-        important_gene <- important[grep("ENSG*", names(important))] # only keep genes
-        tx_gene_name <- ifelse(opt$datatype == "pathway", get_gene(tau_files, pos = 3), get_gene(tau_files, pos = 4))
+        # filter covarates that are *not* transcripts, they could be clinical variables
+        tx_gene_name <- get_gene(file, pos = 3)
+
         # check for KEGG pathway enrichments
-        # Convert ensemblIDs to ENTERZ gene ID for the query
-        suppressMessages(ensembl2ID <- AnnotationDbi::select(org.Hs.eg.db, keys=names(important),columns=c("ENTREZID"), keytype="ENSEMBL"))
+        suppressMessages(ensembl2ID <- AnnotationDbi::select(org.Hs.eg.db, keys=important$variable,columns=c("ENTREZID"), keytype="ENSEMBL"))
+        important <- left_join(important, ensembl2ID, by = c("variable" = "ENSEMBL"))
+
         # pathway enriched in high varimp covaraites
         kk <- enrichKEGG(gene = ensembl2ID$ENTREZID,
                         organism = 'hsa',
@@ -214,19 +213,38 @@ for (expri in path_list) { # 'exp' and 'expr' are reserved names in r-base
         kk <- filter(as.data.frame(kk), p.adjust < 0.05)
         k_id <- paste(kk$ID, collapse = "|")
         k_names <- paste(kk$Description, collapse = "|")
-        top_varimp <- rbind(top_varimp, c(tx_gene_name, k_id, k_names))
-        colnames(top_varimp) <- c("gene", "KEGG_ID", "KEGG_description")
+
+        # append original list of covariates
+        suppressMessages(ensembl2symbol <- AnnotationDbi::select(org.Hs.eg.db, keys=important$variable,columns=c("SYMBOL"), keytype="ENSEMBL"))
+        important <- left_join(important, ensembl2symbol, by = c("variable" = "ENSEMBL"))
+        original_ensg <- paste(important$variable, collapse = "|")
+        original_symb <- paste(important$SYMBOL, collapse = "|")
+
+        top_varimp <- rbind(top_varimp, c(tx_gene_name, k_id, k_names, original_ensg, original_symb))
+        colnames(top_varimp) <- c("gene", "KEGG_ID", "KEGG_description", "original_ENSG", "original_SYMBOL")
       }
+
     }
+    
+    #**************************** test_calibration *****************************
+    test_calib <- list.files(path = paste0(expri, "/res/", cancer, "/"), pattern = "_calibration_")
+    test_calib <- read.csv(paste0(expri, "/res/", cancer, "/", test_calib))
+    test_calib <- dplyr::select(test_calib, all_of(c("gene", last(colnames(test_calib), n = 4))))
+    test_calib$gene <- unlist(lapply(strsplit(perm$gene, "\\."), function(x) x[1]))
 
     #**************************** bind and export *****************************
     # bind: tau table, perm risks, SH corr recalc, varimp enrichment
-    tau_tbl <- inner_join(tau_tbl, perm, by = c("gene_names" = "gene"))
-    tau_tbl <- inner_join(tau_tbl, corr_psimes, by = c("gene_names" = "gene"))
-    tau_tbl <- inner_join(tau_tbl, top_varimp, by = c("gene_names" = "gene"))
+    if (opt$datatype == "pathway")
+      perm$gene <- unlist(lapply(strsplit(perm$gene, "\\."), function(x) x[1]))
+
+
+      sum_tbl <- inner_join(tau_tbl, perm, by = c("gene_names" = "gene"))
+      sum_tbl <- inner_join(sum_tbl, corr_psimes, by = c("gene_names" = "gene"))
+      sum_tbl <- inner_join(sum_tbl, test_calib, by = c("gene_names" = "gene"))
+      sum_tbl <- inner_join(sum_tbl, top_varimp, by = c("gene_names" = "gene"))
 
     save_name <- strsplit(expri, "/")[[1]][7]
-    write.csv(tau_tbl, file = paste0("~/project/HTE/exp/2021-02-03_proj_sum/res/", save_name, "_", cancer, "_summary.csv"), row.names = FALSE)
+    write.csv(sum_tbl, file = paste0("~/project/HTE/exp/2021-02-03_proj_sum/res/", save_name, "_", cancer, "_summary.csv"), row.names = FALSE)
   }
 }
 
