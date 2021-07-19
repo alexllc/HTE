@@ -1,4 +1,4 @@
-setwd("~/proj/HTE/")
+setwd("~/project/HTE/")
 
 library(ALDEx2)
 library(TCGAbiolinks)
@@ -8,13 +8,13 @@ library(BiocParallel)
 library(SummarizedExperiment)
 
 # Fetch TCGA gene counts 
-cancerList <- c("TCGA-BLCA", "TCGA-COAD", "TCGA-GBM", "TCGA-HNSC", "TCGA-KIRC", "TCGA-LUAD","TCGA-LUSC", "TCGA-PRAD", "TCGA-STAD", "TCGA-THCA", "TCGA-UCEC")
+cancerList <- c("TCGA-KIRC", "TCGA-BLCA", "TCGA-COAD", "TCGA-GBM", "TCGA-HNSC", "TCGA-LUAD","TCGA-LUSC", "TCGA-PRAD", "TCGA-STAD", "TCGA-THCA", "TCGA-UCEC")
 
 for (CancerProject in cancerList) {
     
     message(paste0("Creating IQLR object for cancer type:", CancerProject))
 
-    if (!file.exists(paste0("./raw/", CancerProject, "_count_matrix.RData"))) {
+    if (!file.exists(paste0("./dat/iqlr_clr_obj/", CancerProject, "_iqlr_S4_obj.rds.gz"))) {
         DataDirectory <- paste0("./raw/",gsub("-","_",CancerProject))
         FileNameData <- paste0(DataDirectory, "_","HTSeq_Counts",".rda")
 
@@ -31,7 +31,7 @@ for (CancerProject in cancerList) {
         dataSmNT <- TCGAquery_SampleTypes(barcode = samplesDown,
                                         typesample = "NT")
 
-        if (!file.exists(paste0("./raw/", CancerProject, "_count_matrix.RData")) ) {
+        if (!file.exists(paste0("./dat/HTSeq-count/TCGA_", strsplit(CancerProject, "-")[[1]][2], "_HTSeq_Counts.rda")) ) {
 
             # Donwload count matrix from GDC
             queryDown <- GDCquery(project = CancerProject, 
@@ -46,13 +46,19 @@ for (CancerProject in cancerList) {
                             save = TRUE, 
                             save.filename = paste0("./raw/", CancerProject, "_count_matrix.RData"), # Ensembl server may go down 
                             directory =  DataDirectory)
+            save(data, paste0("./raw/", CancerProject, "_count_matrix.RData"))
 
-            } else {
-            load(paste0("./raw/", CancerProject, "_count_matrix.RData"))
+        } else {
+            load(paste0("./dat/HTSeq-count/TCGA_", strsplit(CancerProject, "-")[[1]][2], "_HTSeq_Counts.rda"))
         }
 
-        # Create condition list
+        # convert HTSeq raw count into a data.frame
         cntmat <- data.frame(as.list(assays(data,withDimnames=TRUE)))
+
+        # replace NAs with 0s
+        cntmat[is.na(cntmat)] <- 0
+        
+        # Create condition list
         colnames(cntmat) <- gsub("HTSeq...Counts.", "", colnames(cntmat))
         conds <- gsub("\\.", "-", colnames(cntmat))
         names(conds) = ifelse(conds %in% dataSmTP, "TP", "NT")
@@ -70,11 +76,11 @@ for (CancerProject in cancerList) {
                         verbose=TRUE, 
                         useMC=TRUE)
 
-        saveRDS(iqlr, file = paste0("./dat/", CancerProject, "_iqlr_S4_obj.rds.gz"))
+        saveRDS(iqlr, file = paste0("./dat/iqlr_clr_obj/", CancerProject, "_iqlr_S4_obj.rds.gz"))
         message("IQLR calculation done and saved.")
     } else {
         message("Reading IQLR object from previous run.")
-        iqlr <- readRDS(paste0("./dat/", CancerProject, "_iqlr_S4_obj.rds.gz"))
+        iqlr <- readRDS(paste0("./dat/iqlr_clr_obj/", CancerProject, "_iqlr_S4_obj.rds.gz"))
     }
     sampleIDs <- getSampleIDs(iqlr)
     expected_count <- matrix(1, nrow = numFeatures(iqlr), ncol = length(sampleIDs))
@@ -85,7 +91,7 @@ for (CancerProject in cancerList) {
     }
     rownames(expected_count) <- getFeatureNames(iqlr)
     colnames(expected_count) <- sampleIDs
-    write.csv(expected_count, file = gzfile(paste0("./dat/", CancerProject, "_iqlr_expected_count.csv.gz")), row.names = TRUE)
+    write.csv(expected_count, file = gzfile(paste0("./dat/iqlr_normalized_expr/", CancerProject, "_iqlr_expected_count.csv.gz")), row.names = TRUE)
     message("Point summary of IQLR object generated.")
 }
 
