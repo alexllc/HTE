@@ -76,7 +76,7 @@ fetch_clinical_data <- function(cancer_type,
                                 outUnitDays2Month = FALSE, 
                                 imputeMethod = "simple", 
                                 onlyCompleteCases = FALSE, 
-                                col_vec =  c("bcr_patient_barcode", "type", "age_at_initial_pathologic_diagnosis",  "gender", "ajcc_pathologic_tumor_stage", "tumor_status", outParam, paste0(outParam, ".time")), 
+                                col_vec =  c("bcr_patient_barcode", "type", "age_at_initial_pathologic_diagnosis",  "gender", "ajcc_pathologic_tumor_stage", outParam, paste0(outParam, ".time")), 
                                 discard = c("type")) {
     if (!file.exists("./dat/TCGA-CDR-SupplementalTableS1.xlsx")) {
         download.file("https://ars.els-cdn.com/content/image/1-s2.0-S0092867418302290-mmc1.xlsx", "./dat/TCGA-CDR-SupplementalTableS1.xlsx") }
@@ -105,7 +105,7 @@ fetch_clinical_data <- function(cancer_type,
     } else {
         clinical_dat = impute_with_NNMIS(clinical_dat)
     }
-    clinical_dat = dplyr::select(clinical_dat, -c(out_param_time))
+    clinical_dat = dplyr::select(clinical_dat, -c(out_param, out_param_time))
     if (onlyCompleteCases) clinical_dat = clinical_dat[complete.cases(clinical_dat),]
     print("Processed patient dataframe: ")
 
